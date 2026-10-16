@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addDays } from "../calendar.ts";
-import { hedgeReplay } from "../hedge-replay.ts";
+import { hedgeReplay, makeOptionPricer } from "../hedge-replay.ts";
 import { replay, sampleWindow } from "../replay.ts";
 import { STRATEGY_IDS } from "../types.ts";
 import { baseScenario, daily, loadDff, loadSora, loadUsd } from "./helpers.ts";
@@ -142,5 +142,47 @@ describe("hedgeReplay", () => {
     expect(spread(r.summaries.forward!)).toBeLessThan(
       spread(r.summaries.unhedged!) / 3,
     );
+  });
+
+  it("an at-the-money call caps the worst case near spot + premium", () => {
+    const pricer = makeOptionPricer(inputs.fx, {
+      strikePct: 1,
+      volLookback: 60,
+    });
+    const r = hedgeReplay(inputs, s, 1.3, pricer);
+    const opt = r.relativeCosts.option!;
+    const unhedged = r.relativeCosts.unhedged!;
+    expect(opt).toHaveLength(r.windows);
+    // Relative to the starting spot, the option-hedged cost can never exceed
+    // strike (= 1) × (1 + spread) + premium, and premiums here are under 10%.
+    expect(Math.max(...opt)).toBeLessThan(1.005 + 0.1);
+    expect(r.summaries.option!.max).toBeLessThan(r.summaries.unhedged!.max);
+    // When the rate fell, the option costs more than unhedged by the premium.
+    const cheaper = unhedged.filter((u, i) => u < opt[i]!).length;
+    expect(cheaper).toBeGreaterThan(0);
+  });
+
+  it("option pricing on day d ignores everything after d (look-ahead guard)", () => {
+    const date = "2018-03-01";
+    const pricer = makeOptionPricer(inputs.fx, {
+      strikePct: 1.02,
+      volLookback: 90,
+    });
+    const args = {
+      date,
+      deadline: "2018-09-01",
+      spot: 1.32,
+      rd: 0.012,
+      rf: 0.016,
+    };
+    const altered = {
+      dates: inputs.fx.dates,
+      values: inputs.fx.values.map((v, i) =>
+        inputs.fx.dates[i]! >= date ? v * (1 + (i % 7) / 10) : v,
+      ),
+    };
+    expect(
+      makeOptionPricer(altered, { strikePct: 1.02, volLookback: 90 })(args),
+    ).toEqual(pricer(args));
   });
 });

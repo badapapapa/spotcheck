@@ -4,8 +4,10 @@
 
 import { addDays, daysBetween, rateOn } from "./calendar.ts";
 import { forwardHedgeCost, priceForward, type RateInputs } from "./forwards.ts";
-import { summarize, type Summary } from "./stats.ts";
-import type { ISODate, Scenario } from "./types.ts";
+import { gkCall } from "./options.ts";
+import { toContinuous } from "./rates.ts";
+import { realisedVol, summarize, type Summary } from "./stats.ts";
+import type { ISODate, Scenario, Series } from "./types.ts";
 
 export type HedgeId = "unhedged" | "forward" | "option";
 
@@ -110,5 +112,41 @@ export function hedgeReplay(
     startDates,
     relativeCosts,
     summaries,
+  };
+}
+
+export type OptionSettings = {
+  /** Strike as a fraction of the spot on the pricing date (1 = at the money). */
+  strikePct: number;
+  /** Realised-volatility lookback in observations, before the pricing date. */
+  volLookback: number;
+  /** Fixed volatility instead of realised, if set. */
+  volOverride?: number;
+};
+
+/**
+ * Prices the option hedge for each historical window with only what was known
+ * on its start date: realised volatility from the observations before it
+ * (or the override), and the same backward-looking rates as the forward,
+ * converted to continuous compounding.
+ */
+export function makeOptionPricer(
+  fx: Series,
+  settings: OptionSettings,
+): OptionPricer {
+  return ({ date, deadline, spot, rd, rf }) => {
+    const T = daysBetween(date, deadline) / 365;
+    const sigma =
+      settings.volOverride ?? realisedVol(fx, date, settings.volLookback).sigma;
+    const strike = spot * settings.strikePct;
+    const premium = gkCall({
+      S: spot,
+      K: strike,
+      rd: toContinuous(rd, T),
+      rf: toContinuous(rf, T),
+      sigma: Math.max(sigma, 1e-4), // a perfectly flat history has zero vol
+      T,
+    });
+    return { premium, strike };
   };
 }
