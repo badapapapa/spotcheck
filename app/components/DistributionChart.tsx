@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import type { ReplayResult } from "@/engine/replay.ts";
-import { STRATEGY_IDS, type StrategyId } from "@/engine/types.ts";
+import type { Summary } from "@/engine/stats.ts";
+import { STRATEGY_IDS } from "@/engine/types.ts";
 import { formatPercent, formatSgd } from "@/lib/format.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { useWidth } from "@/lib/use-width.ts";
@@ -20,16 +21,50 @@ function niceStep(span: number, target: number): number {
   return (f >= 5 ? 10 : f >= 2 ? 5 : f >= 1 ? 2 : 1) * pow;
 }
 
+export type RangeRow = {
+  id: string;
+  label: string;
+  color: string;
+  summary: Summary;
+  /** Extra text for the hover/focus caption, e.g. how often it beat another row. */
+  note?: string;
+};
+
+/** The planner's chart: one row per strategy. */
+export function DistributionChart({ result }: { result: ReplayResult }) {
+  return (
+    <RangeChart
+      label="Range of SGD cost for each strategy across all historical windows. Details are in the table below."
+      rows={STRATEGY_IDS.map((id) => ({
+        id,
+        label: STRATEGY_STYLE[id].label,
+        color: STRATEGY_STYLE[id].color,
+        summary: result.stats[id].summary,
+        note:
+          id === "lumpSum"
+            ? undefined
+            : `cost less than all at once in ${formatPercent(result.stats[id].beatLumpSum)} of windows`,
+      }))}
+    />
+  );
+}
+
 /**
- * One row per strategy: a thin line from the cheapest to the most expensive
+ * One row per option: a thin line from the cheapest to the most expensive
  * window, a bar for the middle 90% (5th–95th percentile), and a dot for the
  * median. Lower is cheaper.
  */
-export function DistributionChart({ result }: { result: ReplayResult }) {
-  const [active, setActive] = useState<StrategyId | null>(null);
+export function RangeChart({
+  rows,
+  label,
+}: {
+  rows: RangeRow[];
+  label: string;
+}) {
+  const [activeId, setActive] = useState<string | null>(null);
   const [ref, measured] = useWidth<HTMLElement>();
   const W = Math.max(280, measured);
-  const all = STRATEGY_IDS.map((id) => result.stats[id].summary);
+  const all = rows.map((r) => r.summary);
   const lo = Math.min(...all.map((s) => s.min));
   const hi = Math.max(...all.map((s) => s.max));
   const pad = (hi - lo) * 0.04 || hi * 0.01;
@@ -40,8 +75,8 @@ export function DistributionChart({ result }: { result: ReplayResult }) {
   const ticks: number[] = [];
   for (let t = Math.ceil(domain[0] / step) * step; t <= domain[1]; t += step)
     ticks.push(t);
-  const H = TOP + STRATEGY_IDS.length * ROW_H + AXIS_H;
-  const shown = active ? result.stats[active] : null;
+  const H = TOP + rows.length * ROW_H + AXIS_H;
+  const shown = rows.find((r) => r.id === activeId);
 
   return (
     <figure ref={ref} className="space-y-2">
@@ -51,7 +86,7 @@ export function DistributionChart({ result }: { result: ReplayResult }) {
         height={H}
         className="block max-w-full"
         role="img"
-        aria-label="Range of SGD cost for each strategy across all historical windows. Details are in the table below."
+        aria-label={label}
       >
         {ticks.map((t) => (
           <g key={t}>
@@ -75,9 +110,8 @@ export function DistributionChart({ result }: { result: ReplayResult }) {
             </text>
           </g>
         ))}
-        {STRATEGY_IDS.map((id, i) => {
-          const s = result.stats[id].summary;
-          const style = STRATEGY_STYLE[id];
+        {rows.map((row, i) => {
+          const { id, summary: s } = row;
           const y0 = TOP + i * ROW_H;
           const yBar = y0 + 40;
           const point = s.max - s.min < (domain[1] - domain[0]) * 0.002;
@@ -86,7 +120,7 @@ export function DistributionChart({ result }: { result: ReplayResult }) {
               key={id}
               tabIndex={0}
               role="button"
-              aria-label={`${style.label}: median ${formatSgd(s.median)}, 5th to 95th percentile ${formatSgd(s.p5)} to ${formatSgd(s.p95)}`}
+              aria-label={`${row.label}: median ${formatSgd(s.median)}, 5th to 95th percentile ${formatSgd(s.p5)} to ${formatSgd(s.p95)}`}
               onMouseEnter={() => setActive(id)}
               onMouseLeave={() => setActive(null)}
               onFocus={() => setActive(id)}
@@ -104,7 +138,7 @@ export function DistributionChart({ result }: { result: ReplayResult }) {
                 strokeWidth={2}
                 rx={6}
               />
-              {active === id && (
+              {activeId === id && (
                 <rect
                   x={0}
                   y={y0}
@@ -119,7 +153,7 @@ export function DistributionChart({ result }: { result: ReplayResult }) {
                 y={y0 + 20}
                 className="fill-foreground text-[15px] font-medium"
               >
-                {style.label}
+                {row.label}
               </text>
               <text
                 x={W - PAD_X}
@@ -146,7 +180,7 @@ export function DistributionChart({ result }: { result: ReplayResult }) {
                     width={Math.max(2, x(s.p95) - x(s.p5))}
                     height={12}
                     rx={4}
-                    fill={style.color}
+                    fill={row.color}
                     fillOpacity={0.85}
                   />
                 </>
@@ -155,7 +189,7 @@ export function DistributionChart({ result }: { result: ReplayResult }) {
                 cx={x(s.median)}
                 cy={yBar}
                 r={7}
-                fill={style.color}
+                fill={row.color}
                 stroke="var(--background)"
                 strokeWidth={2.5}
               />
@@ -167,21 +201,13 @@ export function DistributionChart({ result }: { result: ReplayResult }) {
         className="min-h-10 text-sm text-muted-foreground"
         aria-live="polite"
       >
-        {shown && active ? (
+        {shown ? (
           <>
-            <span className="font-medium text-foreground">
-              {STRATEGY_STYLE[active].label}:
-            </span>{" "}
+            <span className="font-medium text-foreground">{shown.label}:</span>{" "}
             cheapest {formatSgd(shown.summary.min)}, middle 90%{" "}
             {formatSgd(shown.summary.p5)}–{formatSgd(shown.summary.p95)}, most
             expensive {formatSgd(shown.summary.max)}
-            {active !== "lumpSum" && (
-              <>
-                ; cost less than all at once in{" "}
-                {formatPercent(shown.beatLumpSum)} of windows
-              </>
-            )}
-            .
+            {shown.note && <>; {shown.note}</>}.
           </>
         ) : (
           <>
