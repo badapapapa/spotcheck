@@ -10,7 +10,7 @@ It is an educational tool using historical mid-market rates. It is not financial
 
 ## Development
 
-Requires Node.js 22 or later.
+Requires Node.js 24.2 or later.
 
 ```bash
 npm install
