@@ -1,0 +1,48 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { DISCLAIMER } from "@/lib/site";
+
+// Guard for the no-financial-advice rule: user-facing source must never use
+// advisory wording. This scans the UI folders, not the engine, whose comments
+// may legitimately discuss e.g. "best execution" in a technical sense.
+const UI_DIRS = ["app", "components", "lib"];
+
+const BANNED = [
+  /\bbest\b/i,
+  /\brecommend(s|ed|ation|ations)?\b/i,
+  /\byou should\b/i,
+  /\bbuy now\b/i,
+  /\bsell now\b/i,
+  /\bguarantee(d|s)?\b/i,
+];
+
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) return sourceFiles(path);
+    return /\.(ts|tsx|md|mdx)$/.test(name) && !name.endsWith(".test.ts")
+      ? [path]
+      : [];
+  });
+}
+
+describe("advisory wording", () => {
+  const files = UI_DIRS.flatMap(sourceFiles);
+
+  it("scans at least the layout and home page", () => {
+    expect(files).toContain(join("app", "layout.tsx"));
+    expect(files).toContain(join("app", "page.tsx"));
+  });
+
+  it.each(files)("%s contains no advisory wording", (file) => {
+    const text = readFileSync(file, "utf8");
+    for (const pattern of BANNED) {
+      expect(text, `${file} matches ${pattern}`).not.toMatch(pattern);
+    }
+  });
+
+  it("disclaimer states it is not financial advice", () => {
+    expect(DISCLAIMER).toContain("Not financial advice");
+  });
+});
