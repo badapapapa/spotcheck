@@ -8,14 +8,3 @@ export const TAGLINE =
 
 export const DISCLAIMER =
   "Educational tool using historical mid-market rates. Not financial advice. Past rates don't predict future ones.";
-
-// Placeholder until meta.json exists (Phase 1); then the footer reads
-// attribution strings and last-updated dates from there.
-export const DATA_SOURCES = [
-  { name: "Frankfurter", href: "https://frankfurter.dev/" },
-  {
-    name: "Monetary Authority of Singapore",
-    href: "https://www.mas.gov.sg/",
-  },
-  { name: "FRED", href: "https://fred.stlouisfed.org/" },
-] as const;

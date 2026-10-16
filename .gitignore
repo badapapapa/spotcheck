@@ -43,3 +43,10 @@ next-env.d.ts
 
 # local Claude Code preview config
 /.claude/
+
+# generated from data/ by scripts/copy-data.ts
+/public/data/
+
+# Playwright
+/test-results/
+/playwright-report/
