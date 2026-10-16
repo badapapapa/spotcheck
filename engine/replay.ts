@@ -38,6 +38,8 @@ export type ReplayResult = {
   independentWindows: number;
   firstStart: ISODate;
   lastStart: ISODate;
+  /** Share of windows in which the target rate was reached before the deadline. */
+  targetHitShare: number;
   /** Spot used to rescale outcomes: latest rate on or before the scenario start. */
   referenceSpot: number;
   referenceDate: ISODate;
@@ -72,16 +74,18 @@ export function replay(
     STRATEGY_IDS.map((id) => [id, [] as number[]]),
   ) as Record<StrategyId, number[]>;
 
+  let targetHits = 0;
   for (let i = 0; i < fx.dates.length; i++) {
     const d = fx.dates[i]!;
     if (opts.earliestStart && d < opts.earliestStart) continue;
     const deadline = addDays(d, L);
     if (deadline > lastDate) break; // the window must fit inside the data
     const spot = fx.values[i]!;
-    const results = runAll(
-      fx,
-      shiftScenario(scenario, d, deadline, spot, opts),
-    );
+    const shifted = shiftScenario(scenario, d, deadline, spot, opts);
+    const results = runAll(fx, shifted);
+    if (results.target.conversions[0]!.rate <= shifted.targetRate!) {
+      targetHits++;
+    }
     startDates.push(d);
     for (const id of STRATEGY_IDS) {
       relativeCosts[id].push(results[id].totalSgd / (scenario.amount * spot));
@@ -118,6 +122,7 @@ export function replay(
     ),
     firstStart: first,
     lastStart: last,
+    targetHitShare: targetHits / startDates.length,
     referenceSpot: reference.value,
     referenceDate: reference.date,
     startDates,
