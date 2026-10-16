@@ -1,8 +1,10 @@
 // Minimal static file server for out/, used by the Playwright smoke tests.
-// (Cloudflare Pages serves the same files in production.)
+// (Cloudflare Pages serves the same files in production, compressed, so this
+// gzips text too: otherwise Lighthouse would measure uncompressed sizes.)
 
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
+import { createGzip } from "node:zlib";
 import { extname, join, normalize } from "node:path";
 
 const ROOT = join(import.meta.dirname, "..", "out");
@@ -33,8 +35,17 @@ createServer((req, res) => {
     res.writeHead(404).end("Not found");
     return;
   }
+  const type = TYPES[extname(path)] ?? "application/octet-stream";
+  const compress =
+    /text|javascript|json|svg/.test(type) &&
+    /\bgzip\b/.test(String(req.headers["accept-encoding"]));
   res.writeHead(200, {
-    "Content-Type": TYPES[extname(path)] ?? "application/octet-stream",
+    "Content-Type": type,
+    ...(compress
+      ? { "Content-Encoding": "gzip", Vary: "Accept-Encoding" }
+      : {}),
   });
-  createReadStream(path).pipe(res);
+  const stream = createReadStream(path);
+  if (compress) stream.pipe(createGzip()).pipe(res);
+  else stream.pipe(res);
 }).listen(PORT, () => console.log(`Serving out/ on http://localhost:${PORT}`));

@@ -4,7 +4,7 @@ import meta from "@/data/meta.json";
 import { formatDate } from "@/lib/dates.ts";
 import { DISCLAIMER, SITE_NAME, TAGLINE } from "@/lib/site";
 import { Suspense } from "react";
-import { SiteNav } from "./components/SiteNav";
+import { SiteNav, SiteNavFallback } from "./components/SiteNav";
 import "./globals.css";
 
 // next/font downloads the font at build time and serves it from our own
@@ -43,13 +43,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </p>
               <p className="text-sm text-muted-foreground">{TAGLINE}</p>
             </div>
-            <Suspense>
+            <Suspense fallback={<SiteNavFallback pathname="" />}>
               <SiteNav />
             </Suspense>
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
+        <main className="mx-auto min-h-svh w-full max-w-3xl flex-1 px-4 py-8">
           {children}
         </main>
 

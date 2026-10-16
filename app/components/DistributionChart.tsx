@@ -149,6 +149,7 @@ export function RangeChart({
                 />
               )}
               <text
+                aria-hidden
                 x={PAD_X}
                 y={y0 + 20}
                 className="fill-foreground text-[15px] font-medium"
@@ -156,6 +157,7 @@ export function RangeChart({
                 {row.label}
               </text>
               <text
+                aria-hidden
                 x={W - PAD_X}
                 y={y0 + 20}
                 textAnchor="end"

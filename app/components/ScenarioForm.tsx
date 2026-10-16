@@ -113,9 +113,11 @@ export function ScenarioForm({ state, onChange, spot }: Props) {
           className="h-10"
         />
         {errorText("amount")}
-        {spot !== undefined && !errors.amount && (
-          <p className="text-xs text-muted-foreground">
-            ≈ {formatSgd(state.scenario.amount * spot)} at the latest mid rate
+        {!errors.amount && (
+          // Always takes its line, so the form doesn't jump when rates load.
+          <p className="min-h-4 text-xs text-muted-foreground">
+            {spot !== undefined &&
+              `≈ ${formatSgd(state.scenario.amount * spot)} at the latest mid rate`}
           </p>
         )}
       </div>
