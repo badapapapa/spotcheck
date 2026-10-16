@@ -1,0 +1,9 @@
+.next/
+out/
+node_modules/
+package-lock.json
+next-env.d.ts
+
+# Owner-maintained docs, kept verbatim
+CLAUDE.md
+SPOTCHECK_PLAN.md
