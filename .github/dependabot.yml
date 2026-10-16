@@ -4,6 +4,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Major versions (e.g. TypeScript 7, ESLint 10) can break the Next.js
+    # toolchain, so they are upgraded by hand, one at a time.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       minor-and-patch:
         update-types: [minor, patch]
