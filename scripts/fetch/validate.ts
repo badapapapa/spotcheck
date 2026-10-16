@@ -63,6 +63,12 @@ function loadCommitted(): DataFiles {
   return { fx, sora: readJson("rates/SORA.json", SoraFileSchema), rates };
 }
 
+// import.meta.main arrived in Node 24.2. On older versions it is undefined,
+// which would skip validation and exit 0, so refuse to run instead.
+if (import.meta.main === undefined) {
+  throw new Error("validate.ts needs Node 24.2 or later (import.meta.main)");
+}
+
 if (import.meta.main) {
   const files = loadCommitted();
   readJson("meta.json", MetaFileSchema);
