@@ -25,10 +25,10 @@ createServer((req, res) => {
     res.writeHead(403).end();
     return;
   }
-  if (existsSync(path) && statSync(path).isDirectory())
+  // Like Cloudflare Pages: /advanced → advanced.html, then a folder's index.html.
+  if (existsSync(`${path}.html`)) path = `${path}.html`;
+  else if (existsSync(path) && statSync(path).isDirectory())
     path = join(path, "index.html");
-  else if (!existsSync(path) && existsSync(`${path}.html`))
-    path = `${path}.html`;
   if (!existsSync(path)) {
     res.writeHead(404).end("Not found");
     return;
