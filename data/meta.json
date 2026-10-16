@@ -1,0 +1,228 @@
+{
+  "series": {
+    "SGD-USD": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10100
+    },
+    "SGD-CAD": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10148
+    },
+    "SGD-MXN": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 8667
+    },
+    "SGD-BRL": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 8842
+    },
+    "SGD-ARS": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 7866
+    },
+    "SGD-CLP": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 7710
+    },
+    "SGD-COP": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 9011
+    },
+    "SGD-PEN": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 7684
+    },
+    "SGD-CNY": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 9949
+    },
+    "SGD-HKD": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10073
+    },
+    "SGD-MOP": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 7975
+    },
+    "SGD-JPY": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10148
+    },
+    "SGD-KRW": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 9610
+    },
+    "SGD-TWD": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 9555
+    },
+    "SGD-INR": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10020
+    },
+    "SGD-IDR": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 8928
+    },
+    "SGD-MYR": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 9565
+    },
+    "SGD-PHP": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 9155
+    },
+    "SGD-THB": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 9470
+    },
+    "SGD-VND": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 8741
+    },
+    "SGD-KZT": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10065
+    },
+    "SGD-ILS": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 8924
+    },
+    "SGD-SAR": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10020
+    },
+    "SGD-TRY": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 9486
+    },
+    "SGD-MAD": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 7718
+    },
+    "SGD-ZAR": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10096
+    },
+    "SGD-AUD": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10148
+    },
+    "SGD-NZD": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 9497
+    },
+    "SGD-EUR": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10148
+    },
+    "SGD-CZK": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 9437
+    },
+    "SGD-DKK": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10148
+    },
+    "SGD-HUF": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 9439
+    },
+    "SGD-ISK": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 9515
+    },
+    "SGD-NOK": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10148
+    },
+    "SGD-PLN": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 9873
+    },
+    "SGD-RUB": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10028
+    },
+    "SGD-SEK": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10148
+    },
+    "SGD-CHF": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10148
+    },
+    "SGD-GBP": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10148
+    },
+    "SGD-BND": {
+      "first": "1999-01-04",
+      "last": "2026-10-16",
+      "count": 10100
+    },
+    "SORA": {
+      "first": "2005-07-01",
+      "last": "2026-10-15",
+      "count": 5344
+    },
+    "USD-DFF": {
+      "first": "2005-01-01",
+      "last": "2026-10-14",
+      "count": 7957
+    }
+  },
+  "attribution": [
+    {
+      "name": "Frankfurter",
+      "url": "https://frankfurter.dev/"
+    },
+    {
+      "name": "Monetary Authority of Singapore",
+      "url": "https://eservices.mas.gov.sg/Statistics/dir/DomesticInterestRates.aspx"
+    },
+    {
+      "name": "FRED, Federal Reserve Bank of St. Louis",
+      "url": "https://fred.stlouisfed.org/series/DFF"
+    }
+  ]
+}
