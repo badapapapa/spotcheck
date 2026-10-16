@@ -1,0 +1,37 @@
+MAS: Financial Database - Domestic Interest Rates
+
+Domestic Interest Rates (Daily)
+Aug 2020 to Aug 2020
+
+
+SORA Value Date,,,SORA Publication Date,SORA,Compound SORA - 1 month,Compound SORA - 3 month,Compound SORA - 6 month
+2020,Aug,03,04 Aug 2020,0.1313,0.0899,0.0816,0.3054
+,,04,05 Aug 2020,0.0920,0.0898,0.0817,0.2996
+,,05,06 Aug 2020,0.0362,0.0878,0.0813,0.2937
+,,06,07 Aug 2020,0.0480,0.0879,0.0814,0.2886
+,,07,11 Aug 2020,0.1567,0.1064,0.0865,0.2737
+,,11,12 Aug 2020,0.0836,0.1088,0.0869,0.2696
+,,12,13 Aug 2020,0.0857,0.1113,0.0873,0.2658
+,,13,14 Aug 2020,0.0806,0.1134,0.0879,0.2612
+,,14,17 Aug 2020,0.1091,0.1218,0.0907,0.2455
+,,17,18 Aug 2020,0.1038,0.1245,0.0916,0.2407
+,,18,19 Aug 2020,0.1335,0.1281,0.0929,0.2352
+,,19,20 Aug 2020,0.1317,0.1317,0.0942,0.2300
+,,20,21 Aug 2020,0.0672,0.1332,0.0947,0.2269
+,,21,24 Aug 2020,0.0552,0.1284,0.0950,0.2155
+,,24,25 Aug 2020,0.0608,0.1216,0.0952,0.2107
+,,25,26 Aug 2020,0.0503,0.1144,0.0953,0.2057
+,,26,27 Aug 2020,0.0410,0.1070,0.0948,0.2008
+,,27,28 Aug 2020,0.0959,0.1015,0.0949,0.1961
+,,28,31 Aug 2020,0.1919,0.1046,0.0975,0.1903
+,,31,01 Sep 2020,0.2128,0.1082,0.0985,0.1846
+
+
+" After a review of the market demand and usage of MAS-administered financial benchmarks, a decision was made to discontinue the following domestic interest rates with effect from 1 January 2014: "
+"    *  Interbank (overnight, 1-week, 1-month, 2-month, 3-month, 6-month, 12-month)"
+"    *  3-month commercial bills"
+"    *  SGS Overnight Repo"
+" Historical data for these rates will still be available on the MAS website. For further enquiries, please contact the Monetary and Domestic Markets Management Department at 6229 9150."
+" The Singapore Overnight Rate Average or SORA is the volume-weighted average rate of borrowing transactions in the unsecured overnight interbank SGD cash market in Singapore between 8.00am and 6.15pm."
+" The SORA Publication Date is the same date as the SORA Compounded Index Value Date."
+" For the Singapore Interbank Offered Rates (SIBOR) and Swap Offer Rates (SOR), please refer to the Association of Banks in Singapore's website."

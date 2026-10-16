@@ -1,0 +1,38 @@
+MAS: Financial Database - Domestic Interest Rates
+
+Domestic Interest Rates (Daily)
+Jul 2005 to Jul 2005
+
+
+SORA Value Date,,,SORA Publication Date,SORA,Compound SORA - 1 month,Compound SORA - 3 month,Compound SORA - 6 month
+2005,Jul,01,04 Jul 2005,1.7998,-,-,-
+,,04,05 Jul 2005,1.7480,-,-,-
+,,05,06 Jul 2005,1.7686,-,-,-
+,,06,07 Jul 2005,1.7971,-,-,-
+,,07,08 Jul 2005,1.7956,-,-,-
+,,08,11 Jul 2005,1.7851,-,-,-
+,,11,12 Jul 2005,1.7279,-,-,-
+,,12,13 Jul 2005,1.7292,-,-,-
+,,13,14 Jul 2005,1.6997,-,-,-
+,,14,15 Jul 2005,1.7127,-,-,-
+,,15,18 Jul 2005,1.7286,-,-,-
+,,18,19 Jul 2005,1.7137,-,-,-
+,,19,20 Jul 2005,1.7475,-,-,-
+,,20,21 Jul 2005,1.7688,-,-,-
+,,21,22 Jul 2005,1.8009,-,-,-
+,,22,25 Jul 2005,1.7898,-,-,-
+,,25,26 Jul 2005,1.7729,-,-,-
+,,26,27 Jul 2005,1.7572,-,-,-
+,,27,28 Jul 2005,1.7766,-,-,-
+,,28,29 Jul 2005,1.7625,-,-,-
+,,29,01 Aug 2005,1.7712,-,-,-
+
+
+" After a review of the market demand and usage of MAS-administered financial benchmarks, a decision was made to discontinue the following domestic interest rates with effect from 1 January 2014: "
+"    *  Interbank (overnight, 1-week, 1-month, 2-month, 3-month, 6-month, 12-month)"
+"    *  3-month commercial bills"
+"    *  SGS Overnight Repo"
+" Historical data for these rates will still be available on the MAS website. For further enquiries, please contact the Monetary and Domestic Markets Management Department at 6229 9150."
+" The Singapore Overnight Rate Average or SORA is the volume-weighted average rate of borrowing transactions in the unsecured overnight interbank SGD cash market in Singapore between 8.00am and 6.15pm."
+" The SORA Publication Date is the same date as the SORA Compounded Index Value Date."
+" For the Singapore Interbank Offered Rates (SIBOR) and Swap Offer Rates (SOR), please refer to the Association of Banks in Singapore's website."
