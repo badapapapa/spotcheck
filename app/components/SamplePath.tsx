@@ -1,5 +1,6 @@
 "use client";
 
+import { Download } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import {
   CartesianGrid,
@@ -19,6 +20,7 @@ import { STRATEGY_IDS, type Scenario, type Series } from "@/engine/types.ts";
 import { formatDate, formatMonth } from "@/lib/dates.ts";
 import { formatRate, formatSgd } from "@/lib/format.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   fx: Series;
@@ -36,11 +38,23 @@ export function SamplePath({
 }: Props) {
   const id = useId();
   const [index, setIndex] = useState(startDates.length - 1);
+  const [exporting, setExporting] = useState(false);
   const start = startDates[Math.min(index, startDates.length - 1)]!;
   const w = useMemo(
     () => sampleWindow(fx, scenario, start, { targetBelowSpot }),
     [fx, scenario, start, targetBelowSpot],
   );
+
+  async function exportXlsx() {
+    setExporting(true);
+    try {
+      // Loaded on demand: ExcelJS is large and most visitors never export.
+      const { downloadWorkbook } = await import("@/lib/xlsx.ts");
+      await downloadWorkbook(fx, scenario, targetBelowSpot, w);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const line = useMemo(() => {
     const out: { x: number; rate: number }[] = [];
@@ -205,6 +219,18 @@ export function SamplePath({
           spread. The target was {formatRate(w.spot * (1 - targetBelowSpot))} (
           {(targetBelowSpot * 100).toFixed(1)}% below {formatRate(w.spot)}).
         </p>
+        <Button
+          type="button"
+          variant="outline"
+          className="mt-3"
+          onClick={exportXlsx}
+          disabled={exporting}
+        >
+          <Download aria-hidden />
+          {exporting
+            ? "Preparing…"
+            : "Download this window as .xlsx (live formulas)"}
+        </Button>
       </div>
     </div>
   );

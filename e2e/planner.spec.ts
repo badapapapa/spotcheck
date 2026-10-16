@@ -41,3 +41,18 @@ test("the scenario round-trips through the URL", async ({ page }) => {
     "spreading over 3 conversions",
   );
 });
+
+test("downloads the selected window as an .xlsx", async ({ page }) => {
+  await page.goto("/");
+  const button = page.getByRole("button", {
+    name: /Download this window as \.xlsx/,
+  });
+  await expect(button).toBeVisible();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    button.click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(
+    /^spotcheck-USD-\d{4}-\d{2}-\d{2}\.xlsx$/,
+  );
+});
