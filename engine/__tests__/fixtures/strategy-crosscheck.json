@@ -1,0 +1,286 @@
+{
+  "source": "notebooks/crosscheck.ipynb",
+  "series": "SGD-USD",
+  "cases": [
+    {
+      "startDate": "2013-09-03",
+      "deadline": "2014-05-06",
+      "amount": 30000.0,
+      "tranches": 6,
+      "spread": 0.005,
+      "targetRate": 1.233960669845553,
+      "expected": {
+        "lumpSum": 38437.02297,
+        "tranches": 37971.313507499995,
+        "wait": 37676.196765,
+        "target": 37676.196765
+      }
+    },
+    {
+      "startDate": "2009-07-24",
+      "deadline": "2010-06-15",
+      "amount": 25000.0,
+      "tranches": 12,
+      "spread": 0.0,
+      "targetRate": 1.3959001449472925,
+      "expected": {
+        "lumpSum": 36027.207500000004,
+        "tranches": 35065.520000000004,
+        "wait": 34946.95,
+        "target": 34878.205
+      }
+    },
+    {
+      "startDate": "2007-10-19",
+      "deadline": "2008-09-13",
+      "amount": 16000.0,
+      "tranches": 10,
+      "spread": 0.01,
+      "targetRate": 1.4122357510996273,
+      "expected": {
+        "lumpSum": 23618.134112,
+        "tranches": 22689.200913599998,
+        "wait": 23223.395408,
+        "target": 22816.156944
+      }
+    },
+    {
+      "startDate": "2016-09-20",
+      "deadline": "2017-10-21",
+      "amount": 31000.0,
+      "tranches": 5,
+      "spread": 0.005,
+      "targetRate": 1.344342494356149,
+      "expected": {
+        "lumpSum": 42454.75960949999,
+        "tranches": 43293.4291548,
+        "wait": 42337.64173349999,
+        "target": 41772.814045499996
+      }
+    },
+    {
+      "startDate": "2001-04-29",
+      "deadline": "2001-10-14",
+      "amount": 27000.0,
+      "tranches": 6,
+      "spread": 0.0025,
+      "targetRate": 1.7563400100668682,
+      "expected": {
+        "lumpSum": 49202.0076735,
+        "tranches": 48684.142338749996,
+        "wait": 49090.465212749994,
+        "target": 47449.38163499999
+      }
+    },
+    {
+      "startDate": "2018-02-06",
+      "deadline": "2018-08-29",
+      "amount": 19000.0,
+      "tranches": 12,
+      "spread": 0.005,
+      "targetRate": 1.306070489998909,
+      "expected": {
+        "lumpSum": 25221.905717999998,
+        "tranches": 25558.586689375,
+        "wait": 26068.616207999996,
+        "target": 26068.616207999996
+      }
+    },
+    {
+      "startDate": "2013-01-19",
+      "deadline": "2013-08-08",
+      "amount": 5000.0,
+      "tranches": 2,
+      "spread": 0.0,
+      "targetRate": 1.1968541604727776,
+      "expected": {
+        "lumpSum": 6127.301,
+        "tranches": 6226.00575,
+        "wait": 6324.7105,
+        "target": 6324.7105
+      }
+    },
+    {
+      "startDate": "2002-03-01",
+      "deadline": "2002-07-17",
+      "amount": 25000.0,
+      "tranches": 5,
+      "spread": 0.0,
+      "targetRate": 1.8298812106564204,
+      "expected": {
+        "lumpSum": 45841.28,
+        "tranches": 45006.2045,
+        "wait": 43384.7,
+        "target": 45746.49
+      }
+    },
+    {
+      "startDate": "2023-06-03",
+      "deadline": "2023-10-19",
+      "amount": 17000.0,
+      "tranches": 12,
+      "spread": 0.01,
+      "targetRate": 1.3251054328560021,
+      "expected": {
+        "lumpSum": 23135.797198999997,
+        "tranches": 23225.985914916666,
+        "wait": 23566.389893,
+        "target": 22727.874056
+      }
+    },
+    {
+      "startDate": "2006-12-29",
+      "deadline": "2008-01-10",
+      "amount": 20000.0,
+      "tranches": 11,
+      "spread": 0.0,
+      "targetRate": 1.4864742476717,
+      "expected": {
+        "lumpSum": 30688.496,
+        "tranches": 30040.743818181818,
+        "wait": 28648.37,
+        "target": 29635.338
+      }
+    },
+    {
+      "startDate": "2005-12-17",
+      "deadline": "2006-03-18",
+      "amount": 12000.0,
+      "tranches": 1,
+      "spread": 0.0,
+      "targetRate": 1.665989921548964,
+      "expected": {
+        "lumpSum": 20019.018,
+        "tranches": 20019.018,
+        "wait": 19388.299199999998,
+        "target": 19984.3452
+      }
+    },
+    {
+      "startDate": "2000-05-05",
+      "deadline": "2000-09-10",
+      "amount": 2000.0,
+      "tranches": 6,
+      "spread": 0.0025,
+      "targetRate": 1.633145180596829,
+      "expected": {
+        "lumpSum": 3444.1294514999995,
+        "tranches": 3467.6765390833325,
+        "wait": 3471.5007089999995,
+        "target": 3471.5007089999995
+      }
+    },
+    {
+      "startDate": "2020-02-07",
+      "deadline": "2020-08-04",
+      "amount": 35000.0,
+      "tranches": 7,
+      "spread": 0.0,
+      "targetRate": 1.3728122665016615,
+      "expected": {
+        "lumpSum": 48550.421500000004,
+        "tranches": 48922.103,
+        "wait": 48162.2645,
+        "target": 48162.2645
+      }
+    },
+    {
+      "startDate": "2009-02-07",
+      "deadline": "2009-03-09",
+      "amount": 4000.0,
+      "tranches": 8,
+      "spread": 0.0,
+      "targetRate": 1.444834180949583,
+      "expected": {
+        "lumpSum": 6015.5804,
+        "tranches": 6109.8192,
+        "wait": 6195.9788,
+        "target": 6195.9788
+      }
+    },
+    {
+      "startDate": "2000-10-20",
+      "deadline": "2001-04-25",
+      "amount": 21000.0,
+      "tranches": 9,
+      "spread": 0.0,
+      "targetRate": 1.6682698694059457,
+      "expected": {
+        "lumpSum": 36824.0166,
+        "tranches": 36934.93813333334,
+        "wait": 38089.0188,
+        "target": 38089.0188
+      }
+    },
+    {
+      "startDate": "2014-10-05",
+      "deadline": "2015-07-11",
+      "amount": 11000.0,
+      "tranches": 3,
+      "spread": 0.01,
+      "targetRate": 1.2549622115269075,
+      "expected": {
+        "lumpSum": 14160.803778000001,
+        "tranches": 14749.524899999999,
+        "wait": 14991.431818,
+        "target": 14991.431818
+      }
+    },
+    {
+      "startDate": "2005-03-24",
+      "deadline": "2006-02-19",
+      "amount": 22000.0,
+      "tranches": 7,
+      "spread": 0.01,
+      "targetRate": 1.5855038013770524,
+      "expected": {
+        "lumpSum": 36486.642082,
+        "tranches": 36980.23017857142,
+        "wait": 36291.179407999996,
+        "target": 36291.179407999996
+      }
+    },
+    {
+      "startDate": "2019-11-01",
+      "deadline": "2020-06-21",
+      "amount": 42000.0,
+      "tranches": 8,
+      "spread": 0.005,
+      "targetRate": 1.350916498075695,
+      "expected": {
+        "lumpSum": 57390.311537999994,
+        "tranches": 58582.081341,
+        "wait": 58854.69884699999,
+        "target": 57004.334855999994
+      }
+    },
+    {
+      "startDate": "2006-06-13",
+      "deadline": "2006-08-07",
+      "amount": 16000.0,
+      "tranches": 8,
+      "spread": 0.0,
+      "targetRate": 1.5847513185520483,
+      "expected": {
+        "lumpSum": 25526.483200000002,
+        "tranches": 25363.726399999996,
+        "wait": 25165.1456,
+        "target": 25343.7248
+      }
+    },
+    {
+      "startDate": "2005-12-15",
+      "deadline": "2006-04-29",
+      "amount": 22000.0,
+      "tranches": 5,
+      "spread": 0.01,
+      "targetRate": 1.6609390938672883,
+      "expected": {
+        "lumpSum": 37074.734378,
+        "tranches": 36116.6102,
+        "wait": 35155.446326000005,
+        "target": 36837.480328
+      }
+    }
+  ]
+}
