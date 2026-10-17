@@ -18,7 +18,7 @@ describe("URL state", () => {
     expect(s.targetBelowSpot).toBe(0.02);
     expect(s.strikePct).toBe(1);
     expect(s.volOverride).toBeUndefined();
-    expect(s.volLookback).toBe(60);
+    expect(s.volLookback).toBe(250);
   });
 
   it("round-trips every field through the query string", () => {
@@ -30,6 +30,20 @@ describe("URL state", () => {
     const again = parseState(serializeState(state), TODAY);
     expect(again).toEqual(state);
     expect(serializeState(state).toString()).toBe(params.toString());
+  });
+
+  it("accepts 60, 90 and 250-day volatility lookbacks, defaulting to 250", () => {
+    for (const n of [60, 90, 250]) {
+      expect(
+        parseState(new URLSearchParams(`vl=${n}`), TODAY).volLookback,
+      ).toBe(n);
+    }
+    expect(parseState(new URLSearchParams("vl=7"), TODAY).volLookback).toBe(
+      250,
+    );
+    expect(
+      serializeState(parseState(new URLSearchParams(), TODAY)).has("vl"),
+    ).toBe(false);
   });
 
   it("falls back per field on bad values instead of failing", () => {

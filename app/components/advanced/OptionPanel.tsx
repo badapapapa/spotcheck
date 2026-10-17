@@ -30,7 +30,7 @@ import { Label } from "@/components/ui/label";
 import { formatDate } from "@/lib/dates.ts";
 import { formatPercent, formatRate, formatSgd } from "@/lib/format.ts";
 import { HEDGE_STYLE } from "@/lib/hedge-style.ts";
-import { LIMITS } from "@/lib/url-state.ts";
+import { LIMITS, VOL_LOOKBACKS, type VolLookback } from "@/lib/url-state.ts";
 
 type Props = {
   currency: string;
@@ -40,10 +40,10 @@ type Props = {
   base: Omit<GkInputs, "K" | "sigma">; // spot, continuous rates, T
   forward: number;
   strikePct: number;
-  realised: { sigma: number; lookback: 60 | 90; from: string; to: string };
+  realised: { sigma: number; lookback: VolLookback; from: string; to: string };
   volOverride?: number;
   onStrike: (pct: number) => void;
-  onVol: (override: number | undefined, lookback: 60 | 90) => void;
+  onVol: (override: number | undefined, lookback: VolLookback) => void;
 };
 
 const axisTick = { fill: "var(--muted-foreground)", fontSize: 12 };
@@ -148,17 +148,24 @@ export function OptionPanel(props: Props) {
                 aria-label="Realised volatility lookback"
                 value={realised.lookback}
                 onChange={(e) =>
-                  props.onVol(volOverride, e.target.value === "90" ? 90 : 60)
+                  props.onVol(
+                    volOverride,
+                    VOL_LOOKBACKS.find((n) => String(n) === e.target.value) ??
+                      250,
+                  )
                 }
                 className="h-10 rounded-lg border border-input bg-transparent px-2 text-sm dark:bg-input/30"
               >
-                <option value={60}>60-day</option>
-                <option value={90}>90-day</option>
+                {VOL_LOOKBACKS.map((n) => (
+                  <option key={n} value={n}>
+                    {n}-day
+                  </option>
+                ))}
               </select>
             </div>
             <p className="text-xs text-muted-foreground">
               {volOverride === undefined
-                ? `Realised volatility (proxy for implied): ${(realised.sigma * 100).toFixed(1)}%, from ${realised.lookback} daily moves ${formatDate(realised.from)}–${formatDate(realised.to)}. Type a number to override.`
+                ? `Realised volatility (proxy for implied): ${(realised.sigma * 100).toFixed(1)}%, from ${realised.lookback} trading days ${formatDate(realised.from)}–${formatDate(realised.to)}. Type a number to override.`
                 : `Your override. Leave it empty to use realised volatility (${(realised.sigma * 100).toFixed(1)}%).`}
             </p>
           </div>
