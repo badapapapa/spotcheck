@@ -5,8 +5,18 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 /** Planner / Hedging tabs that carry the scenario across in the URL. */
 export function SiteNav() {
-  const pathname = usePathname();
-  const query = useSearchParams().toString();
+  return <Tabs pathname={usePathname()} query={useSearchParams().toString()} />;
+}
+
+/**
+ * The same tabs without the query string, rendered into the static HTML so
+ * the header has its final size before any JavaScript runs (no layout shift).
+ */
+export function SiteNavFallback({ pathname }: { pathname: string }) {
+  return <Tabs pathname={pathname} query="" />;
+}
+
+function Tabs({ pathname, query }: { pathname: string; query: string }) {
   const tabs = [
     { href: "/", label: "Planner" },
     { href: "/advanced", label: "Hedging" },

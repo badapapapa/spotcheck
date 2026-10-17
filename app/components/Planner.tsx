@@ -1,9 +1,7 @@
 "use client";
 
-import { useDeferredValue, useMemo } from "react";
 import { rateAsOf } from "@/engine/calendar.ts";
 import { findCurrency } from "@/engine/currencies.ts";
-import { replay, type ReplayResult } from "@/engine/replay.ts";
 import {
   Card,
   CardContent,
@@ -11,12 +9,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { computeReplay } from "@/lib/compute.ts";
 import { loadFx } from "@/lib/data.ts";
 import { formatDate } from "@/lib/dates.ts";
 import { formatRate } from "@/lib/format.ts";
 import { describeReplay } from "@/lib/summary.ts";
 import { useLoad } from "@/lib/use-data.ts";
 import { usePlannerState } from "@/lib/use-planner-state.ts";
+import type { PlannerState } from "@/lib/url-state.ts";
 import { CopyLinkButton } from "./CopyLinkButton";
 import { DistributionChart } from "./DistributionChart";
 import { Methodology } from "./Methodology";
@@ -34,37 +34,33 @@ export function Planner() {
   const series = fx.status === "ready" ? fx.data : undefined;
   const spot = series ? rateAsOf(series, scenario.startDate) : undefined;
 
-  // Replaying ~10,000 windows takes a moment on a phone; let typing stay
-  // responsive and recompute with the latest values.
-  const deferred = useDeferredValue(state);
-  const outcome = useMemo(():
-    { result: ReplayResult } | { error: string } | undefined => {
-    if (!series) return undefined;
-    try {
-      return {
-        result: replay(series, deferred.scenario, {
-          targetBelowSpot: deferred.targetBelowSpot,
-        }),
-      };
-    } catch (e) {
-      return { error: e instanceof Error ? e.message : String(e) };
-    }
-  }, [series, deferred]);
-  const result = outcome && "result" in outcome ? outcome.result : undefined;
+  // Replaying ~10,000 windows runs in a Web Worker. The previous result
+  // stays on screen until the new one arrives.
+  const outcome = useLoad(
+    series ? `replay:${JSON.stringify(state)}` : null,
+    async (): Promise<{
+      result: Awaited<ReturnType<typeof computeReplay>>;
+      for: PlannerState;
+    }> => ({
+      result: await computeReplay(series!, state.scenario, {
+        targetBelowSpot: state.targetBelowSpot,
+      }),
+      for: state,
+    }),
+    { keepPrevious: true },
+  );
+  // A stale result for a different currency would pair the wrong history
+  // with the wrong rates, so only keep one for the same currency.
+  const ready =
+    outcome.status === "ready" &&
+    outcome.data.for.scenario.currency === scenario.currency
+      ? outcome.data
+      : undefined;
+  const result = ready?.result;
+  const deferred = ready?.for ?? state;
 
   return (
     <div className="space-y-6">
-      <section className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Exchange money planner
-        </h1>
-        <p className="text-muted-foreground">
-          Enter how much foreign currency you need and by when. SpotCheck
-          replays four ways of converting it over every comparable period since
-          1999 and shows the range of SGD costs.
-        </p>
-      </section>
-
       <Card>
         <CardHeader>
           <CardTitle>Your scenario</CardTitle>
@@ -96,7 +92,7 @@ export function Planner() {
           Couldn&apos;t load the rate history: {fx.error}
         </p>
       )}
-      {outcome && "error" in outcome && (
+      {outcome.status === "error" && (
         <p role="alert" className="text-destructive">
           {outcome.error}. Try a shorter period.
         </p>

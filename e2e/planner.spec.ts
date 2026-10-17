@@ -42,6 +42,21 @@ test("the scenario round-trips through the URL", async ({ page }) => {
   );
 });
 
+test("downloads the selected window as an .xlsx", async ({ page }) => {
+  await page.goto("/");
+  const button = page.getByRole("button", {
+    name: /Download this window as \.xlsx/,
+  });
+  await expect(button).toBeVisible();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    button.click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(
+    /^spotcheck-USD-\d{4}-\d{2}-\d{2}\.xlsx$/,
+  );
+});
+
 test("typing in the amount updates the URL once, without route requests or history entries", async ({
   page,
 }) => {
@@ -97,4 +112,33 @@ test("serves and links an apple-touch-icon", async ({ page, request }) => {
     "href",
     /apple-touch-icon\.png/,
   );
+});
+
+test("ExcelJS is downloaded only when the user clicks Download", async ({
+  page,
+}) => {
+  // Collect every script the page loads, with its source.
+  const scripts: { url: string; body: Promise<string> }[] = [];
+  page.on("response", (res) => {
+    if (res.request().resourceType() === "script")
+      scripts.push({ url: res.url(), body: res.text().catch(() => "") });
+  });
+  // A string that only appears inside ExcelJS's bundle.
+  const isExcelJs = (src: string) => src.includes("xl/workbook.xml");
+
+  await page.goto("/");
+  const button = page.getByRole("button", {
+    name: /Download this window as \.xlsx/,
+  });
+  await expect(button).toBeVisible();
+  const before = await Promise.all(scripts.map((s) => s.body));
+  expect(before.some(isExcelJs)).toBe(false);
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    button.click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/\.xlsx$/);
+  const after = await Promise.all(scripts.map((s) => s.body));
+  expect(after.some(isExcelJs)).toBe(true);
 });

@@ -32,9 +32,10 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+// SpotCheck: card titles are real h2 headings so each card is a page section.
+function CardTitle({ className, ...props }: React.ComponentProps<"h2">) {
   return (
-    <div
+    <h2
       data-slot="card-title"
       className={cn(
         "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
