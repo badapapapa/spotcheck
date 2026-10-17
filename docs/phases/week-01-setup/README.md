@@ -4,19 +4,19 @@
 
 ## What was built
 
-| Item | Where |
-| --- | --- |
-| Next.js 16 App Router, static export to `out/` | `next.config.ts` |
-| TypeScript strict (+ `noUncheckedIndexedAccess`, no `any`) | `tsconfig.json`, `eslint.config.mjs` |
-| Tailwind CSS v4 + shadcn/ui (base-nova style) | `app/globals.css`, `components/ui/`, `components.json` |
-| ESLint + Prettier, Vitest, `npm run check` | `package.json`, `vitest.config.mts`, `.prettierrc.json` |
-| Header, tagline, disclaimer footer on every page | `app/layout.tsx`, `lib/site.ts` |
-| Test that blocks advisory wording ("best", "recommended", "you should"...) in UI code | `tests/advisory-wording.test.ts` |
-| CI: type-check, lint, tests, build, gitleaks full-history scan | `.github/workflows/ci.yml` |
-| Dependabot (minor/patch only; majors by hand) | `.github/dependabot.yml` |
-| Security headers + CSP for Cloudflare Pages | `public/_headers` |
-| `.env` ignored, `.env.example` with placeholder | `.gitignore`, `.env.example` |
-| Private repo | https://github.com/badapapapa/spotcheck |
+| Item                                                                                  | Where                                                   |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Next.js 16 App Router, static export to `out/`                                        | `next.config.ts`                                        |
+| TypeScript strict (+ `noUncheckedIndexedAccess`, no `any`)                            | `tsconfig.json`, `eslint.config.mjs`                    |
+| Tailwind CSS v4 + shadcn/ui (base-nova style)                                         | `app/globals.css`, `components/ui/`, `components.json`  |
+| ESLint + Prettier, Vitest, `npm run check`                                            | `package.json`, `vitest.config.mts`, `.prettierrc.json` |
+| Header, tagline, disclaimer footer on every page                                      | `app/layout.tsx`, `lib/site.ts`                         |
+| Test that blocks advisory wording ("best", "recommended", "you should"...) in UI code | `tests/advisory-wording.test.ts`                        |
+| CI: type-check, lint, tests, build, gitleaks full-history scan                        | `.github/workflows/ci.yml`                              |
+| Dependabot (minor/patch only; majors by hand)                                         | `.github/dependabot.yml`                                |
+| Security headers + CSP for Cloudflare Pages                                           | `public/_headers`                                       |
+| `.env` ignored, `.env.example` with placeholder                                       | `.gitignore`, `.env.example`                            |
+| Private repo                                                                          | https://github.com/badapapapa/spotcheck                 |
 
 ## Decisions made along the way
 

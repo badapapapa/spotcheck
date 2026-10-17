@@ -7,3 +7,6 @@ next-env.d.ts
 # Owner-maintained docs, kept verbatim
 CLAUDE.md
 SPOTCHECK_PLAN.md
+
+# Data files keep one observation per line for small diffs
+data/
