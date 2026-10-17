@@ -44,7 +44,7 @@ C  = S₀·e^(−r_f·T)·N(d₁) − K·e^(−r_d·T)·N(d₂)
 d₁ = [ ln(S₀/K) + (r_d − r_f + σ²/2)·T ] / (σ√T),   d₂ = d₁ − σ√T
 ```
 
-σ is the realised volatility of log returns between consecutive trading observations over the 60 or 90 trading days **before** the pricing date, annualised with √252 (user-overridable). The normal CDF is Hart's double-precision approximation.
+σ is the realised volatility of log returns between consecutive trading observations over the 250 (or 60/90) trading days **before** the pricing date, annualised with √252 (user-overridable). The normal CDF is Hart's double-precision approximation.
 
 **No look-ahead.** Decisions on day _d_ only see data up to _d_: `rateAsOf` for decisions, `rateOn` for trades, volatility and rates from before _d_. Tests alter every value after _d_ and assert nothing decided by _d_ changes.
 
@@ -80,7 +80,9 @@ Frankfurter / MAS / FRED → scripts/fetch (daily, validated) → data/*.json �
 
 ## Data sources
 
-- Exchange rates: [Frankfurter](https://frankfurter.dev/), blended central-bank mid rates, from 1999.
+- Exchange rates, one source per currency for its whole history:
+  - 23 currencies (USD, EUR, GBP, JPY, AUD and others the ECB has published every working day since 1999): [European Central Bank euro foreign exchange reference rates](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html), retrieved via [Frankfurter](https://frankfurter.dev/). **SGD crosses are derived by SpotCheck as (SGD per EUR) ÷ (currency per EUR).**
+  - The other 16: [Frankfurter](https://frankfurter.dev/) blended central-bank mid rates (daily volatility from these may be understated).
 - SGD interest rates: [MAS Domestic Interest Rates](https://eservices.mas.gov.sg/Statistics/dir/DomesticInterestRates.aspx), daily SORA from July 2005 and published compounded SORA.
 - USD interest rates: Board of Governors of the Federal Reserve System, Federal Funds Effective Rate (DFF), retrieved from [FRED](https://fred.stlouisfed.org/series/DFF), Federal Reserve Bank of St. Louis.
 
