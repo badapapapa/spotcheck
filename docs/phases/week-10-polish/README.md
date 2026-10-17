@@ -26,7 +26,14 @@ Already done in earlier phases: all 40 currencies in the planner (Phase 3), opti
 | Unit tests                 | 150 pass; engine coverage ~99%                                                                                                                                                                            |
 | Playwright                 | 14/14 incl. the `.xlsx` download                                                                                                                                                                          |
 
-Lighthouse was run locally against the static build (gzip, simulated mobile). Re-run it on the live `*.pages.dev` URL after launch.
+Lighthouse was run locally against the static build (gzip, simulated mobile). After the review fixes it scores 94 / 94 for performance and 100 for the rest on both pages. Re-run it on the live `*.pages.dev` URL after launch.
+
+## Fixes after review
+
+- `exceljs` pins `uuid ^8.3.0`, which `npm audit` flags (`uuid <11.1.1`). An npm `overrides` entry forces `uuid ^11.1.1`; ExcelJS only calls `uuid.v4()`, which v11 still provides, and the Excel unit tests and download e2e test pass. `npm audit --omit=dev`: 0 vulnerabilities.
+- `shadcn` moved to devDependencies (Phase 1 branch).
+- ExcelJS is loaded only by `await import("exceljs")` inside the download handler; an e2e test checks no script containing ExcelJS is fetched before the click and one is after.
+- Windows now start on trading days only (~7,000 for a 9-month USD plan).
 
 ## Notes
 

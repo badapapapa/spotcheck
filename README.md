@@ -10,7 +10,7 @@ SpotCheck is a free web app for students going on exchange who need a lump of fo
 
 ## What it does
 
-- **Planner.** Pick a currency (40 used by NUS, NTU and SMU exchange destinations), amount, start date, deadline, number of conversions and your bank's spread. SpotCheck runs four strategies (all at once, equal tranches, wait until the deadline, target rate with a deadline fallback) over ~10,000 historical windows and shows the median, middle 90% and extremes, plus a plain-English summary and a slider to inspect any single window.
+- **Planner.** Pick a currency (40 used by NUS, NTU and SMU exchange destinations), amount, start date, deadline, number of conversions and your bank's spread. SpotCheck runs four strategies (all at once, equal tranches, wait until the deadline, target rate with a deadline fallback) over every historical window that starts on a trading day (about 7,000 for a 9-month plan) and shows the median, middle 90% and extremes, plus a plain-English summary and a slider to inspect any single window.
 - **Hedging tab.** Today's forward (spot, forward points, the SORA and fed-funds rates behind it), an option pricer with a strike slider, payoff chart and live Greeks, and a historical comparison of unhedged vs forward vs option.
 - **Shareable.** The whole scenario lives in the URL. No accounts, no cookies, no data stored.
 - **Auditable.** Download any historical window as an `.xlsx` whose cost cells are live formulas.
@@ -44,7 +44,7 @@ C  = S₀·e^(−r_f·T)·N(d₁) − K·e^(−r_d·T)·N(d₂)
 d₁ = [ ln(S₀/K) + (r_d − r_f + σ²/2)·T ] / (σ√T),   d₂ = d₁ − σ√T
 ```
 
-σ is the realised volatility of daily log returns over the 60 or 90 observations **before** the pricing date (user-overridable). The normal CDF is Hart's double-precision approximation.
+σ is the realised volatility of log returns between consecutive trading observations over the 60 or 90 trading days **before** the pricing date, annualised with √252 (user-overridable). The normal CDF is Hart's double-precision approximation.
 
 **No look-ahead.** Decisions on day _d_ only see data up to _d_: `rateAsOf` for decisions, `rateOn` for trades, volatility and rates from before _d_. Tests alter every value after _d_ and assert nothing decided by _d_ changes.
 
@@ -72,7 +72,7 @@ Requires Node.js 24.2 or later.
 
 ## Architecture
 
-A daily GitHub Actions job fetches new data, validates it, and commits JSON files to `data/`. The site is a Next.js static export on Cloudflare Pages; the browser loads one currency's history (~95 KB gzipped) and runs the engine in a Web Worker. There is no server, no database and no secret outside GitHub Actions.
+A daily GitHub Actions job fetches new data, validates it, and commits JSON files to `data/`. The site is a Next.js static export on Cloudflare Pages; the browser loads one currency's history (~70 KB gzipped) and runs the engine in a Web Worker. There is no server, no database and no secret outside GitHub Actions.
 
 ```
 Frankfurter / MAS / FRED → scripts/fetch (daily, validated) → data/*.json → static site → engine in the browser

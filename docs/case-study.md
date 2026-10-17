@@ -8,7 +8,7 @@ SpotCheck answers a better question: _how would each of those approaches have pl
 
 ## What I built
 
-- A **planner** that replays four strategies over ~10,000 historical windows for any of 40 currencies, with a distribution chart, a generated summary and a window-by-window explorer.
+- A **planner** that replays four strategies over every historical window starting on a trading day (about 7,000 for a 9-month plan) for any of 40 currencies, with a distribution chart, a generated summary and a window-by-window explorer.
 - A **hedging tab** that prices forwards (covered interest parity) and options (Garman-Kohlhagen) for the same scenario, with live Greeks, and compares hedged and unhedged outcomes historically.
 - A **data pipeline** that keeps 40 FX series, daily SORA and the US fed funds rate up to date with a daily GitHub Actions job, validated before every commit.
 
@@ -20,7 +20,11 @@ The site is static (no server, no accounts, no cookies) and costs nothing to run
 
 **Look-ahead bias.** Every decision on day _d_ may only use data up to _d_. The engine makes this structural: `rateAsOf` (on or before) for decisions and `rateOn` (next available) for trades. Option volatility comes from the observations strictly before the pricing date, and the forward's rates from the window ending on it. Tests alter every value after _d_ and assert that nothing decided by _d_ changes.
 
-**Overlapping windows.** 10,000 windows that start a day apart are not 10,000 independent experiments. The summary says how many non-overlapping windows the history really contains (about 35 for a 9-month plan), and the methodology says the percentages describe one history, not probabilities.
+**Overlapping windows.** 7,000 windows that start a day apart are not 7,000 independent experiments. The summary says how many non-overlapping windows the history really contains (about 35 for a 9-month plan), and the methodology says the percentages describe one history, not probabilities.
+
+## Trading days, and a smoothed source
+
+A review caught that the FX feed included weekend rows: windows started on ~365 days a year and realised volatility was annualised from calendar-day moves. The data now holds trading observations only (validation rejects weekend rows and carried-forward repeats), volatility is annualised with √252, and tests pin all of it down. Fixing it also exposed a subtler issue: Frankfurter's _blended_ rate averages providers that fix at different times, which smooths daily moves. USD/SGD's 60-day realised volatility is 1.8% on the blended feed but 2.7% on the ECB's single fixing for the same days.
 
 ## The SORA back-check
 
