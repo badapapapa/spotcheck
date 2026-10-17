@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays } from "../calendar.ts";
+import { addDays, daysBetween, isWeekend } from "../calendar.ts";
 import { hedgeReplay } from "../hedge-replay.ts";
 import { replay, sampleWindow } from "../replay.ts";
 import { STRATEGY_IDS } from "../types.ts";
@@ -55,6 +55,23 @@ describe("replay", () => {
     expect(r.targetHitShare).toBeCloseTo(3 / r.windows, 12);
   });
 
+  it("starts windows only on real trading observations, about 252–262 a year", () => {
+    const fx = loadUsd();
+    const r = replay(
+      fx,
+      { ...baseScenario, startDate: "2026-10-17", deadline: "2027-08-01" },
+      opts,
+    );
+    const observed = new Set(fx.dates);
+    expect(r.startDates.every((d) => observed.has(d) && !isWeekend(d))).toBe(
+      true,
+    );
+    const years = daysBetween(r.firstStart, r.lastStart) / 365.25;
+    const perYear = r.windows / years;
+    expect(perYear).toBeGreaterThan(245);
+    expect(perYear).toBeLessThan(263);
+  });
+
   it("lump sum relative cost is exactly 1 + spread", () => {
     const r = replay(
       loadUsd(),
@@ -108,7 +125,7 @@ describe("replay", () => {
       windows = replay(fx, s, opts).windows;
       best = Math.min(best, performance.now() - t0);
     }
-    expect(windows).toBeGreaterThan(9000);
+    expect(windows).toBeGreaterThan(6500);
     // The budget is for a browser. Shared CI runners are slower and this
     // suite runs under coverage instrumentation there, so CI gets 2x.
     expect(best).toBeLessThan(process.env.CI ? 600 : 300);

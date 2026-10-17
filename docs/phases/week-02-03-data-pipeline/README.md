@@ -19,54 +19,54 @@
 
 ## Data committed
 
-All files store one observation per line so daily diffs are small. Total 14 MB in the repo; the browser downloads one currency at a time (SGD-USD is about 95 KB gzipped).
+All files store one observation per line so daily diffs are small. Total 11 MB in the repo (15 MB before weekend rows were removed); the browser downloads one currency at a time.
 
-| Series  | First      | Last       | Rows  | Size   |
-| ------- | ---------- | ---------- | ----- | ------ |
-| SGD-USD | 1999-01-04 | 2026-10-16 | 10100 | 373 KB |
-| SGD-CAD | 1999-01-04 | 2026-10-16 | 10148 | 375 KB |
-| SGD-MXN | 1999-01-04 | 2026-10-16 | 8667  | 330 KB |
-| SGD-BRL | 1999-01-04 | 2026-10-16 | 8842  | 326 KB |
-| SGD-ARS | 1999-01-04 | 2026-10-16 | 7866  | 296 KB |
-| SGD-CLP | 1999-01-04 | 2026-10-16 | 7710  | 300 KB |
-| SGD-COP | 1999-01-04 | 2026-10-16 | 9011  | 368 KB |
-| SGD-PEN | 1999-01-04 | 2026-10-16 | 7684  | 284 KB |
-| SGD-CNY | 1999-01-04 | 2026-10-16 | 9949  | 367 KB |
-| SGD-HKD | 1999-01-04 | 2026-10-16 | 10073 | 372 KB |
-| SGD-MOP | 1999-01-04 | 2026-10-16 | 7975  | 294 KB |
-| SGD-JPY | 1999-01-04 | 2026-10-16 | 10148 | 383 KB |
-| SGD-KRW | 1999-01-04 | 2026-10-16 | 9610  | 375 KB |
-| SGD-TWD | 1999-01-04 | 2026-10-16 | 9555  | 364 KB |
-| SGD-INR | 1999-01-04 | 2026-10-16 | 10020 | 380 KB |
-| SGD-IDR | 1999-01-04 | 2026-10-16 | 8928  | 347 KB |
-| SGD-MYR | 1999-01-04 | 2026-10-16 | 9565  | 353 KB |
-| SGD-PHP | 1999-01-04 | 2026-10-16 | 9155  | 347 KB |
-| SGD-THB | 1999-01-04 | 2026-10-16 | 9470  | 359 KB |
-| SGD-VND | 1999-01-04 | 2026-10-16 | 8741  | 346 KB |
-| SGD-KZT | 1999-01-04 | 2026-10-16 | 10065 | 385 KB |
-| SGD-ILS | 1999-01-04 | 2026-10-16 | 8924  | 329 KB |
-| SGD-SAR | 1999-01-04 | 2026-10-16 | 10020 | 370 KB |
-| SGD-TRY | 1999-01-04 | 2026-10-16 | 9486  | 352 KB |
-| SGD-MAD | 1999-01-04 | 2026-10-16 | 7718  | 285 KB |
-| SGD-ZAR | 1999-01-04 | 2026-10-16 | 10096 | 379 KB |
-| SGD-AUD | 1999-01-04 | 2026-10-16 | 10148 | 375 KB |
-| SGD-NZD | 1999-01-04 | 2026-10-16 | 9497  | 351 KB |
-| SGD-EUR | 1999-01-04 | 2026-10-16 | 10148 | 375 KB |
-| SGD-CZK | 1999-01-04 | 2026-10-16 | 9437  | 366 KB |
-| SGD-DKK | 1999-01-04 | 2026-10-16 | 10148 | 375 KB |
-| SGD-HUF | 1999-01-04 | 2026-10-16 | 9439  | 367 KB |
-| SGD-ISK | 1999-01-04 | 2026-10-16 | 9515  | 357 KB |
-| SGD-NOK | 1999-01-04 | 2026-10-16 | 10148 | 374 KB |
-| SGD-PLN | 1999-01-04 | 2026-10-16 | 9873  | 364 KB |
-| SGD-RUB | 1999-01-04 | 2026-10-16 | 10028 | 383 KB |
-| SGD-SEK | 1999-01-04 | 2026-10-16 | 10148 | 375 KB |
-| SGD-CHF | 1999-01-04 | 2026-10-16 | 10148 | 375 KB |
-| SGD-GBP | 1999-01-04 | 2026-10-16 | 10148 | 375 KB |
-| SGD-BND | 1999-01-04 | 2026-10-16 | 10100 | 237 KB |
-| SORA    | 2005-07-01 | 2026-10-15 | 5344  | 357 KB |
-| USD-DFF | 2005-01-01 | 2026-10-14 | 7957  | 209 KB |
+| Series  | First      | Last       | Rows | Size   |
+| ------- | ---------- | ---------- | ---- | ------ |
+| SGD-USD | 1999-01-04 | 2026-10-16 | 7222 | 267 KB |
+| SGD-CAD | 1999-01-04 | 2026-10-16 | 7220 | 267 KB |
+| SGD-MXN | 1999-01-04 | 2026-10-16 | 7239 | 275 KB |
+| SGD-BRL | 1999-01-04 | 2026-10-16 | 7210 | 266 KB |
+| SGD-ARS | 1999-01-04 | 2026-10-16 | 7198 | 271 KB |
+| SGD-CLP | 1999-01-04 | 2026-10-16 | 7218 | 281 KB |
+| SGD-COP | 1999-01-04 | 2026-10-16 | 7226 | 295 KB |
+| SGD-PEN | 1999-01-04 | 2026-10-16 | 7184 | 265 KB |
+| SGD-CNY | 1999-01-04 | 2026-10-16 | 7209 | 266 KB |
+| SGD-HKD | 1999-01-04 | 2026-10-16 | 7214 | 266 KB |
+| SGD-MOP | 1999-01-04 | 2026-10-16 | 7125 | 263 KB |
+| SGD-JPY | 1999-01-04 | 2026-10-16 | 7184 | 271 KB |
+| SGD-KRW | 1999-01-04 | 2026-10-16 | 7229 | 282 KB |
+| SGD-TWD | 1999-01-04 | 2026-10-16 | 7185 | 274 KB |
+| SGD-INR | 1999-01-04 | 2026-10-16 | 7210 | 273 KB |
+| SGD-IDR | 1999-01-04 | 2026-10-16 | 7120 | 277 KB |
+| SGD-MYR | 1999-01-04 | 2026-10-16 | 7179 | 265 KB |
+| SGD-PHP | 1999-01-04 | 2026-10-16 | 7194 | 273 KB |
+| SGD-THB | 1999-01-04 | 2026-10-16 | 7192 | 273 KB |
+| SGD-VND | 1999-01-04 | 2026-10-16 | 7128 | 281 KB |
+| SGD-KZT | 1999-01-04 | 2026-10-16 | 7154 | 274 KB |
+| SGD-ILS | 1999-01-04 | 2026-10-16 | 7205 | 266 KB |
+| SGD-SAR | 1999-01-04 | 2026-10-16 | 7178 | 265 KB |
+| SGD-TRY | 1999-01-04 | 2026-10-16 | 7209 | 268 KB |
+| SGD-MAD | 1999-01-04 | 2026-10-16 | 7231 | 267 KB |
+| SGD-ZAR | 1999-01-04 | 2026-10-16 | 7242 | 272 KB |
+| SGD-AUD | 1999-01-04 | 2026-10-16 | 7208 | 266 KB |
+| SGD-NZD | 1999-01-04 | 2026-10-16 | 7210 | 266 KB |
+| SGD-EUR | 1999-01-04 | 2026-10-16 | 7229 | 267 KB |
+| SGD-CZK | 1999-01-04 | 2026-10-16 | 7241 | 281 KB |
+| SGD-DKK | 1999-01-04 | 2026-10-16 | 7213 | 266 KB |
+| SGD-HUF | 1999-01-04 | 2026-10-16 | 7204 | 280 KB |
+| SGD-ISK | 1999-01-04 | 2026-10-16 | 7149 | 269 KB |
+| SGD-NOK | 1999-01-04 | 2026-10-16 | 7231 | 267 KB |
+| SGD-PLN | 1999-01-04 | 2026-10-16 | 7214 | 266 KB |
+| SGD-RUB | 1999-01-04 | 2026-10-16 | 7231 | 276 KB |
+| SGD-SEK | 1999-01-04 | 2026-10-16 | 7227 | 267 KB |
+| SGD-CHF | 1999-01-04 | 2026-10-16 | 7230 | 267 KB |
+| SGD-GBP | 1999-01-04 | 2026-10-16 | 7217 | 266 KB |
+| SGD-BND | 1999-01-04 | 2026-10-16 | 7222 | 170 KB |
+| SORA    | 2005-07-01 | 2026-10-15 | 5344 | 357 KB |
+| USD-DFF | 2005-01-01 | 2026-10-15 | 7958 | 209 KB |
 
-FX rows include weekends because Frankfurter's blended feed publishes them. SORA has only Singapore business days.
+**FX rows are trading observations only.** Frankfurter's blended feed also has Saturday and Sunday rows (from sources that publish at weekends) and occasionally repeats a rate over a holiday. Ingestion keeps only Monday–Friday rows whose rate changed (`scripts/fetch/trading-days.ts`), and validation rejects weekend rows and carried-forward repeats. Major currencies now have about 258–261 observations a year. SORA has only Singapore business days.
 
 ## Findings and decisions (please review)
 

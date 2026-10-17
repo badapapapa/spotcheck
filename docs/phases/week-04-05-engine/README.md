@@ -4,18 +4,18 @@
 
 ## What was built
 
-| Module                       | What it does                                                                                                                                          |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `engine/types.ts`            | `ISODate`, `Series`, `Scenario`, `StrategyId`, `Conversion`, `StrategyResult` (plan §3.1)                                                             |
-| `engine/calendar.ts`         | `rateOn` (next available, for executing), `rateAsOf` (on or before, for decisions), tranche dates, ACT/365 year fractions, month arithmetic; UTC only |
-| `engine/strategies.ts`       | Lump sum, equal tranches, wait, target-with-deadline-fallback; spread on every conversion                                                             |
-| `engine/replay.ts`           | Every historical start date, all four strategies, summary stats, share of windows beating lump sum, sample window for the path view                   |
-| `engine/stats.ts`            | Percentiles (numpy/Excel `PERCENTILE.INC` method), summaries, realised volatility from data strictly before the pricing date                          |
-| `engine/rates.ts`            | MAS compounding of daily SORA (ACT/365) and USD fed funds (ACT/360 → ACT/365), trailing tenor rates, continuous-rate conversion                       |
-| `engine/forwards.ts`         | Covered interest parity, forward points, pricing a forward from data known on the day, hedge cost                                                     |
-| `engine/hedge-replay.ts`     | Unhedged vs forward-hedged cost over every window with rate history (option hedge plugs in during Phase 4)                                            |
-| `lib/series.ts`              | Converts validated data files into engine `Series`                                                                                                    |
-| `notebooks/crosscheck.ipynb` | Independent numpy reimplementation of compounding and strategies; writes the fixtures the TS tests check                                              |
+| Module                       | What it does                                                                                                                                                                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `engine/types.ts`            | `ISODate`, `Series`, `Scenario`, `StrategyId`, `Conversion`, `StrategyResult` (plan §3.1)                                                                                                                                       |
+| `engine/calendar.ts`         | `rateOn` (next available, for executing), `rateAsOf` (on or before, for decisions), tranche dates, ACT/365 year fractions, month arithmetic; UTC only                                                                           |
+| `engine/strategies.ts`       | Lump sum, equal tranches, wait, target-with-deadline-fallback; spread on every conversion                                                                                                                                       |
+| `engine/replay.ts`           | Every historical start date, all four strategies, summary stats, share of windows beating lump sum, sample window for the path view                                                                                             |
+| `engine/stats.ts`            | Percentiles (numpy/Excel `PERCENTILE.INC` method), summaries, realised volatility: log returns between consecutive trading observations over the N trading days strictly before the pricing date, × √252 (rejects weekend rows) |
+| `engine/rates.ts`            | MAS compounding of daily SORA (ACT/365) and USD fed funds (ACT/360 → ACT/365), trailing tenor rates, continuous-rate conversion                                                                                                 |
+| `engine/forwards.ts`         | Covered interest parity, forward points, pricing a forward from data known on the day, hedge cost                                                                                                                               |
+| `engine/hedge-replay.ts`     | Unhedged vs forward-hedged cost over every window with rate history (option hedge plugs in during Phase 4)                                                                                                                      |
+| `lib/series.ts`              | Converts validated data files into engine `Series`                                                                                                                                                                              |
+| `notebooks/crosscheck.ipynb` | Independent numpy reimplementation of compounding and strategies; writes the fixtures the TS tests check                                                                                                                        |
 
 ## Test results
 
@@ -33,7 +33,7 @@
 | Percentiles vs a hand-computed array                 | `stats.test.ts`                                       | ✅                                                                                                        |
 | Python cross-check                                   | `crosscheck.test.ts`                                  | ✅ compounding to 1e-12, strategies to 1e-9 relative                                                      |
 | Engine purity (no React, network, clock, randomness) | `purity.test.ts`                                      | ✅                                                                                                        |
-| Performance (< 300 ms, 25+ years daily USD)          | `replay.test.ts`                                      | ✅ about 10,000 windows × 12 tranches                                                                     |
+| Performance (< 300 ms, 25+ years daily USD)          | `replay.test.ts`                                      | ✅ about 7,000 trading-day windows × 12 tranches                                                          |
 
 ## Convention findings (please review)
 
@@ -42,6 +42,10 @@
 3. **Normalising history (a plan ambiguity).** The plan says to normalise to "SGD per 1,000 foreign units". On its own that keeps the 1999 rate level (1.70 SGD/USD) mixed in with today's (1.30). The engine divides each window's cost by _that window's_ starting spot, then rescales by the user's amount × today's spot. So every outcome reads "what this would cost if the coming months moved the way that window did". Lump sum is then always exactly amount × spot × (1 + spread).
 4. The cross-check caught a bug in my first _Python_ draft (daily compounding instead of simple interest per rate period). The TS engine was already right, since it matches MAS.
 5. MAS's CSV also contains back-calculated compounded SORA before Aug 2020; the back-check uses only the officially published period.
+
+## Trading-day fix (added after review)
+
+Frankfurter's blended feed had weekend rows, so windows started on ~365 days a year and volatility was annualised from calendar-day moves. The data now holds trading observations only (Phase 1), `realisedVol` uses consecutive trading observations × √252 and refuses weekend rows, and tests check that replay windows start only on real observations (about 252–262 a year).
 
 ## Dependencies added
 

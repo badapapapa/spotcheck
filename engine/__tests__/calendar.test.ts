@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addMonths,
+  isWeekend,
   daysBetween,
   rateAsOf,
   rateOn,
@@ -48,6 +49,14 @@ describe("rate lookups", () => {
 });
 
 describe("date arithmetic", () => {
+  it("isWeekend knows Saturday and Sunday", () => {
+    expect(
+      ["2026-10-16", "2026-10-17", "2026-10-18", "2026-10-19"].map(isWeekend),
+    ).toEqual([false, true, true, false]);
+    expect(isWeekend("1970-01-01")).toBe(false); // Thursday
+    expect(isWeekend("1969-12-28")).toBe(true); // Sunday, before the epoch
+  });
+
   it("counts calendar days across a leap year", () => {
     expect(daysBetween("2024-02-28", "2024-03-01")).toBe(2);
     expect(yearFraction("2023-01-01", "2024-01-01")).toBe(1);

@@ -52,8 +52,8 @@ describe("sanity checks", () => {
     ).toMatch(/8-day gap/);
     const r = checkFx(
       fx([
-        ["2024-01-01", 1.33],
-        ["2024-01-06", 1.33],
+        ["2024-01-03", 1.33],
+        ["2024-01-08", 1.34],
       ]),
     );
     expect(r.errors).toEqual([]);
@@ -75,6 +75,21 @@ describe("sanity checks", () => {
       },
     ];
     expect(checkFx(jump, allow).errors).toEqual([]);
+  });
+
+  it("rejects weekend rows and carried-forward repeats", () => {
+    const weekend = fx([
+      ["2024-01-05", 1.33],
+      ["2024-01-06", 1.34],
+    ]);
+    expect(checkFx(weekend).errors[0]).toMatch(/weekend row on 2024-01-06/);
+    const repeat = fx([
+      ["2024-01-08", 1.33],
+      ["2024-01-09", 1.33],
+    ]);
+    expect(checkFx(repeat).errors[0]).toMatch(/repeats the previous rate/);
+    // A pegged series repeats by design.
+    expect(checkFx(repeat, [], { allowRepeats: true }).errors).toEqual([]);
   });
 
   it("rejects a stored inversion that doesn't match the raw rate", () => {
