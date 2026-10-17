@@ -1,0 +1,222 @@
+{
+  "source": "MAS Domestic Interest Rates, Compound SORA columns (percent, 4 dp), sampled from data/rates/SORA.json",
+  "convention": "Published on publicationDate; compounds daily SORA over [publicationDate - tenor, publicationDate)",
+  "values": [
+    {
+      "publicationDate": "2020-08-06",
+      "valueDate": "2020-08-05",
+      "tenorMonths": 1,
+      "publishedPercent": 0.0878
+    },
+    {
+      "publicationDate": "2020-08-06",
+      "valueDate": "2020-08-05",
+      "tenorMonths": 3,
+      "publishedPercent": 0.0813
+    },
+    {
+      "publicationDate": "2020-08-06",
+      "valueDate": "2020-08-05",
+      "tenorMonths": 6,
+      "publishedPercent": 0.2937
+    },
+    {
+      "publicationDate": "2021-02-08",
+      "valueDate": "2021-02-05",
+      "tenorMonths": 1,
+      "publishedPercent": 0.1469
+    },
+    {
+      "publicationDate": "2021-02-08",
+      "valueDate": "2021-02-05",
+      "tenorMonths": 3,
+      "publishedPercent": 0.1692
+    },
+    {
+      "publicationDate": "2021-02-08",
+      "valueDate": "2021-02-05",
+      "tenorMonths": 6,
+      "publishedPercent": 0.1427
+    },
+    {
+      "publicationDate": "2021-08-16",
+      "valueDate": "2021-08-13",
+      "tenorMonths": 1,
+      "publishedPercent": 0.1404
+    },
+    {
+      "publicationDate": "2021-08-16",
+      "valueDate": "2021-08-13",
+      "tenorMonths": 3,
+      "publishedPercent": 0.1272
+    },
+    {
+      "publicationDate": "2021-08-16",
+      "valueDate": "2021-08-13",
+      "tenorMonths": 6,
+      "publishedPercent": 0.1544
+    },
+    {
+      "publicationDate": "2022-02-16",
+      "valueDate": "2022-02-15",
+      "tenorMonths": 1,
+      "publishedPercent": 0.2521
+    },
+    {
+      "publicationDate": "2022-02-16",
+      "valueDate": "2022-02-15",
+      "tenorMonths": 3,
+      "publishedPercent": 0.2176
+    },
+    {
+      "publicationDate": "2022-02-16",
+      "valueDate": "2022-02-15",
+      "tenorMonths": 6,
+      "publishedPercent": 0.1854
+    },
+    {
+      "publicationDate": "2022-08-24",
+      "valueDate": "2022-08-23",
+      "tenorMonths": 1,
+      "publishedPercent": 1.8592
+    },
+    {
+      "publicationDate": "2022-08-24",
+      "valueDate": "2022-08-23",
+      "tenorMonths": 3,
+      "publishedPercent": 1.4871
+    },
+    {
+      "publicationDate": "2022-08-24",
+      "valueDate": "2022-08-23",
+      "tenorMonths": 6,
+      "publishedPercent": 0.9998
+    },
+    {
+      "publicationDate": "2023-02-28",
+      "valueDate": "2023-02-27",
+      "tenorMonths": 1,
+      "publishedPercent": 3.5828
+    },
+    {
+      "publicationDate": "2023-02-28",
+      "valueDate": "2023-02-27",
+      "tenorMonths": 3,
+      "publishedPercent": 3.2352
+    },
+    {
+      "publicationDate": "2023-02-28",
+      "valueDate": "2023-02-27",
+      "tenorMonths": 6,
+      "publishedPercent": 3.0618
+    },
+    {
+      "publicationDate": "2023-09-05",
+      "valueDate": "2023-09-04",
+      "tenorMonths": 1,
+      "publishedPercent": 3.7108
+    },
+    {
+      "publicationDate": "2023-09-05",
+      "valueDate": "2023-09-04",
+      "tenorMonths": 3,
+      "publishedPercent": 3.6974
+    },
+    {
+      "publicationDate": "2023-09-05",
+      "valueDate": "2023-09-04",
+      "tenorMonths": 6,
+      "publishedPercent": 3.6813
+    },
+    {
+      "publicationDate": "2024-03-08",
+      "valueDate": "2024-03-07",
+      "tenorMonths": 1,
+      "publishedPercent": 3.6734
+    },
+    {
+      "publicationDate": "2024-03-08",
+      "valueDate": "2024-03-07",
+      "tenorMonths": 3,
+      "publishedPercent": 3.6449
+    },
+    {
+      "publicationDate": "2024-03-08",
+      "valueDate": "2024-03-07",
+      "tenorMonths": 6,
+      "publishedPercent": 3.7113
+    },
+    {
+      "publicationDate": "2024-09-13",
+      "valueDate": "2024-09-12",
+      "tenorMonths": 1,
+      "publishedPercent": 3.458
+    },
+    {
+      "publicationDate": "2024-09-13",
+      "valueDate": "2024-09-12",
+      "tenorMonths": 3,
+      "publishedPercent": 3.5456
+    },
+    {
+      "publicationDate": "2024-09-13",
+      "valueDate": "2024-09-12",
+      "tenorMonths": 6,
+      "publishedPercent": 3.6263
+    },
+    {
+      "publicationDate": "2025-03-20",
+      "valueDate": "2025-03-19",
+      "tenorMonths": 1,
+      "publishedPercent": 2.3347
+    },
+    {
+      "publicationDate": "2025-03-20",
+      "valueDate": "2025-03-19",
+      "tenorMonths": 3,
+      "publishedPercent": 2.5796
+    },
+    {
+      "publicationDate": "2025-03-20",
+      "valueDate": "2025-03-19",
+      "tenorMonths": 6,
+      "publishedPercent": 2.8645
+    },
+    {
+      "publicationDate": "2025-09-23",
+      "valueDate": "2025-09-22",
+      "tenorMonths": 1,
+      "publishedPercent": 1.3007
+    },
+    {
+      "publicationDate": "2025-09-23",
+      "valueDate": "2025-09-22",
+      "tenorMonths": 3,
+      "publishedPercent": 1.4839
+    },
+    {
+      "publicationDate": "2025-09-23",
+      "valueDate": "2025-09-22",
+      "tenorMonths": 6,
+      "publishedPercent": 1.8099
+    },
+    {
+      "publicationDate": "2026-03-30",
+      "valueDate": "2026-03-27",
+      "tenorMonths": 1,
+      "publishedPercent": 1.0286
+    },
+    {
+      "publicationDate": "2026-03-30",
+      "valueDate": "2026-03-27",
+      "tenorMonths": 3,
+      "publishedPercent": 1.0715
+    },
+    {
+      "publicationDate": "2026-03-30",
+      "valueDate": "2026-03-27",
+      "tenorMonths": 6,
+      "publishedPercent": 1.1322
+    }
+  ]
+}

@@ -10,3 +10,4 @@ SPOTCHECK_PLAN.md
 
 # Data files keep one observation per line for small diffs
 data/
+coverage/

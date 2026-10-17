@@ -8,7 +8,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "check": "npm run typecheck && npm run lint && npm run test && npm run validate-data",
     "fetch-data": "node scripts/fetch/run.ts",
     "validate-data": "node scripts/fetch/validate.ts"
@@ -29,6 +29,7 @@
     "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.12",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
     "eslint-config-prettier": "^10.1.8",
