@@ -22,6 +22,10 @@ describe("describeReplay", () => {
     expect(text).toMatch(/not forecasts/);
   });
 
+  it("rounds every SGD amount to whole dollars", () => {
+    expect(text).not.toMatch(/S\$[\d,]+\.\d/);
+  });
+
   it("never uses advisory wording", () => {
     for (const banned of [
       /\bbest\b/i,

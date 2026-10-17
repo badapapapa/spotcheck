@@ -1,14 +1,16 @@
-// Number formatting for the UI. SGD amounts are shown as S$ with no cents
-// from S$100 up (the replay isn't precise to the cent).
+// Number formatting for the UI. SGD amounts are whole dollars everywhere
+// (the replay isn't precise to the cent). Pass { cents: true } only for
+// genuinely small per-unit or per-day figures.
 
-export function formatSgd(value: number): string {
-  const abs = Math.abs(value);
-  const digits = abs >= 100 ? 0 : 2;
-  const s = abs.toLocaleString("en-SG", {
+export function formatSgd(value: number, { cents = false } = {}): string {
+  const digits = cents ? 2 : 0;
+  // Round first so -0.4 shows as "S$0", not "−S$0".
+  const rounded = Number(value.toFixed(digits));
+  const s = Math.abs(rounded).toLocaleString("en-SG", {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   });
-  return `${value < 0 ? "−" : ""}S$${s}`;
+  return `${rounded < 0 ? "−" : ""}S$${s}`;
 }
 
 export function formatAmount(value: number, currency: string): string {
