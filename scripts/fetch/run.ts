@@ -9,6 +9,7 @@ import { CURRENCIES, fxFileName } from "../../engine/currencies.ts";
 import { FRANKFURTER_SOURCE, fetchFx } from "./frankfurter.ts";
 import { FRED_SOURCE, fetchFredSeries } from "./fred.ts";
 import { readJson, stringifyDataFile, writeIfChanged } from "./io.ts";
+import { tradingObservations } from "./trading-days.ts";
 import { MAS_SOURCE, fetchSora } from "./mas.ts";
 import {
   FxFileSchema,
@@ -78,7 +79,10 @@ async function main(): Promise<void> {
       quote: code,
       unit: `SGD per 1 ${code}`,
       source: FRANKFURTER_SOURCE,
-      rows: merge(oldFx.get(code)?.rows, freshFx.get(code) ?? [], fxFrom),
+      // Applied to the merged history, so older rows are cleaned too.
+      rows: tradingObservations(
+        merge(oldFx.get(code)?.rows, freshFx.get(code) ?? [], fxFrom),
+      ),
     };
     files.fx.set(code, file);
   }
