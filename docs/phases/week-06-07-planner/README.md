@@ -26,7 +26,7 @@ All 40 currencies already work in the planner (the plan had this in Phase 5), be
 
 - `npm run check`: all unit tests pass; engine coverage above 90%.
 - `npm run e2e`: 4/4 (planner loads with the chart; scenario round-trips through the URL).
-- Replay in the browser: about 80–86 ms for 9,800 USD windows with 12 tranches (desktop, dev build). That's inside the 300 ms budget, so no Web Worker yet (measured with a temporary `performance.measure`, since removed).
+- Replay in the browser: about 80–86 ms for 9,800 USD windows (before the trading-day fix; ~7,000 now) with 12 tranches (desktop, dev build). That's inside the 300 ms budget, so no Web Worker yet (measured with a temporary `performance.measure`, since removed).
 - Accessibility: every input labelled; charts have text alternatives, a table view and keyboard focus; strategy identity uses colour, marker shape and labels.
 
 ## Decisions (please review)
@@ -35,6 +35,13 @@ All 40 currencies already work in the planner (the plan had this in Phase 5), be
 - The summary compares tranches with _waiting_ for the worst case (lump sum has no worst case), and with _converting at once_ for the median.
 - The sample-path slider starts on the most recent window.
 - Native `<select>` and range inputs instead of custom ones, for phone pickers and screen readers.
+
+## Fixes after review
+
+- **URL updates are debounced (300 ms) and use `history.replaceState`.** Typing "4000" used to fire a route request per keystroke (`index.txt?a=4`, `?a=40`, …). State is now local and the URL follows once typing pauses: no route requests, no extra history entries (`lib/use-planner-state.ts`, e2e test that fails on the old code).
+- **SGD amounts are whole dollars everywhere** (the summary used to show "S$84.13").
+- **Apple touch icon** added (`public/apple-touch-icon.png`, linked in the page metadata).
+- Window counts and medians changed with the trading-day fix (Phase 1/2): about 7,000 windows for a 9-month USD plan instead of 9,812.
 
 ## [BEN] to do for Gate 3
 

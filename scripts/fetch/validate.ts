@@ -36,7 +36,7 @@ export function checkAll(files: DataFiles): CheckResult {
   for (const c of CURRENCIES) {
     const file = files.fx.get(c.code);
     if (!file) result.errors.push(`SGD-${c.code}: missing`);
-    else add(checkFx(file, KNOWN_ANOMALIES));
+    else add(checkFx(file, KNOWN_ANOMALIES, { allowRepeats: c.peggedToSgd }));
   }
   if (!files.sora) result.errors.push("SORA: missing");
   else add(checkSora(files.sora, KNOWN_ANOMALIES));

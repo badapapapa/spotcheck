@@ -19,6 +19,12 @@ export function addDays(date: ISODate, days: number): ISODate {
   return fromEpochDay(toEpochDay(date) + days);
 }
 
+/** Saturday or Sunday. 1 Jan 1970 (epoch day 0) was a Thursday. */
+export function isWeekend(date: ISODate): boolean {
+  const dayOfWeek = (((toEpochDay(date) + 4) % 7) + 7) % 7; // 0 = Sunday
+  return dayOfWeek === 0 || dayOfWeek === 6;
+}
+
 /** Calendar days from `a` to `b` (negative if b is earlier). */
 export function daysBetween(a: ISODate, b: ISODate): number {
   return toEpochDay(b) - toEpochDay(a);

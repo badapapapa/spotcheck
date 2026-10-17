@@ -1,6 +1,6 @@
 // Descriptive statistics for replay outcomes, and realised volatility.
 
-import { indexOnOrAfter, daysBetween } from "./calendar.ts";
+import { indexOnOrAfter, isWeekend } from "./calendar.ts";
 import type { ISODate, Series } from "./types.ts";
 
 /**
@@ -42,21 +42,23 @@ export function summarize(values: readonly number[]): Summary {
   };
 }
 
+/** Trading days per year used to annualise daily volatility. */
+export const TRADING_DAYS_PER_YEAR = 252;
+
 export type VolEstimate = {
   sigma: number; // annualised
-  observations: number; // log returns used
+  observations: number; // log returns used (= trading days)
   from: ISODate;
   to: ISODate; // last observation used, strictly before the pricing date
 };
 
 /**
- * Annualised realised volatility of daily log returns over the `lookback`
- * observations strictly before `pricingDate`, so the window being priced is
- * never used (no look-ahead).
+ * Annualised realised volatility: the sample standard deviation of log
+ * returns between consecutive trading observations, over the `lookback`
+ * trading days strictly before `pricingDate` (no look-ahead), times √252.
  *
- * Annualisation uses the observed frequency (returns per year over the
- * lookback's calendar span), which works whether or not the series includes
- * weekends.
+ * The series must hold trading observations only. A weekend row would add a
+ * near-zero "move" and dilute the estimate, so it is rejected outright.
  */
 export function realisedVol(
   fx: Series,
@@ -68,19 +70,21 @@ export function realisedVol(
   const start = end - lookback - 1; // lookback returns need lookback+1 prices
   if (start < 0) throw new Error(`Not enough history before ${pricingDate}`);
   const returns: number[] = [];
-  for (let i = start + 1; i < end; i++) {
-    returns.push(Math.log(fx.values[i]! / fx.values[i - 1]!));
+  for (let i = start; i < end; i++) {
+    if (isWeekend(fx.dates[i]!)) {
+      throw new Error(
+        `realisedVol needs trading observations; ${fx.dates[i]} is a weekend`,
+      );
+    }
+    if (i > start) returns.push(Math.log(fx.values[i]! / fx.values[i - 1]!));
   }
   const mean = returns.reduce((s, r) => s + r, 0) / returns.length;
   const variance =
     returns.reduce((s, r) => s + (r - mean) ** 2, 0) / (returns.length - 1);
-  const from = fx.dates[start]!;
-  const to = fx.dates[end - 1]!;
-  const perYear = returns.length / (daysBetween(from, to) / 365);
   return {
-    sigma: Math.sqrt(variance * perYear),
+    sigma: Math.sqrt(variance * TRADING_DAYS_PER_YEAR),
     observations: returns.length,
-    from,
-    to,
+    from: fx.dates[start]!,
+    to: fx.dates[end - 1]!,
   };
 }
