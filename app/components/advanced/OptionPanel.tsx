@@ -193,7 +193,8 @@ export function OptionPanel(props: Props) {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={payoff}
-                margin={{ top: 8, right: 8, bottom: 0, left: 8 }}
+                // Room above the plot for the "today" label on the dashed line.
+                margin={{ top: 24, right: 8, bottom: 0, left: 8 }}
               >
                 <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
                 <XAxis
@@ -264,12 +265,12 @@ export function OptionPanel(props: Props) {
             />
             <Stat
               label="Vega"
-              value={formatSgd((greeks.vega / 100) * amount)}
+              value={formatSgd((greeks.vega / 100) * amount, { cents: true })}
               hint={`Value change for ${amount.toLocaleString("en-SG")} ${currency} per 1-point rise in volatility`}
             />
             <Stat
               label="Theta"
-              value={formatSgd((greeks.theta / 365) * amount)}
+              value={formatSgd((greeks.theta / 365) * amount, { cents: true })}
               hint={`Value change for ${amount.toLocaleString("en-SG")} ${currency} per day that passes`}
             />
           </dl>
@@ -372,13 +373,13 @@ function greekCharts(amount: number): {
       key: "vega",
       title: "Vega (S$ per vol point)",
       scale: (v) => (v / 100) * amount,
-      format: formatSgd,
+      format: (v) => formatSgd(v, { cents: true }),
     },
     {
       key: "theta",
       title: "Theta (S$ per day)",
       scale: (v) => (v / 365) * amount,
-      format: formatSgd,
+      format: (v) => formatSgd(v, { cents: true }),
     },
   ];
 }

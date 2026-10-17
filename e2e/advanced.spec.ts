@@ -35,3 +35,16 @@ test("the nav keeps the scenario when switching tabs", async ({ page }) => {
   await expect(page).toHaveURL(/\/advanced\?.*a=9000/);
   await expect(page.getByLabel("Amount needed (USD)")).toHaveValue("9000");
 });
+
+test("the payoff chart's 'today' label sits fully inside the chart", async ({
+  page,
+}) => {
+  await page.goto("/advanced");
+  const chart = page.getByRole("img", { name: /Total SGD cost against/ });
+  await chart.scrollIntoViewIfNeeded();
+  const label = chart.locator("text", { hasText: /^today$/ });
+  await expect(label).toBeVisible();
+  const [c, l] = await Promise.all([chart.boundingBox(), label.boundingBox()]);
+  expect(l!.y).toBeGreaterThanOrEqual(c!.y);
+  expect(l!.y + l!.height).toBeLessThanOrEqual(c!.y + c!.height);
+});
