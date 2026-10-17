@@ -34,6 +34,27 @@ describe("replay", () => {
     expect(r.lastStart).toBe(addDays("2020-04-09", -10));
   });
 
+  it("counts windows where the target was reached", () => {
+    // Falls 1% a day for 5 days, then flat: a 2% target is hit only by
+    // windows that start early enough to see two falls.
+    const values = [
+      1.4,
+      1.386,
+      1.37214,
+      1.3584186,
+      1.344834414,
+      ...Array(60).fill(1.344834414),
+    ];
+    const fx = daily("2020-01-01", values);
+    const s = {
+      ...baseScenario,
+      startDate: "2020-03-01",
+      deadline: "2020-03-11",
+    };
+    const r = replay(fx, s, { targetBelowSpot: 0.0199 });
+    expect(r.targetHitShare).toBeCloseTo(3 / r.windows, 12);
+  });
+
   it("starts windows only on real trading observations, about 252–262 a year", () => {
     const fx = loadUsd();
     const r = replay(

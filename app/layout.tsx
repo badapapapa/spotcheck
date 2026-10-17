@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { DATA_SOURCES, DISCLAIMER, SITE_NAME, TAGLINE } from "@/lib/site";
+import meta from "@/data/meta.json";
+import { formatDate } from "@/lib/dates.ts";
+import { DISCLAIMER, SITE_NAME, TAGLINE } from "@/lib/site";
 import "./globals.css";
 
 // next/font downloads the font at build time and serves it from our own
@@ -18,6 +20,8 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: `${SITE_NAME}: historical FX scenarios for exchange students`,
   description: TAGLINE,
+  // iPhone/iPad home-screen icon (also served at the conventional path).
+  icons: { apple: "/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {
@@ -47,17 +51,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <p className="font-medium text-foreground">{DISCLAIMER}</p>
             <p>
               Data:{" "}
-              {DATA_SOURCES.map((source, i) => (
+              {meta.attribution.map((source, i) => (
                 <span key={source.name}>
                   {i > 0 && " · "}
                   <a
-                    href={source.href}
+                    href={source.url}
                     className="underline underline-offset-2 hover:text-foreground"
                   >
                     {source.name}
                   </a>
                 </span>
               ))}
+              . Rates up to {formatDate(meta.series["SGD-USD"]?.last ?? "")}.
             </p>
           </div>
         </footer>
