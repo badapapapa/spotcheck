@@ -81,3 +81,25 @@ describe("realisedVol", () => {
     expect(v.from < "2026-07-25").toBe(true);
   });
 });
+
+describe("ECB-sourced USD: daily vs weekly volatility (option B as a check)", () => {
+  it("weekly-return volatility over 1999–2026 is within 15% of the daily figure", () => {
+    // Smoothed (blended) data shows daily vol far below weekly; a single
+    // fixing shouldn't. Non-overlapping 5-observation returns, × √(252/5).
+    const fx = loadUsd();
+    const sd = (step: number) => {
+      const r: number[] = [];
+      for (let i = step; i < fx.values.length; i += step)
+        r.push(Math.log(fx.values[i]! / fx.values[i - step]!));
+      const m = r.reduce((a, b) => a + b, 0) / r.length;
+      return Math.sqrt(
+        (r.reduce((a, b) => a + (b - m) ** 2, 0) / (r.length - 1)) *
+          (252 / step),
+      );
+    };
+    const daily = sd(1);
+    const weekly = sd(5);
+    expect(fx.dates[0]).toBe("1999-01-04");
+    expect(Math.abs(weekly / daily - 1)).toBeLessThan(0.15);
+  });
+});
