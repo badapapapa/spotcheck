@@ -39,3 +39,10 @@
 2. **Positive theta for in-the-money calls** is correct here: with USD rates above SGD rates, a deep in-the-money call gains value as time passes.
 3. Vega and theta are shown for the user's whole amount in S$ (per-unit theta rounds to zero). Delta and gamma stay per unit.
 4. The "today" forward uses the scenario's start date, capped at the last available FX date.
+
+## Fixes after review
+
+- Realised volatility now uses trading days only, × √252 (see Phase 2). The blended feed is still smoother than a single fixing; see the note in the review summary.
+- The payoff chart's "today" label was clipped at the top; the chart now has room for it (e2e test checks it sits inside the chart).
+- The header tabs no longer prefetch: their URL changes with every edit, which caused a route-tree request per URL update.
+- Vega and theta in S$ keep cents (they're often below S$1); every other SGD figure is whole dollars.

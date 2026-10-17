@@ -22,6 +22,8 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: `${SITE_NAME}: historical FX scenarios for exchange students`,
   description: TAGLINE,
+  // iPhone/iPad home-screen icon (also served at the conventional path).
+  icons: { apple: "/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {

@@ -46,7 +46,12 @@ describe("Excel export", async () => {
 
   it("stores every daily rate in the window", () => {
     const rates = back.getWorksheet("Rates")!;
-    expect(rates.rowCount - 1).toBeGreaterThan(250);
+    // A 9-month window holds ~200 trading days (no weekends).
+    expect(rates.rowCount - 1).toBeGreaterThan(190);
+    const days = rates.getColumn(1).values.slice(2) as Date[];
+    expect(days.every((d) => d.getUTCDay() !== 0 && d.getUTCDay() !== 6)).toBe(
+      true,
+    );
     expect(rates.getCell("B2").value).toBe(w.spot);
   });
 
