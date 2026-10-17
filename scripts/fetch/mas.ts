@@ -13,13 +13,55 @@ export const MAS_SOURCE =
   "Monetary Authority of Singapore, Domestic Interest Rates (SORA), " +
   PAGE_URL;
 
-/** Index of each column in the page's "columns to show" checkbox list. */
+/** Index of each column in the page's "columns to show" checkbox list, and its label. */
 const COLUMNS = {
-  sora: 13,
-  compounded1m: 15,
-  compounded3m: 16,
-  compounded6m: 17,
+  sora: [13, "SORA"],
+  compounded1m: [15, "1-month Compounded SORA"],
+  compounded3m: [16, "3-month Compounded SORA"],
+  compounded6m: [17, "6-month Compounded SORA"],
 } as const;
+
+const FIELD_PREFIX = "ctl00$ContentPlaceHolder1$";
+const REQUIRED_FIELDS = [
+  "StartYearDropDownList",
+  "StartMonthDropDownList",
+  "EndYearDropDownList",
+  "EndMonthDropDownList",
+  "Button2",
+] as const;
+
+/**
+ * Checks the form still looks the way this fetcher expects before submitting
+ * it: every field we set exists and each checkbox still has the label we
+ * think it has. If MAS redesigns the page, this fails with a clear message
+ * instead of downloading the wrong columns or a default date range.
+ */
+export function assertFormShape(html: string): void {
+  const problems: string[] = [];
+  for (const field of REQUIRED_FIELDS) {
+    if (!html.includes(`name="${FIELD_PREFIX}${field}"`))
+      problems.push(`field ${field} missing`);
+  }
+  for (const [index, label] of Object.values(COLUMNS)) {
+    const m = html.match(
+      new RegExp(
+        `<label[^>]*for="ContentPlaceHolder1_ColumnsCheckBoxList_${index}"[^>]*>([^<]*)<`,
+      ),
+    );
+    if (m?.[1]?.trim() !== label) {
+      problems.push(
+        `checkbox ${index} is "${m?.[1]?.trim() ?? "missing"}", expected "${label}"`,
+      );
+    }
+  }
+  if (!/name="__VIEWSTATE"/.test(html))
+    problems.push("ASP.NET __VIEWSTATE missing");
+  if (problems.length) {
+    throw new Error(
+      `MAS form has changed; update scripts/fetch/mas.ts. ${problems.join("; ")}`,
+    );
+  }
+}
 
 const MONTHS: Record<string, string> = {
   Jan: "01",
@@ -103,6 +145,7 @@ async function downloadCsv(
     .map((c) => c.split(";")[0])
     .join("; ");
   const html = await page.text();
+  assertFormShape(html);
 
   const form = new URLSearchParams();
   // ASP.NET needs its hidden state fields echoed back.
@@ -111,13 +154,13 @@ async function downloadCsv(
   )) {
     form.set(m[1]!, m[2]!);
   }
-  const p = "ctl00$ContentPlaceHolder1$";
+  const p = FIELD_PREFIX;
   form.set(`${p}StartYearDropDownList`, String(fromYear));
   form.set(`${p}StartMonthDropDownList`, String(fromMonth));
   form.set(`${p}EndYearDropDownList`, String(toYear));
   form.set(`${p}EndMonthDropDownList`, String(toMonth));
-  for (const col of Object.values(COLUMNS)) {
-    form.set(`${p}ColumnsCheckBoxList$${col}`, "on");
+  for (const [index] of Object.values(COLUMNS)) {
+    form.set(`${p}ColumnsCheckBoxList$${index}`, "on");
   }
   form.set(`${p}Button2`, "Download");
 
