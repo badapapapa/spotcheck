@@ -142,3 +142,18 @@ test("ExcelJS is downloaded only when the user clicks Download", async ({
   const after = await Promise.all(scripts.map((s) => s.body));
   expect(after.some(isExcelJs)).toBe(true);
 });
+
+test("shows each currency's data source", async ({ page }) => {
+  await page.goto("/?c=USD");
+  await expect(page.getByTestId("fx-source")).toHaveText(
+    "Source: ECB euro reference rates (SGD cross derived via EUR).",
+  );
+  await page.goto("/?c=BRL");
+  await expect(page.getByTestId("fx-source")).toHaveText(
+    "Source: Frankfurter blended rates; daily volatility may be understated.",
+  );
+  // The footer attributes the ECB and says the SGD crosses are derived.
+  await expect(page.getByRole("contentinfo")).toContainText(
+    "European Central Bank euro reference rates (SGD crosses derived via EUR by SpotCheck)",
+  );
+});

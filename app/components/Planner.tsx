@@ -1,7 +1,7 @@
 "use client";
 
 import { rateAsOf } from "@/engine/calendar.ts";
-import { findCurrency } from "@/engine/currencies.ts";
+import { findCurrency, fxSourceLabel } from "@/engine/currencies.ts";
 import {
   Card,
   CardContent,
@@ -109,6 +109,9 @@ export function Planner() {
                 rate of {formatRate(spot.value)} SGD per {scenario.currency} (
                 {formatDate(spot.date)}), with a{" "}
                 {(scenario.spread * 100).toFixed(2)}% spread.
+                <span className="mt-1 block text-xs" data-testid="fx-source">
+                  {fxSourceLabel(currency.fxSource)}
+                </span>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

@@ -48,3 +48,16 @@ test("the payoff chart's 'today' label sits fully inside the chart", async ({
   expect(l!.y).toBeGreaterThanOrEqual(c!.y);
   expect(l!.y + l!.height).toBeLessThanOrEqual(c!.y + c!.height);
 });
+
+test("hedging tab: ECB source shown, 250-day volatility by default", async ({
+  page,
+}) => {
+  await page.goto("/advanced");
+  await expect(page.getByTestId("fx-source")).toHaveText(
+    /ECB euro reference rates/,
+  );
+  await expect(page.getByLabel("Realised volatility lookback")).toHaveValue(
+    "250",
+  );
+  await expect(page.getByText(/from 250 trading days/)).toBeVisible();
+});

@@ -62,14 +62,26 @@ const items: { title: string; body: React.ReactNode }[] = [
     ),
   },
   {
-    title: "Mid-market rates vs what you'll pay",
+    title: "Where the rates come from",
     body: (
-      <p>
-        The rates are blended central-bank mid-market reference rates from
-        Frankfurter. Banks, cards and money changers charge more; the spread
-        input adds that cost to every conversion. Some sources also publish
-        weekend rates, so conversions can fall on weekends here.
-      </p>
+      <>
+        <p>
+          Each currency uses one source for its whole history, so there are no
+          jumps where sources switch. For the 23 currencies the European Central
+          Bank has published every working day since 1999 (including USD, EUR,
+          GBP, JPY and AUD), SpotCheck uses the ECB euro reference rates and
+          derives each SGD rate as (SGD per EUR) ÷ (currency per EUR), both
+          fixed at the same moment each day. The other 16 use Frankfurter&apos;s
+          blended central-bank rates, which average sources that fix at
+          different times of day; that smooths daily moves, so daily volatility
+          from them is understated.
+        </p>
+        <p>
+          Only Monday–Friday trading observations are used. These are mid-market
+          reference rates: banks, cards and money changers charge more, and the
+          spread input adds that cost to every conversion.
+        </p>
+      </>
     ),
   },
   {
