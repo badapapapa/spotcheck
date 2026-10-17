@@ -19,6 +19,9 @@ export function SiteNav() {
         return (
           <Link
             key={t.href}
+            // The href changes as the scenario changes; prefetching each new
+            // URL would cause a request every time someone edits a field.
+            prefetch={false}
             href={query ? `${t.href}?${query}` : t.href}
             aria-current={active ? "page" : undefined}
             className={`rounded-md px-3 py-1.5 ${active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground"}`}
