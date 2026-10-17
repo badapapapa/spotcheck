@@ -15,14 +15,19 @@ export function isWeekend(date: string): boolean {
 }
 
 /**
- * Keeps Monday–Friday rows whose rate differs from the previous kept row.
- * An exact repeat is treated as carried forward (no new observation).
+ * Keeps Monday–Friday rows. With `dropRepeats` (the blended feed), a rate
+ * that exactly repeats the previous kept row is treated as carried forward
+ * and dropped. ECB reference rates are fixed afresh every TARGET day, so an
+ * equal value there is a real observation and is kept.
  */
-export function tradingObservations(rows: readonly FxRow[]): FxRow[] {
+export function tradingObservations(
+  rows: readonly FxRow[],
+  { dropRepeats = true } = {},
+): FxRow[] {
   const out: FxRow[] = [];
   for (const row of rows) {
     if (isWeekend(row[0])) continue;
-    if (out.length > 0 && out.at(-1)![1] === row[1]) continue;
+    if (dropRepeats && out.length > 0 && out.at(-1)![1] === row[1]) continue;
     out.push(row);
   }
   return out;

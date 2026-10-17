@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { findCurrency } from "../../../engine/currencies.ts";
 import { DATA_DIR, stringifyDataFile } from "../io.ts";
 import {
   FxFileSchema,
@@ -41,23 +42,31 @@ describe("sanity checks", () => {
     expect(checkFx(bad).errors[0]).toMatch(/not strictly ascending/);
   });
 
-  it("rejects a gap longer than 7 days, warns on 5 to 7", () => {
+  it("rejects a gap longer than 7 days, warns on 6 to 7, accepts 5 (a long weekend)", () => {
     expect(
       checkFx(
         fx([
           ["2024-01-01", 1.33],
-          ["2024-01-09", 1.33],
+          ["2024-01-09", 1.34],
         ]),
       ).errors[0],
     ).toMatch(/8-day gap/);
-    const r = checkFx(
+    const six = checkFx(
       fx([
-        ["2024-01-03", 1.33],
+        ["2024-01-02", 1.33],
         ["2024-01-08", 1.34],
       ]),
     );
-    expect(r.errors).toEqual([]);
-    expect(r.warnings[0]).toMatch(/5-day gap/);
+    expect(six.errors).toEqual([]);
+    expect(six.warnings[0]).toMatch(/6-day gap/);
+    // Thursday before Good Friday to the Tuesday after Easter Monday.
+    const easter = checkFx(
+      fx([
+        ["2024-03-28", 1.33],
+        ["2024-04-02", 1.34],
+      ]),
+    );
+    expect(easter.warnings).toEqual([]);
   });
 
   it("rejects a day-on-day FX move over 30% unless reviewed", () => {
@@ -125,7 +134,9 @@ describe("committed data", () => {
   const committed = FxFileSchema.parse(JSON.parse(readFileSync(path, "utf8")));
 
   it("SGD-USD passes every check", () => {
-    expect(checkFx(committed).errors).toEqual([]);
+    // USD comes from the ECB, where an equal consecutive fixing is real.
+    expect(findCurrency("USD")?.fxSource).toBe("ecb");
+    expect(checkFx(committed, [], { allowRepeats: true }).errors).toEqual([]);
   });
 
   it("a deliberately corrupted copy is rejected (Gate 1)", () => {

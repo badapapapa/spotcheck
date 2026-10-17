@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { CURRENCIES, fxFileName } from "../../engine/currencies.ts";
 import { DATA_DIR, readJson } from "./io.ts";
 import { KNOWN_ANOMALIES } from "./known-anomalies.ts";
+import { FX_SOURCES } from "./sources.ts";
 import {
   FxFileSchema,
   MetaFileSchema,
@@ -36,7 +37,19 @@ export function checkAll(files: DataFiles): CheckResult {
   for (const c of CURRENCIES) {
     const file = files.fx.get(c.code);
     if (!file) result.errors.push(`SGD-${c.code}: missing`);
-    else add(checkFx(file, KNOWN_ANOMALIES, { allowRepeats: c.peggedToSgd }));
+    else {
+      add(
+        checkFx(file, KNOWN_ANOMALIES, {
+          // Only the blended feed carries rates forward; ECB repeats are real.
+          allowRepeats: c.fxSource !== "blended",
+        }),
+      );
+      if (file.source !== FX_SOURCES[c.fxSource]) {
+        result.errors.push(
+          `SGD-${c.code}: source doesn't match engine/currencies.ts (${c.fxSource})`,
+        );
+      }
+    }
   }
   if (!files.sora) result.errors.push("SORA: missing");
   else add(checkSora(files.sora, KNOWN_ANOMALIES));

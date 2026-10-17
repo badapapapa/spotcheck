@@ -71,6 +71,17 @@ describe("MAS fetcher when MAS changes its download form", () => {
   });
 });
 
+/** A fake FX source that re-serves committed rows from `from` on. */
+const reserve = async (quotes: readonly string[], from: string) =>
+  new Map(
+    quotes.map((q) => [
+      q,
+      readJson(`fx/SGD-${q}.json`, FxFileSchema)!.rows.filter(
+        (r) => r[0] >= from,
+      ),
+    ]),
+  );
+
 describe("the daily job writes nothing when anything fails", () => {
   /** Real committed data as the starting point; sources return no new rows. */
   function deps(overrides: Partial<PipelineDeps> = {}) {
@@ -79,15 +90,8 @@ describe("the daily job writes nothing when anything fails", () => {
       today: "2026-10-17",
       full: false,
       // Each source re-serves its committed rows from the requested date on.
-      fetchFx: async (quotes, from) =>
-        new Map(
-          quotes.map((q) => [
-            q,
-            readJson(`fx/SGD-${q}.json`, FxFileSchema)!.rows.filter(
-              (r) => r[0] >= from,
-            ),
-          ]),
-        ),
+      fetchFx: reserve,
+      fetchEcbCrosses: reserve,
       fetchSora: async () =>
         readJson(
           "rates/SORA.json",
@@ -129,8 +133,8 @@ describe("the daily job writes nothing when anything fails", () => {
 
   it("a failed sanity check stops the job before any write", async () => {
     const { d, writes } = deps({
-      // USD gains a new day with a 10x jump; other currencies are unchanged.
-      fetchFx: async (quotes, from) =>
+      // USD (an ECB currency) gains a new day with a 10x jump.
+      fetchEcbCrosses: async (quotes, from) =>
         new Map(
           quotes.map((q) => {
             const rows = readJson(
