@@ -9,8 +9,8 @@ Frankfurter's default _blended_ rate averages providers that fix at different ti
 ## Decision
 
 - **One source per currency, for its whole history.** No per-day splicing, so no artificial jumps where sources switch.
-- **ECB** for currencies the ECB has published continuously from 4 Jan 1999 to today (23): AUD, CAD, CHF, CZK, DKK, EUR, GBP, HKD, HUF, IDR, JPY, KRW, MXN, MYR, NOK, NZD, PHP, PLN, SEK, THB, TRY, USD, ZAR.
-- **Blended** for the whole history of the rest (16): BRL, CNY, ILS, INR (ECB starts 13 Jan 2000); ISK (no ECB rates Dec 2008 – Feb 2018); ARS, MAD, TWD (ECB stopped Oct 2020); RUB (stopped Mar 2022); CLP, COP, KZT, MOP, PEN, SAR, VND (never published).
+- **ECB** for currencies the ECB has published continuously from 13 Jan 2000 or earlier through today (27): AUD, BRL, CAD, CHF, CNY, CZK, DKK, EUR, GBP, HKD, HUF, IDR, ILS, INR, JPY, KRW, MXN, MYR, NOK, NZD, PHP, PLN, SEK, THB, TRY, USD, ZAR. BRL, CNY, ILS and INR start on 13 Jan 2000, so their planner windows start there; the rest start on 4 Jan 1999.
+- **Blended** for the whole history of the rest (12): ISK (no ECB rates Dec 2008 – Feb 2018); ARS, MAD, TWD (ECB stopped Oct 2020); RUB (stopped Mar 2022); CLP, COP, KZT, MOP, PEN, SAR, VND (never published).
 - **Peg:** BND stays a constant 1:1 series.
 - SGD crosses are derived as (SGD per EUR) ÷ (currency per EUR), both from the same ~14:10 CET concertation.
 
@@ -54,6 +54,20 @@ The [ECB disclaimer](https://www.ecb.europa.eu/services/using-our-site/disclaime
 
 Like-for-like lookbacks: blended 250-day gives S$38; ECB 60-day gives S$47. The planner medians move by S$21–29, almost all of it the 13 bp lower ECB spot. The premium is small in absolute terms because the forward is well below spot (USD rates above SGD rates), so an at-the-spot call is out of the money against the forward.
 
+## Rule relaxed (third round)
+
+The cut-off moved from 4 Jan 1999 to 13 Jan 2000, moving BRL, CNY, ILS and INR to the ECB (27 ECB, 12 blended). Weekly-vs-daily volatility on the full history:
+
+| Currency | Source      | From        | Daily | Weekly | Difference |
+| -------- | ----------- | ----------- | ----- | ------ | ---------- |
+| USD      | ECB         | 4 Jan 1999  | 5.10% | 4.87%  | 4.6%       |
+| CNY      | ECB         | 13 Jan 2000 | 4.80% | 4.59%  | 4.3%       |
+| CNY      | old blended | 4 Jan 1999  | 3.04% | 4.05%  | 33.2%      |
+| INR      | ECB         | 13 Jan 2000 | 6.00% | 5.75%  | 4.2%       |
+| INR      | old blended | 4 Jan 1999  | 3.79% | 5.18%  | 36.6%      |
+
+The test now covers USD, CNY and INR (limit 15%).
+
 ## Review fixes (second round)
 
 - **EUR label:** "Source: ECB euro reference rate." (the ECB publishes SGD per EUR directly; only the other ECB currencies are crosses).
@@ -64,6 +78,6 @@ Like-for-like lookbacks: blended 250-day gives S$38; ECB 60-day gives S$47. The 
 ## Tests added
 
 - `scripts/fetch/__tests__/ecb.test.ts`: cross maths, EUR, fetcher pairs each rate with SGD on the same day, the exact 23/16/1 split, every committed file matches its configured source, validation rejects a mismatched source, attribution says the crosses are derived.
-- `engine/__tests__/stats.test.ts`: **ECB-sourced USD weekly-return volatility over 1999–2026 is within 15% of the daily figure** (option B as a check; it would fail on the blended data, where weekly is ~30% above daily).
+- `engine/__tests__/stats.test.ts`: **ECB-sourced USD, CNY and INR weekly-return volatility over their full history is within 15% of the daily figure** (option B as a check; it would fail on the blended data, where weekly is ~30% above daily).
 - `lib/__tests__/url-state.test.ts`: 60/90/250 lookbacks, 250 default.
-- e2e: source labels on the planner (USD and BRL) and footer attribution; hedging tab shows the ECB source and defaults to 250 days.
+- e2e: source labels on the planner (USD, EUR, BRL as ECB; VND as blended) and footer attribution; hedging tab shows the ECB source and defaults to 250 days.

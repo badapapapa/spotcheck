@@ -81,8 +81,8 @@ Frankfurter / MAS / FRED → scripts/fetch (daily, validated) → data/*.json �
 ## Data sources
 
 - Exchange rates, one source per currency for its whole history:
-  - 23 currencies (USD, EUR, GBP, JPY, AUD and others the ECB has published every working day since 1999): [European Central Bank euro foreign exchange reference rates](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html), retrieved via [Frankfurter](https://frankfurter.dev/). **SGD crosses are derived by SpotCheck as (SGD per EUR) ÷ (currency per EUR).**
-  - The other 16: [Frankfurter](https://frankfurter.dev/) blended central-bank mid rates (daily volatility from these may be understated).
+  - 27 currencies (USD, EUR, GBP, JPY, AUD, CNY, INR and others the ECB has published every working day since 1999, or since 13 Jan 2000 for BRL, CNY, ILS and INR): [European Central Bank euro foreign exchange reference rates](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html), retrieved via [Frankfurter](https://frankfurter.dev/). **SGD crosses are derived by SpotCheck as (SGD per EUR) ÷ (currency per EUR).**
+  - The other 12 (ARS, CLP, COP, ISK, KZT, MAD, MOP, PEN, RUB, SAR, TWD, VND): [Frankfurter](https://frankfurter.dev/) blended central-bank mid rates (daily volatility from these may be understated).
 - SGD interest rates: [MAS Domestic Interest Rates](https://eservices.mas.gov.sg/Statistics/dir/DomesticInterestRates.aspx), daily SORA from July 2005 and published compounded SORA.
 - USD interest rates: Board of Governors of the Federal Reserve System, Federal Funds Effective Rate (DFF), retrieved from [FRED](https://fred.stlouisfed.org/series/DFF), Federal Reserve Bank of St. Louis.
 
