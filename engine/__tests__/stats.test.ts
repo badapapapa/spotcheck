@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { percentile, realisedVol, summarize } from "../stats.ts";
 import { daysBetween } from "../calendar.ts";
-import { daily, loadUsd, weekdays } from "./helpers.ts";
+import type { Series } from "../types.ts";
+import { daily, loadFx, loadUsd, weekdays } from "./helpers.ts";
 
 describe("percentile", () => {
   // Hand-computed: positions (n-1)p on [1, 2, 3, 4, 10].
@@ -80,4 +81,31 @@ describe("realisedVol", () => {
     // About three calendar months, not two.
     expect(v.from < "2026-07-25").toBe(true);
   });
+});
+
+describe("ECB-sourced data: daily vs weekly volatility (option B as a check)", () => {
+  // Smoothed (blended) data shows daily vol far below weekly; a single
+  // fixing shouldn't. Non-overlapping 5-observation returns, × √(252/5).
+  const sd = (fx: Series, step: number) => {
+    const r: number[] = [];
+    for (let i = step; i < fx.values.length; i += step)
+      r.push(Math.log(fx.values[i]! / fx.values[i - step]!));
+    const m = r.reduce((a, b) => a + b, 0) / r.length;
+    return Math.sqrt(
+      (r.reduce((a, b) => a + (b - m) ** 2, 0) / (r.length - 1)) * (252 / step),
+    );
+  };
+
+  it.each([
+    ["USD", "1999-01-04"],
+    ["CNY", "2000-01-13"],
+    ["INR", "2000-01-13"],
+  ])(
+    "%s (from %s): weekly-return volatility within 15 percent of daily",
+    (code, start) => {
+      const fx = loadFx(code);
+      expect(fx.dates[0]).toBe(start);
+      expect(Math.abs(sd(fx, 5) / sd(fx, 1) - 1)).toBeLessThan(0.15);
+    },
+  );
 });

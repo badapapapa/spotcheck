@@ -1,7 +1,7 @@
 "use client";
 
 import { daysBetween, rateAsOf } from "@/engine/calendar.ts";
-import { findCurrency } from "@/engine/currencies.ts";
+import { findCurrency, fxSourceLabel } from "@/engine/currencies.ts";
 import { priceForward, type RateInputs } from "@/engine/forwards.ts";
 import type {
   HedgeId,
@@ -130,6 +130,9 @@ function Panels({
 
   return (
     <>
+      <p className="text-xs text-muted-foreground" data-testid="fx-source">
+        {fxSourceLabel(findCurrency(s.currency)!)}
+      </p>
       <ForwardPanel
         quote={quote}
         currency={s.currency}

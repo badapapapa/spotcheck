@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { CURRENCIES, findCurrency, fxFileName } from "../currencies.ts";
+import {
+  CURRENCIES,
+  findCurrency,
+  fxFileName,
+  fxSourceLabel,
+} from "../currencies.ts";
 
 describe("currencies", () => {
   it("lists the 40 exchange currencies once each", () => {
@@ -18,5 +23,20 @@ describe("currencies", () => {
     expect(findCurrency("BND")?.peggedToSgd).toBe(true);
     expect(findCurrency("XYZ")).toBeUndefined();
     expect(fxFileName("EUR")).toBe("fx/SGD-EUR.json");
+  });
+});
+
+describe("fxSourceLabel", () => {
+  it("says 'derived via EUR' only for ECB crosses, not for EUR itself", () => {
+    expect(fxSourceLabel(findCurrency("EUR")!)).toBe(
+      "Source: ECB euro reference rate.",
+    );
+    expect(fxSourceLabel(findCurrency("USD")!)).toBe(
+      "Source: ECB euro reference rates (SGD cross derived via EUR).",
+    );
+    expect(fxSourceLabel(findCurrency("VND")!)).toMatch(
+      /blended rates; daily volatility may be understated/,
+    );
+    expect(fxSourceLabel(findCurrency("BND")!)).toMatch(/peg/);
   });
 });

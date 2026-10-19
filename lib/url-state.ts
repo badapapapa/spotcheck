@@ -16,8 +16,12 @@ export type PlannerState = {
   /** Advanced tab: volatility override; undefined = realised volatility. */
   volOverride?: number;
   /** Advanced tab: realised-volatility lookback in observations. */
-  volLookback: 60 | 90;
+  volLookback: VolLookback;
 };
+
+/** Realised-volatility lookbacks offered, in trading days. */
+export const VOL_LOOKBACKS = [60, 90, 250] as const;
+export type VolLookback = (typeof VOL_LOOKBACKS)[number];
 
 export const LIMITS = {
   amount: { min: 1, max: 1e12 },
@@ -37,7 +41,9 @@ export const DEFAULTS = {
   spreadPct: 0.5,
   targetPct: 2,
   strikePct: 100,
-  volLookback: 60 as const,
+  // A year of trading days: steadier than 60/90 and less sensitive to a
+  // calm or stormy couple of months.
+  volLookback: 250 as VolLookback,
 };
 
 const isoDate = z.iso.date();
@@ -108,7 +114,9 @@ export function parseState(
         DEFAULTS.strikePct,
       ) / 100,
     volOverride: vol === undefined ? undefined : vol / 100,
-    volLookback: params.get("vl") === "90" ? 90 : 60,
+    volLookback:
+      VOL_LOOKBACKS.find((n) => String(n) === params.get("vl")) ??
+      DEFAULTS.volLookback,
   };
 }
 

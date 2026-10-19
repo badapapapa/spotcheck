@@ -7,7 +7,9 @@
 // so a bad day leaves yesterday's data in place.
 
 import { CURRENCIES, fxFileName } from "../../engine/currencies.ts";
-import { FRANKFURTER_SOURCE, type fetchFx } from "./frankfurter.ts";
+import { type fetchEcbCrosses } from "./ecb.ts";
+import { type fetchFx } from "./frankfurter.ts";
+import { FX_SOURCES } from "./sources.ts";
 import { FRED_SOURCE, type fetchFredSeries } from "./fred.ts";
 import { stringifyDataFile, type readJson, type writeIfChanged } from "./io.ts";
 import { MAS_SOURCE, type fetchSora } from "./mas.ts";
@@ -60,6 +62,7 @@ export type PipelineDeps = {
   full: boolean;
   fredApiKey?: string;
   fetchFx: typeof fetchFx;
+  fetchEcbCrosses: typeof fetchEcbCrosses;
   fetchSora: typeof fetchSora;
   fetchFredSeries: typeof fetchFredSeries;
   readJson: typeof readJson;
@@ -80,42 +83,55 @@ export async function runPipeline(
   const fetchFx = deps.fetchFx;
   const fetchSora = deps.fetchSora;
   const fetchFredSeries = deps.fetchFredSeries;
+  const oldFx = new Map<string, FxFile | undefined>();
   const files: DataFiles = { fx: new Map(), sora: undefined, rates: new Map() };
 
-  // FX: one batch of requests for all currencies except the pegged BND.
-  const fxCodes = CURRENCIES.filter((c) => !c.peggedToSgd).map((c) => c.code);
-  const oldFx = new Map(
-    fxCodes.map((code) => [code, readJson(fxFileName(code), FxFileSchema)]),
-  );
-  const fxFrom = fxCodes
-    .map((code) => fetchStart(oldFx.get(code)?.rows, FX_START, full))
-    .sort()[0]!;
-  log(`FX: fetching ${fxCodes.length} currencies from ${fxFrom}`);
-  const freshFx = await fetchFx(fxCodes, fxFrom, today);
-  for (const code of fxCodes) {
-    const file: FxFile = {
-      kind: "fx",
-      quote: code,
-      unit: `SGD per 1 ${code}`,
-      source: FRANKFURTER_SOURCE,
-      // Applied to the merged history, so older rows are cleaned too.
-      rows: tradingObservations(
-        merge(oldFx.get(code)?.rows, freshFx.get(code) ?? [], fxFrom),
-      ),
-    };
-    files.fx.set(code, file);
+  // FX: each currency comes from exactly one source for its whole history
+  // (engine/currencies.ts). If a currency's source changes, its file is
+  // re-downloaded in full rather than spliced, so there is no artificial jump.
+  const fetchers = { blended: fetchFx, ecb: deps.fetchEcbCrosses } as const;
+  for (const source of ["blended", "ecb"] as const) {
+    const codes = CURRENCIES.filter((c) => c.fxSource === source).map(
+      (c) => c.code,
+    );
+    if (codes.length === 0) continue;
+    const old = new Map(
+      codes.map((code) => {
+        const file = readJson(fxFileName(code), FxFileSchema);
+        // A file from another source counts as missing: start over.
+        return [code, file?.source === FX_SOURCES[source] ? file : undefined];
+      }),
+    );
+    for (const code of codes) oldFx.set(code, old.get(code));
+    const from = codes
+      .map((code) => fetchStart(old.get(code)?.rows, FX_START, full))
+      .sort()[0]!;
+    log(`FX (${source}): fetching ${codes.length} currencies from ${from}`);
+    const fresh = await fetchers[source](codes, from, today);
+    for (const code of codes) {
+      files.fx.set(code, {
+        kind: "fx",
+        quote: code,
+        unit: `SGD per 1 ${code}`,
+        source: FX_SOURCES[source],
+        // Applied to the merged history, so older rows are cleaned too.
+        rows: tradingObservations(
+          merge(old.get(code)?.rows, fresh.get(code) ?? [], from),
+          { dropRepeats: source === "blended" },
+        ),
+      });
+    }
   }
 
   // BND is pegged 1:1 to SGD by the currency board, so it is a constant
   // series on the USD dates rather than noisy fetched data.
   const usd = files.fx.get("USD")!;
-  for (const c of CURRENCIES.filter((c) => c.peggedToSgd)) {
+  for (const c of CURRENCIES.filter((c) => c.fxSource === "peg")) {
     files.fx.set(c.code, {
       kind: "fx",
       quote: c.code,
       unit: `SGD per 1 ${c.code}`,
-      source:
-        "Constant: pegged 1:1 to SGD under the Currency Interchangeability Agreement",
+      source: FX_SOURCES.peg,
       note: "Pegged at par, so every conversion strategy costs the same.",
       rows: usd.rows.map(([date]) => [date, 1, 1]),
     });
@@ -168,8 +184,9 @@ export async function runPipeline(
       );
     }
   };
-  for (const code of fxCodes)
-    compare(`SGD-${code}`, oldFx.get(code)?.rows, files.fx.get(code)!.rows);
+  // (A currency whose source just changed has no "old" rows to compare.)
+  for (const [code, old] of oldFx)
+    compare(`SGD-${code}`, old?.rows, files.fx.get(code)!.rows);
   compare("SORA", oldSora?.rows, sora.rows);
   compare("USD-DFF", oldDff?.rows, dff.rows);
   if (shrunk.length) {
@@ -215,6 +232,10 @@ export async function runPipeline(
 }
 
 const ATTRIBUTION: MetaFile["attribution"] = [
+  {
+    name: "European Central Bank euro reference rates (SGD crosses derived via EUR by SpotCheck)",
+    url: "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html",
+  },
   { name: "Frankfurter", url: "https://frankfurter.dev/" },
   {
     name: "Monetary Authority of Singapore",

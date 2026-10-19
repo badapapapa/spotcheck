@@ -30,7 +30,8 @@ import { Label } from "@/components/ui/label";
 import { formatDate } from "@/lib/dates.ts";
 import { formatPercent, formatRate, formatSgd } from "@/lib/format.ts";
 import { HEDGE_STYLE } from "@/lib/hedge-style.ts";
-import { LIMITS } from "@/lib/url-state.ts";
+import { niceTicks, sgdTickDecimals, type Ticks } from "@/lib/ticks.ts";
+import { LIMITS, VOL_LOOKBACKS, type VolLookback } from "@/lib/url-state.ts";
 
 type Props = {
   currency: string;
@@ -40,10 +41,10 @@ type Props = {
   base: Omit<GkInputs, "K" | "sigma">; // spot, continuous rates, T
   forward: number;
   strikePct: number;
-  realised: { sigma: number; lookback: 60 | 90; from: string; to: string };
+  realised: { sigma: number; lookback: VolLookback; from: string; to: string };
   volOverride?: number;
   onStrike: (pct: number) => void;
-  onVol: (override: number | undefined, lookback: 60 | 90) => void;
+  onVol: (override: number | undefined, lookback: VolLookback) => void;
 };
 
 const axisTick = { fill: "var(--muted-foreground)", fontSize: 12 };
@@ -89,6 +90,10 @@ export function OptionPanel(props: Props) {
     S,
     ...gkCallGreeks({ ...inputs, S }),
   }));
+  const payoffAxis = axisFor(
+    payoff.flatMap((p) => [p.unhedged, p.forward, p.option]),
+    4,
+  );
 
   return (
     <Card>
@@ -148,17 +153,24 @@ export function OptionPanel(props: Props) {
                 aria-label="Realised volatility lookback"
                 value={realised.lookback}
                 onChange={(e) =>
-                  props.onVol(volOverride, e.target.value === "90" ? 90 : 60)
+                  props.onVol(
+                    volOverride,
+                    VOL_LOOKBACKS.find((n) => String(n) === e.target.value) ??
+                      250,
+                  )
                 }
                 className="h-10 rounded-lg border border-input bg-transparent px-2 text-sm dark:bg-input/30"
               >
-                <option value={60}>60-day</option>
-                <option value={90}>90-day</option>
+                {VOL_LOOKBACKS.map((n) => (
+                  <option key={n} value={n}>
+                    {n}-day
+                  </option>
+                ))}
               </select>
             </div>
             <p className="text-xs text-muted-foreground">
               {volOverride === undefined
-                ? `Realised volatility (proxy for implied): ${(realised.sigma * 100).toFixed(1)}%, from ${realised.lookback} daily moves ${formatDate(realised.from)}–${formatDate(realised.to)}. Type a number to override.`
+                ? `Realised volatility (proxy for implied): ${(realised.sigma * 100).toFixed(1)}%, from ${realised.lookback} trading days ${formatDate(realised.from)}–${formatDate(realised.to)}. Type a number to override.`
                 : `Your override. Leave it empty to use realised volatility (${(realised.sigma * 100).toFixed(1)}%).`}
             </p>
           </div>
@@ -207,11 +219,14 @@ export function OptionPanel(props: Props) {
                   ticks={[0.85, 0.925, 1, 1.075, 1.15].map((f) => base.S * f)}
                 />
                 <YAxis
-                  tickFormatter={(v: number) => formatSgd(v)}
+                  domain={payoffAxis.domain}
+                  ticks={payoffAxis.ticks}
+                  tickFormatter={(v: number) =>
+                    formatSgd(v, { decimals: sgdTickDecimals(payoffAxis) })
+                  }
                   tick={axisTick}
                   stroke="var(--border)"
                   width={76}
-                  domain={["auto", "auto"]}
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
@@ -265,73 +280,91 @@ export function OptionPanel(props: Props) {
             />
             <Stat
               label="Vega"
-              value={formatSgd((greeks.vega / 100) * amount, { cents: true })}
+              value={formatSgd((greeks.vega / 100) * amount)}
               hint={`Value change for ${amount.toLocaleString("en-SG")} ${currency} per 1-point rise in volatility`}
             />
             <Stat
               label="Theta"
-              value={formatSgd((greeks.theta / 365) * amount, { cents: true })}
+              value={formatSgd((greeks.theta / 365) * amount)}
               hint={`Value change for ${amount.toLocaleString("en-SG")} ${currency} per day that passes`}
             />
           </dl>
           <div className="grid gap-4 sm:grid-cols-2">
-            {greekCharts(amount).map((g) => (
-              <figure key={g.key} className="space-y-1">
-                <figcaption className="text-xs text-muted-foreground">
-                  {g.title} vs spot
-                </figcaption>
-                <div
-                  className="h-40 w-full"
-                  role="img"
-                  aria-label={`${g.title} against spot; at today's spot it is ${g.format(g.scale(greeks[g.key]))}.`}
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={greekCurves}
-                      margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
-                    >
-                      <CartesianGrid
-                        stroke="var(--chart-grid)"
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey="S"
-                        type="number"
-                        domain={["dataMin", "dataMax"]}
-                        tickFormatter={(v: number) => formatRate(v)}
-                        tick={axisTick}
-                        stroke="var(--border)"
-                        ticks={[0.85, 1, 1.15].map((f) => base.S * f)}
-                      />
-                      <YAxis
-                        tickFormatter={(v: number) => g.format(v)}
-                        tick={axisTick}
-                        stroke="var(--border)"
-                        width={56}
-                      />
-                      <Tooltip
-                        contentStyle={tooltipStyle}
-                        labelFormatter={(v) => `Spot ${formatRate(Number(v))}`}
-                        formatter={(v) => [g.format(Number(v)), g.title]}
-                      />
-                      <ReferenceLine
-                        x={base.S}
-                        stroke="var(--muted-foreground)"
-                        strokeDasharray="4 4"
-                      />
-                      <Line
-                        dataKey={(d: Greeks) => g.scale(d[g.key])}
-                        name={g.title}
-                        stroke="var(--series-2)"
-                        strokeWidth={2}
-                        dot={false}
-                        isAnimationActive={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </figure>
-            ))}
+            {greekCharts(amount)
+              .map((g) => ({
+                ...g,
+                axis: axisFor(
+                  greekCurves.map((d) => g.scale(d[g.key])),
+                  3,
+                ),
+              }))
+              .map((g) => (
+                <figure key={g.key} className="space-y-1">
+                  <figcaption className="text-xs text-muted-foreground">
+                    {g.title} vs spot
+                  </figcaption>
+                  <div
+                    className="h-40 w-full"
+                    role="img"
+                    aria-label={`${g.title} against spot; at today's spot it is ${g.format(g.scale(greeks[g.key]))}.`}
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={greekCurves}
+                        margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+                      >
+                        <CartesianGrid
+                          stroke="var(--chart-grid)"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="S"
+                          type="number"
+                          domain={["dataMin", "dataMax"]}
+                          tickFormatter={(v: number) => formatRate(v)}
+                          tick={axisTick}
+                          stroke="var(--border)"
+                          ticks={[0.85, 1, 1.15].map((f) => base.S * f)}
+                        />
+                        <YAxis
+                          domain={g.axis.domain}
+                          ticks={g.axis.ticks}
+                          tickFormatter={(v: number) =>
+                            g.sgd
+                              ? formatSgd(v, {
+                                  decimals: sgdTickDecimals(g.axis),
+                                })
+                              : v.toFixed(g.axis.decimals)
+                          }
+                          tick={axisTick}
+                          stroke="var(--border)"
+                          width={64}
+                        />
+                        <Tooltip
+                          contentStyle={tooltipStyle}
+                          labelFormatter={(v) =>
+                            `Spot ${formatRate(Number(v))}`
+                          }
+                          formatter={(v) => [g.format(Number(v)), g.title]}
+                        />
+                        <ReferenceLine
+                          x={base.S}
+                          stroke="var(--muted-foreground)"
+                          strokeDasharray="4 4"
+                        />
+                        <Line
+                          dataKey={(d: Greeks) => g.scale(d[g.key])}
+                          name={g.title}
+                          stroke="var(--series-2)"
+                          strokeWidth={2}
+                          dot={false}
+                          isAnimationActive={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </figure>
+              ))}
           </div>
         </section>
 
@@ -355,6 +388,8 @@ function greekCharts(amount: number): {
   title: string;
   scale: (v: number) => number;
   format: (v: number) => string;
+  /** Axis shows SGD (cents where the spacing needs them). */
+  sgd?: boolean;
 }[] {
   return [
     {
@@ -373,15 +408,22 @@ function greekCharts(amount: number): {
       key: "vega",
       title: "Vega (S$ per vol point)",
       scale: (v) => (v / 100) * amount,
-      format: (v) => formatSgd(v, { cents: true }),
+      format: (v) => formatSgd(v),
+      sgd: true,
     },
     {
       key: "theta",
       title: "Theta (S$ per day)",
       scale: (v) => (v / 365) * amount,
-      format: (v) => formatSgd(v, { cents: true }),
+      format: (v) => formatSgd(v),
+      sgd: true,
     },
   ];
+}
+
+/** Tidy, never-repeating ticks for a set of plotted values. */
+function axisFor(values: number[], target: number): Ticks {
+  return niceTicks(Math.min(...values), Math.max(...values), target);
 }
 
 function Stat({

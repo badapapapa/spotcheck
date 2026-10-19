@@ -20,6 +20,7 @@ import { STRATEGY_IDS, type Scenario, type Series } from "@/engine/types.ts";
 import { formatDate, formatMonth } from "@/lib/dates.ts";
 import { formatRate, formatSgd } from "@/lib/format.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
+import { niceTicks } from "@/lib/ticks.ts";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -72,6 +73,17 @@ export function SamplePath({
     return out;
   }, [fx, w]);
 
+  // Rate ticks with decimals from their spacing, so labels never repeat
+  // (VND is about 0.00005 SGD per unit).
+  const yAxis = useMemo(() => {
+    const rates = line.map((p) => p.rate);
+    return niceTicks(Math.min(...rates), Math.max(...rates), 4);
+  }, [line]);
+  const yAxisWidth = Math.max(
+    48,
+    12 + 7 * (yAxis.ticks.at(-1) ?? 0).toFixed(yAxis.decimals).length,
+  );
+
   return (
     <div className="space-y-4">
       <div className="grid gap-1.5">
@@ -115,11 +127,12 @@ export function SamplePath({
               tickCount={5}
             />
             <YAxis
-              domain={["auto", "auto"]}
-              tickFormatter={(v: number) => formatRate(v)}
+              domain={yAxis.domain}
+              ticks={yAxis.ticks}
+              tickFormatter={(v: number) => v.toFixed(yAxis.decimals)}
               tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
               stroke="var(--border)"
-              width={56}
+              width={yAxisWidth}
             />
             <Tooltip
               labelFormatter={(v) => formatDate(fromEpochDay(Number(v)))}

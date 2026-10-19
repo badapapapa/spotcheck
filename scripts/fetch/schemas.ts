@@ -83,8 +83,12 @@ export type CheckResult = { errors: string[]; warnings: string[] };
 export const LIMITS = {
   /** Calendar days between observations that is an error. */
   maxGapDays: 7,
-  /** Calendar days between observations that is logged as a warning. */
-  warnGapDays: 4,
+  /**
+   * Calendar days between observations that is logged as a warning. A
+   * 5-day gap is a normal long weekend (Easter, Christmas, Lunar New Year,
+   * TARGET holidays for ECB rates), so only 6–7 days are worth a look.
+   */
+  warnGapDays: 5,
   /** Largest allowed day-on-day FX move, as a fraction. */
   maxFxJump: 0.3,
   /** Interest rates must lie in [-1%, 25%]. */

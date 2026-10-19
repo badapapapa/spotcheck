@@ -142,3 +142,95 @@ test("ExcelJS is downloaded only when the user clicks Download", async ({
   const after = await Promise.all(scripts.map((s) => s.body));
   expect(after.some(isExcelJs)).toBe(true);
 });
+
+test("shows each currency's data source", async ({ page }) => {
+  await page.goto("/?c=USD");
+  await expect(page.getByTestId("fx-source")).toHaveText(
+    "Source: ECB euro reference rates (SGD cross derived via EUR).",
+  );
+  await page.goto("/?c=EUR");
+  await expect(page.getByTestId("fx-source")).toHaveText(
+    "Source: ECB euro reference rate.",
+  );
+  await page.goto("/?c=VND");
+  await expect(page.getByTestId("fx-source")).toHaveText(
+    "Source: Frankfurter blended rates; daily volatility may be understated.",
+  );
+  await page.goto("/?c=BRL");
+  await expect(page.getByTestId("fx-source")).toHaveText(
+    "Source: ECB euro reference rates (SGD cross derived via EUR).",
+  );
+  // The footer attributes the ECB and says the SGD crosses are derived.
+  await expect(page.getByRole("contentinfo")).toContainText(
+    "European Central Bank euro reference rates (SGD crosses derived via EUR by SpotCheck)",
+  );
+});
+
+for (const currency of ["JPY", "KRW", "IDR", "VND"]) {
+  test(`${currency} 15,000: SGD figures stay readable and tick labels never repeat`, async ({
+    page,
+  }) => {
+    await page.goto(
+      `/?c=${currency}&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2`,
+    );
+    const chart = page.getByRole("img", { name: /Range of SGD cost/ });
+    await expect(chart).toBeVisible();
+
+    // Outcome chart: axis labels distinct.
+    const axis = await chart.locator("text.tabular-nums").allTextContents();
+    const ticks = axis.filter((t) => /^S\$/.test(t));
+    expect(ticks.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(ticks).size, ticks.join(" | ")).toBe(ticks.length);
+
+    // Medians under S$100 show cents; S$100+ whole dollars.
+    for (const m of axis.filter((t) => t.startsWith("median "))) {
+      const value = Number(m.replace(/[^\d.]/g, ""));
+      if (value < 100) expect(m).toMatch(/\.\d\d$/);
+      else expect(m).not.toMatch(/\./);
+    }
+
+    // Sample-path rate axis: labels distinct.
+    const yTicks = await page
+      .locator(
+        ".recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value",
+      )
+      .allTextContents();
+    expect(yTicks.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(yTicks).size, yTicks.join(" | ")).toBe(yTicks.length);
+  });
+}
+
+test("switching currency keeps the SGD value of the amount", async ({
+  page,
+}) => {
+  await page.goto("/?c=USD&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2");
+  const amountHint = page.getByText(/≈ S\$[\d,.]+ at the latest mid rate/);
+  const sgd = async () =>
+    Number((await amountHint.textContent())!.replace(/[^\d.]/g, ""));
+  await expect(amountHint).toBeVisible();
+  const before = await sgd();
+
+  await page.getByLabel("Currency you need").selectOption("VND");
+  const vnd = page.getByLabel("Amount needed (VND)");
+  await expect(vnd).toHaveValue(/^\d{3}0+$/); // 3 significant figures
+  expect(Number(await vnd.inputValue())).toBeGreaterThan(100_000_000);
+  await expect(amountHint).toBeVisible();
+  expect(Math.abs((await sgd()) / before - 1)).toBeLessThan(0.01);
+  await expect(page).toHaveURL(/c=VND&a=\d{9}&/);
+
+  await page.getByLabel("Currency you need").selectOption("USD");
+  const back = Number(
+    await page.getByLabel("Amount needed (USD)").inputValue(),
+  );
+  expect(Math.abs(back / 15_000 - 1)).toBeLessThan(0.01);
+});
+
+test("a shared link's amount is taken as written, never converted", async ({
+  page,
+}) => {
+  await page.goto("/?c=VND&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2");
+  await expect(page.getByTestId("summary")).toBeVisible();
+  await page.waitForTimeout(500);
+  await expect(page.getByLabel("Amount needed (VND)")).toHaveValue("15000");
+  await expect(page).toHaveURL(/a=15000/);
+});

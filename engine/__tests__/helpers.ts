@@ -14,6 +14,10 @@ import type { Scenario, Series } from "../types.ts";
 const DATA = join(import.meta.dirname, "..", "..", "data");
 const load = (rel: string) => JSON.parse(readFileSync(join(DATA, rel), "utf8"));
 
+/** Any currency's committed FX file as a Series. */
+export const loadFx = (code: string): Series =>
+  fxSeries(FxFileSchema.parse(load(`fx/SGD-${code}.json`)));
+
 export const loadUsd = (): Series =>
   fxSeries(FxFileSchema.parse(load("fx/SGD-USD.json")));
 export const loadSora = (): Series =>

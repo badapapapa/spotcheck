@@ -5,6 +5,7 @@
 // with code 1 before anything is written, which fails the workflow step;
 // the commit step after it never runs.
 
+import { fetchEcbCrosses } from "./ecb.ts";
 import { fetchFx } from "./frankfurter.ts";
 import { fetchFredSeries } from "./fred.ts";
 import { readJson, writeIfChanged } from "./io.ts";
@@ -22,6 +23,7 @@ try {
     full: process.argv.includes("--full"),
     fredApiKey: process.env.FRED_API_KEY,
     fetchFx,
+    fetchEcbCrosses,
     fetchSora,
     fetchFredSeries,
     readJson,
