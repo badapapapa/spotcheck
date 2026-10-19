@@ -131,7 +131,7 @@ function Panels({
   return (
     <>
       <p className="text-xs text-muted-foreground" data-testid="fx-source">
-        {fxSourceLabel(findCurrency(s.currency)!.fxSource)}
+        {fxSourceLabel(findCurrency(s.currency)!)}
       </p>
       <ForwardPanel
         quote={quote}

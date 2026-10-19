@@ -108,10 +108,15 @@ export const CURRENCIES: readonly CurrencyInfo[] = LIST.map((c) => ({
 }));
 
 /** What the UI shows under results for a currency's data source. */
-export function fxSourceLabel(source: FxSource): string {
-  switch (source) {
+export function fxSourceLabel(
+  currency: Pick<CurrencyInfo, "code" | "fxSource">,
+): string {
+  switch (currency.fxSource) {
     case "ecb":
-      return "Source: ECB euro reference rates (SGD cross derived via EUR).";
+      // The ECB publishes SGD per EUR itself; every other rate is a cross.
+      return currency.code === "EUR"
+        ? "Source: ECB euro reference rate."
+        : "Source: ECB euro reference rates (SGD cross derived via EUR).";
     case "blended":
       return "Source: Frankfurter blended rates; daily volatility may be understated.";
     case "peg":

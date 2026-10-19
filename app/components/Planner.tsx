@@ -110,7 +110,7 @@ export function Planner() {
                 {formatDate(spot.date)}), with a{" "}
                 {(scenario.spread * 100).toFixed(2)}% spread.
                 <span className="mt-1 block text-xs" data-testid="fx-source">
-                  {fxSourceLabel(currency.fxSource)}
+                  {fxSourceLabel(currency)}
                 </span>
               </CardDescription>
             </CardHeader>
