@@ -1,10 +1,16 @@
-// Number formatting for the UI. SGD amounts are whole dollars everywhere
-// (the replay isn't precise to the cent). Pass { cents: true } only for
-// genuinely small per-unit or per-day figures.
+// Number formatting for the UI.
+//
+// SGD amounts: S$100 and above in whole dollars (the replay isn't precise to
+// the cent); under S$100 with cents, so small amounts (15,000 VND is about
+// S$0.74) stay readable. Axis ticks pass `decimals` chosen from the tick
+// spacing instead (see lib/ticks.ts).
 
-export function formatSgd(value: number, { cents = false } = {}): string {
-  const digits = cents ? 2 : 0;
-  // Round first so -0.4 shows as "S$0", not "−S$0".
+export function formatSgd(
+  value: number,
+  { decimals }: { decimals?: number } = {},
+): string {
+  const digits = decimals ?? (Math.abs(Number(value.toFixed(2))) < 100 ? 2 : 0);
+  // Round first so -0.004 shows as "S$0.00", not "−S$0.00".
   const rounded = Number(value.toFixed(digits));
   const s = Math.abs(rounded).toLocaleString("en-SG", {
     minimumFractionDigits: digits,

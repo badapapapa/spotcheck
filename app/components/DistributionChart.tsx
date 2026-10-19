@@ -6,20 +6,13 @@ import type { Summary } from "@/engine/stats.ts";
 import { STRATEGY_IDS } from "@/engine/types.ts";
 import { formatPercent, formatSgd } from "@/lib/format.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
+import { niceTicks, sgdTickDecimals } from "@/lib/ticks.ts";
 import { useWidth } from "@/lib/use-width.ts";
 
 const PAD_X = 16;
 const ROW_H = 64;
 const TOP = 8;
 const AXIS_H = 28;
-
-/** Rounds a step to 1, 2 or 5 × a power of ten for tidy axis ticks. */
-function niceStep(span: number, target: number): number {
-  const raw = span / target;
-  const pow = 10 ** Math.floor(Math.log10(raw));
-  const f = raw / pow;
-  return (f >= 5 ? 10 : f >= 2 ? 5 : f >= 1 ? 2 : 1) * pow;
-}
 
 export type RangeRow = {
   id: string;
@@ -67,14 +60,13 @@ export function RangeChart({
   const all = rows.map((r) => r.summary);
   const lo = Math.min(...all.map((s) => s.min));
   const hi = Math.max(...all.map((s) => s.max));
-  const pad = (hi - lo) * 0.04 || hi * 0.01;
-  const domain = [lo - pad, hi + pad] as const;
+  // Tidy ticks whose labels never repeat; the axis spans whole tick steps.
+  const axis = niceTicks(lo, hi, W < 480 ? 3 : 4);
+  const ticks = axis.ticks;
+  const domain = axis.domain;
+  const tickDecimals = sgdTickDecimals(axis);
   const x = (v: number) =>
     PAD_X + ((v - domain[0]) / (domain[1] - domain[0])) * (W - 2 * PAD_X);
-  const step = niceStep(domain[1] - domain[0], W < 480 ? 3 : 4);
-  const ticks: number[] = [];
-  for (let t = Math.ceil(domain[0] / step) * step; t <= domain[1]; t += step)
-    ticks.push(t);
   const H = TOP + rows.length * ROW_H + AXIS_H;
   const shown = rows.find((r) => r.id === activeId);
 
@@ -106,7 +98,7 @@ export function RangeChart({
               }
               className="fill-muted-foreground text-[13px] tabular-nums"
             >
-              {formatSgd(t)}
+              {formatSgd(t, { decimals: tickDecimals })}
             </text>
           </g>
         ))}

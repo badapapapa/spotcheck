@@ -161,3 +161,35 @@ test("shows each currency's data source", async ({ page }) => {
     "European Central Bank euro reference rates (SGD crosses derived via EUR by SpotCheck)",
   );
 });
+
+for (const currency of ["JPY", "KRW", "IDR", "VND"]) {
+  test(`${currency} 15,000: SGD figures stay readable and tick labels never repeat`, async ({
+    page,
+  }) => {
+    await page.goto(
+      `/?c=${currency}&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2`,
+    );
+    const chart = page.getByRole("img", { name: /Range of SGD cost/ });
+    await expect(chart).toBeVisible();
+
+    // Outcome chart: axis labels distinct.
+    const axis = await chart.locator("text.tabular-nums").allTextContents();
+    const ticks = axis.filter((t) => /^S\$/.test(t));
+    expect(ticks.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(ticks).size, ticks.join(" | ")).toBe(ticks.length);
+
+    // Medians under S$100 show cents; S$100+ whole dollars.
+    for (const m of axis.filter((t) => t.startsWith("median "))) {
+      const value = Number(m.replace(/[^\d.]/g, ""));
+      if (value < 100) expect(m).toMatch(/\.\d\d$/);
+      else expect(m).not.toMatch(/\./);
+    }
+
+    // Sample-path rate axis: labels distinct.
+    const yTicks = await page
+      .locator(".recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value")
+      .allTextContents();
+    expect(yTicks.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(yTicks).size, yTicks.join(" | ")).toBe(yTicks.length);
+  });
+}

@@ -22,8 +22,13 @@ describe("describeReplay", () => {
     expect(text).toMatch(/not forecasts/);
   });
 
-  it("rounds every SGD amount to whole dollars", () => {
-    expect(text).not.toMatch(/S\$[\d,]+\.\d/);
+  it("shows S$100 and above in whole dollars, smaller amounts with cents", () => {
+    for (const m of text.matchAll(/S\$([\d,]+(?:\.\d+)?)/g)) {
+      const value = Number(m[1]!.replaceAll(",", ""));
+      if (value >= 100)
+        expect(m[0], "whole dollars from S$100").not.toMatch(/\./);
+      else expect(m[0], "cents below S$100").toMatch(/\.\d\d$/);
+    }
   });
 
   it("never uses advisory wording", () => {
