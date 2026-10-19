@@ -17,7 +17,9 @@ export type CurrencyInfo = {
    * Where this currency's whole FX history comes from (one source per
    * currency, never spliced, so there are no artificial jumps):
    * - "ecb": ECB euro reference rates, SGD cross derived via EUR. Used when
-   *   the ECB covers the currency continuously from 1999 to today.
+   *   the ECB has published the currency continuously from 13 Jan 2000 or
+   *   earlier through today (most from 4 Jan 1999; BRL, CNY, ILS and INR from
+   *   13 Jan 2000, so their history starts there).
    * - "blended": Frankfurter's blended rates, for everything else. Blending
    *   providers that fix at different times smooths daily moves, so daily
    *   volatility from these is understated.
@@ -28,8 +30,15 @@ export type CurrencyInfo = {
 
 export type FxSource = "ecb" | "blended" | "peg";
 
-/** Currencies the ECB has published continuously from 1999 to today. */
+/**
+ * Currencies the ECB has published continuously from 13 Jan 2000 or earlier
+ * through today.
+ */
 const ECB_CONTINUOUS = new Set([
+  "BRL",
+  "CNY",
+  "ILS",
+  "INR",
   "USD",
   "CAD",
   "MXN",

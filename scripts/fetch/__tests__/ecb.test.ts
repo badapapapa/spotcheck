@@ -51,15 +51,17 @@ describe("fetchEcbCrosses", () => {
 });
 
 describe("one source per currency", () => {
-  it("ECB for the 23 currencies it has published continuously since 1999, blended for the rest", () => {
+  it("ECB for the 27 currencies it has published continuously since 13 Jan 2000 or earlier, blended for the rest", () => {
     const by = (s: string) =>
       CURRENCIES.filter((c) => c.fxSource === s)
         .map((c) => c.code)
         .sort();
     expect(by("ecb")).toEqual([
       "AUD",
+      "BRL",
       "CAD",
       "CHF",
+      "CNY",
       "CZK",
       "DKK",
       "EUR",
@@ -67,6 +69,8 @@ describe("one source per currency", () => {
       "HKD",
       "HUF",
       "IDR",
+      "ILS",
+      "INR",
       "JPY",
       "KRW",
       "MXN",
@@ -81,14 +85,12 @@ describe("one source per currency", () => {
       "USD",
       "ZAR",
     ]);
+    // ISK: gap 2008–2018. ARS, MAD, TWD, RUB: ECB stopped part-way.
+    // CLP, COP, KZT, MOP, PEN, SAR, VND: never published by the ECB.
     expect(by("blended")).toEqual([
       "ARS",
-      "BRL",
       "CLP",
-      "CNY",
       "COP",
-      "ILS",
-      "INR",
       "ISK",
       "KZT",
       "MAD",
@@ -100,6 +102,18 @@ describe("one source per currency", () => {
       "VND",
     ]);
     expect(by("peg")).toEqual(["BND"]);
+  });
+
+  it("ECB currencies added from 13 Jan 2000 start there; the rest start 4 Jan 1999", () => {
+    for (const c of CURRENCIES.filter((x) => x.fxSource === "ecb")) {
+      const file = FxFileSchema.parse(
+        JSON.parse(readFileSync(join(DATA_DIR, fxFileName(c.code)), "utf8")),
+      );
+      const expected = ["BRL", "CNY", "ILS", "INR"].includes(c.code)
+        ? "2000-01-13"
+        : "1999-01-04";
+      expect(file.rows[0]![0], c.code).toBe(expected);
+    }
   });
 
   it("every committed FX file comes entirely from its configured source", () => {

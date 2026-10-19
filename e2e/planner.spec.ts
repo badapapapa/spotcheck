@@ -152,9 +152,13 @@ test("shows each currency's data source", async ({ page }) => {
   await expect(page.getByTestId("fx-source")).toHaveText(
     "Source: ECB euro reference rate.",
   );
-  await page.goto("/?c=BRL");
+  await page.goto("/?c=VND");
   await expect(page.getByTestId("fx-source")).toHaveText(
     "Source: Frankfurter blended rates; daily volatility may be understated.",
+  );
+  await page.goto("/?c=BRL");
+  await expect(page.getByTestId("fx-source")).toHaveText(
+    "Source: ECB euro reference rates (SGD cross derived via EUR).",
   );
   // The footer attributes the ECB and says the SGD crosses are derived.
   await expect(page.getByRole("contentinfo")).toContainText(
