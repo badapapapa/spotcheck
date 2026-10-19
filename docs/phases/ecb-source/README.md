@@ -54,6 +54,13 @@ The [ECB disclaimer](https://www.ecb.europa.eu/services/using-our-site/disclaime
 
 Like-for-like lookbacks: blended 250-day gives S$38; ECB 60-day gives S$47. The planner medians move by S$21–29, almost all of it the 13 bp lower ECB spot. The premium is small in absolute terms because the forward is well below spot (USD rates above SGD rates), so an at-the-spot call is out of the money against the forward.
 
+## Review fixes (second round)
+
+- **EUR label:** "Source: ECB euro reference rate." (the ECB publishes SGD per EUR directly; only the other ECB currencies are crosses).
+- **Small SGD values:** amounts under S$100 show cents; S$100 and above stay whole dollars. Axis ticks use 1/2/5 steps with decimals chosen from the spacing (`lib/ticks.ts`), on the outcome chart, sample path, payoff and Greek charts. Checked with JPY, KRW, IDR and VND at 15,000 units.
+- **Switching currency:** keeps the SGD value of the amount, converted at both currencies' rates on the start date and rounded to 3 significant figures (15,000 USD → about 394,000,000 VND), never below 1 unit. Shared links are never converted.
+- **First load (USD):** 18 requests, 471 KB gzipped; the only data file is `data/fx/SGD-USD.json` (81.6 KB gzipped, 290 KB uncompressed; ECB crosses at 8 significant figures compress less well than the blended file's 68 KB).
+
 ## Tests added
 
 - `scripts/fetch/__tests__/ecb.test.ts`: cross maths, EUR, fetcher pairs each rate with SGD on the same day, the exact 23/16/1 split, every committed file matches its configured source, validation rejects a mismatched source, attribution says the crosses are derived.
