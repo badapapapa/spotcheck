@@ -187,9 +187,46 @@ for (const currency of ["JPY", "KRW", "IDR", "VND"]) {
 
     // Sample-path rate axis: labels distinct.
     const yTicks = await page
-      .locator(".recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value")
+      .locator(
+        ".recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value",
+      )
       .allTextContents();
     expect(yTicks.length).toBeGreaterThanOrEqual(2);
     expect(new Set(yTicks).size, yTicks.join(" | ")).toBe(yTicks.length);
   });
 }
+
+test("switching currency keeps the SGD value of the amount", async ({
+  page,
+}) => {
+  await page.goto("/?c=USD&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2");
+  const amountHint = page.getByText(/≈ S\$[\d,.]+ at the latest mid rate/);
+  const sgd = async () =>
+    Number((await amountHint.textContent())!.replace(/[^\d.]/g, ""));
+  await expect(amountHint).toBeVisible();
+  const before = await sgd();
+
+  await page.getByLabel("Currency you need").selectOption("VND");
+  const vnd = page.getByLabel("Amount needed (VND)");
+  await expect(vnd).toHaveValue(/^\d{3}0+$/); // 3 significant figures
+  expect(Number(await vnd.inputValue())).toBeGreaterThan(100_000_000);
+  await expect(amountHint).toBeVisible();
+  expect(Math.abs((await sgd()) / before - 1)).toBeLessThan(0.01);
+  await expect(page).toHaveURL(/c=VND&a=\d{9}&/);
+
+  await page.getByLabel("Currency you need").selectOption("USD");
+  const back = Number(
+    await page.getByLabel("Amount needed (USD)").inputValue(),
+  );
+  expect(Math.abs(back / 15_000 - 1)).toBeLessThan(0.01);
+});
+
+test("a shared link's amount is taken as written, never converted", async ({
+  page,
+}) => {
+  await page.goto("/?c=VND&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2");
+  await expect(page.getByTestId("summary")).toBeVisible();
+  await page.waitForTimeout(500);
+  await expect(page.getByLabel("Amount needed (VND)")).toHaveValue("15000");
+  await expect(page).toHaveURL(/a=15000/);
+});

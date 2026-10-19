@@ -1,10 +1,12 @@
 "use client";
 
 import { useId, useState } from "react";
-import { daysBetween } from "@/engine/calendar.ts";
+import { daysBetween, rateAsOf } from "@/engine/calendar.ts";
 import { CURRENCIES } from "@/engine/currencies.ts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { convertAmount } from "@/lib/convert.ts";
+import { loadFx } from "@/lib/data.ts";
 import { formatSgd } from "@/lib/format.ts";
 import { LIMITS, type PlannerState } from "@/lib/url-state.ts";
 
@@ -41,6 +43,33 @@ const inRange = (v: number, r: { min: number; max: number }) =>
 export function ScenarioForm({ state, onChange, spot }: Props) {
   const id = useId();
   const [draft, setDraft] = useState<Draft>(() => toDraft(state));
+  // The currency picked while its rates load (usually instant: cached).
+  const [pendingCurrency, setPendingCurrency] = useState<string | null>(null);
+
+  /**
+   * Switching currency keeps the SGD value of the amount: 15,000 USD becomes
+   * about 394,000,000 VND, not 15,000 VND (S$0.73). Only a user's change does
+   * this; a shared URL is always taken as written.
+   */
+  async function changeCurrency(code: string) {
+    setPendingCurrency(code);
+    const { currency: from, amount, startDate } = state.scenario;
+    let next = amount;
+    try {
+      const [a, b] = await Promise.all([loadFx(from), loadFx(code)]);
+      next = convertAmount(
+        amount,
+        rateAsOf(a, startDate).value,
+        rateAsOf(b, startDate).value,
+      );
+    } catch {
+      // Rates unavailable: keep the number as typed rather than block the switch.
+    }
+    onChange({
+      ...state,
+      scenario: { ...state.scenario, currency: code, amount: next },
+    });
+  }
   const [errors, setErrors] = useState<Partial<Record<keyof Draft, string>>>(
     {},
   );
@@ -83,13 +112,8 @@ export function ScenarioForm({ state, onChange, spot }: Props) {
         <Label htmlFor={`${id}-currency`}>Currency you need</Label>
         <select
           id={`${id}-currency`}
-          value={state.scenario.currency}
-          onChange={(e) =>
-            onChange({
-              ...state,
-              scenario: { ...state.scenario, currency: e.target.value },
-            })
-          }
+          value={pendingCurrency ?? state.scenario.currency}
+          onChange={(e) => changeCurrency(e.target.value)}
           className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm dark:bg-input/30"
         >
           {CURRENCIES.map((c) => (
