@@ -1,6 +1,6 @@
 # Week 1 · Phase 0: Setup
 
-**Status:** built and merged on `main`. CI green.
+**Status:** on `main` from the start (last Phase 0 commit [`b1aa444`](https://github.com/badapapapa/spotcheck/commit/b1aa444)).
 
 ## What was built
 
@@ -16,7 +16,7 @@
 | Dependabot (minor/patch only; majors by hand)                                         | `.github/dependabot.yml`                                |
 | Security headers + CSP for Cloudflare Pages                                           | `public/_headers`                                       |
 | `.env` ignored, `.env.example` with placeholder                                       | `.gitignore`, `.env.example`                            |
-| Private repo                                                                          | https://github.com/badapapapa/spotcheck                 |
+| Public repo                                                                           | https://github.com/badapapapa/spotcheck                 |
 
 ## Decisions made along the way
 
@@ -28,4 +28,4 @@
 ## [BEN] still to do for Gate 0
 
 1. **Cloudflare Pages:** Workers & Pages → Create → Pages → Connect to Git → `badapapapa/spotcheck`. Framework preset "Next.js (Static HTML Export)", build command `npm run build`, output directory `out`, environment variable `NODE_VERSION=24`. Then turn on Web Analytics for the site.
-2. **Secret scanning / push protection:** GitHub doesn't offer these for private repos on a free personal plan (the API reports them as unavailable). Turn them on when the repo goes public; gitleaks covers it until then.
+2. **Secret scanning / push protection:** the repo is now public, so GitHub secret scanning and push protection are available (Settings → Code security). gitleaks also runs in CI on every push.

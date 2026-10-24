@@ -1,6 +1,6 @@
 # ECB reference rates as the FX source (post-launch change)
 
-**Status:** branch `ecb-source`, opened as its own PR with its own gate. Not merged.
+**Status:** merged into `main` in [`973a6c1`](https://github.com/badapapapa/spotcheck/commit/973a6c1) (19 Oct 2026).
 
 ## Why
 

@@ -1,6 +1,6 @@
 # Week 10 · Phase 5: Polish and launch
 
-**Status:** built on branch `phase-5-polish` (stacked on `phase-4-advanced`), opened as a PR for approval. Launch itself waits on the [BEN] steps below.
+**Status:** merged into `main` in [`768a484`](https://github.com/badapapapa/spotcheck/commit/768a484). Launch itself waits on the [BEN] steps below.
 
 ## What was built
 
@@ -46,7 +46,7 @@ Lighthouse was run locally against the static build (gzip, simulated mobile). Af
 2. Collect feedback from 5 students (`docs/feedback.md`).
 3. Confirm the employer outside-activity policy check.
 4. Decide when to make the repo public; then turn on GitHub secret scanning and push protection.
-5. Merge the PRs in order: #5 → #6 → #7 → #8 → this one.
+5. ~~Merge the phases in order~~ Done: all five phases were merged into `main` on 17 Oct 2026 (see the [phase index](../README.md)).
 
 ## Dependencies added
 

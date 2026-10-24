@@ -1,6 +1,6 @@
 # Weeks 6–7 · Phase 3: Planner MVP
 
-**Status:** built on branch `phase-3-planner` (stacked on `phase-2-engine`), opened as a PR for approval.
+**Status:** merged into `main` in [`1cc896c`](https://github.com/badapapapa/spotcheck/commit/1cc896c).
 
 ## What was built
 

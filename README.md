@@ -4,7 +4,9 @@
 
 SpotCheck is a free web app for students going on exchange who need a lump of foreign currency by a known date (say USD 15,000 for a US semester starting August 2027). It replays four simple ways of converting SGD over every comparable period since 1999 and shows the range of outcomes. A hedging tab prices forwards and options with interest-rate parity and Garman-Kohlhagen.
 
-> **Live:** _link coming once Cloudflare Pages is connected_ · Educational tool using historical mid-market rates. Not financial advice. Past rates don't predict future ones.
+> **Live site:** `LIVE_SITE_URL` _(placeholder: replaced with the Cloudflare Pages URL once it is connected)_
+>
+> Educational tool using historical mid-market rates. Not financial advice. Past rates don't predict future ones.
 
 ![SpotCheck planner](docs/images/planner.png)
 

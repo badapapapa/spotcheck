@@ -1,6 +1,6 @@
 # Weeks 2–3 · Phase 1: Data pipeline
 
-**Status:** built on branch `phase-1-data`, opened as a PR for approval.
+**Status:** merged into `main` in [`ae4461e`](https://github.com/badapapapa/spotcheck/commit/ae4461e).
 
 ## What was built
 
@@ -79,4 +79,4 @@ All files store one observation per line so daily diffs are small. Total 11 MB i
 ## [BEN] to do
 
 - Optional: create a free FRED key at fredaccount.stlouisfed.org and add it as the repo secret `FRED_API_KEY` (Settings → Secrets and variables → Actions).
-- Gate 1 asks for 7 consecutive successful daily runs. That clock starts once this PR is merged into `main` (scheduled workflows only run from the default branch).
+- Gate 1 asks for 7 consecutive successful daily runs. Scheduled workflows only run from the default branch, so the clock started when this phase was merged into `main` on 17 Oct 2026; see the repository's Actions tab for the run history.

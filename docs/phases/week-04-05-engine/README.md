@@ -1,6 +1,6 @@
 # Weeks 4–5 · Phase 2: Engine
 
-**Status:** built on branch `phase-2-engine` (stacked on `phase-1-data`), opened as a PR for approval.
+**Status:** merged into `main` in [`c54cd13`](https://github.com/badapapapa/spotcheck/commit/c54cd13).
 
 ## What was built
 
