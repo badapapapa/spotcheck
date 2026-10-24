@@ -1,14 +1,21 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readJson } from "../io.ts";
 import { assertFormShape, fetchSora } from "../mas.ts";
 import {
   runPipeline,
   ValidationError,
   type PipelineDeps,
 } from "../pipeline.ts";
-import { FxFileSchema, type FxRow } from "../schemas.ts";
+import type { RateRow, SoraRow } from "../schemas.ts";
+import {
+  FAKE_LAST_DAY,
+  FAKE_NEXT_DAY,
+  FAKE_TODAY,
+  fakeFiles,
+  fakeReadJson,
+  reserveFx,
+} from "./fake-store.ts";
 
 const fixture = (name: string) =>
   readFileSync(join(import.meta.dirname, "fixtures", name), "utf8");
@@ -71,38 +78,24 @@ describe("MAS fetcher when MAS changes its download form", () => {
   });
 });
 
-/** A fake FX source that re-serves committed rows from `from` on. */
-const reserve = async (quotes: readonly string[], from: string) =>
-  new Map(
-    quotes.map((q) => [
-      q,
-      readJson(`fx/SGD-${q}.json`, FxFileSchema)!.rows.filter(
-        (r) => r[0] >= from,
-      ),
-    ]),
-  );
-
 describe("the daily job writes nothing when anything fails", () => {
-  /** Real committed data as the starting point; sources return no new rows. */
+  // Hermetic: the "committed" files and the "fetched" data both come from a
+  // fixed in-memory fixture (fake-store.ts), never from the real data/
+  // folder, so new daily rows can't change what these tests see.
   function deps(overrides: Partial<PipelineDeps> = {}) {
+    const files = fakeFiles();
     const writes: string[] = [];
+    const sora = (files.get("rates/SORA.json") as { rows: SoraRow[] }).rows;
+    const dff = (files.get("rates/USD-DFF.json") as { rows: RateRow[] }).rows;
     const d: PipelineDeps = {
-      today: "2026-10-17",
+      today: FAKE_TODAY,
       full: false,
-      // Each source re-serves its committed rows from the requested date on.
-      fetchFx: reserve,
-      fetchEcbCrosses: reserve,
-      fetchSora: async () =>
-        readJson(
-          "rates/SORA.json",
-          (await import("../schemas.ts")).SoraFileSchema,
-        )!.rows.slice(-10),
-      fetchFredSeries: async () =>
-        readJson(
-          "rates/USD-DFF.json",
-          (await import("../schemas.ts")).RateFileSchema,
-        )!.rows.slice(-10),
-      readJson,
+      // Each source re-serves the fixture's rows from the requested date on.
+      fetchFx: reserveFx(files),
+      fetchEcbCrosses: reserveFx(files),
+      fetchSora: async (from) => sora.filter((r) => r[0] >= from),
+      fetchFredSeries: async (_id, from) => dff.filter((r) => r[0] >= from),
+      readJson: fakeReadJson(files),
       writeIfChanged: (path) => {
         writes.push(path);
         return false;
@@ -110,8 +103,15 @@ describe("the daily job writes nothing when anything fails", () => {
       log: () => {},
       ...overrides,
     };
-    return { d, writes };
+    return { d, writes, files };
   }
+
+  it("with clean fixture data the job succeeds and writes every file (control)", async () => {
+    const { d, writes } = deps();
+    await expect(runPipeline(d)).resolves.toEqual({ changed: 0 });
+    // 40 FX files, SORA, DFF and meta.json.
+    expect(writes).toHaveLength(43);
+  });
 
   it("MAS form change: the error propagates and no file is written", async () => {
     const { d, writes } = deps({
@@ -127,28 +127,32 @@ describe("the daily job writes nothing when anything fails", () => {
   it("a source returning less than before (e.g. a default date range) is refused, nothing written", async () => {
     const { d, writes } = deps({ fetchSora: async () => [] });
     await expect(runPipeline(d)).rejects.toThrow(ValidationError);
-    await expect(runPipeline(d)).rejects.toThrow(/SORA would end on/);
+    // The rows kept from before the re-fetch window end earlier than the file.
+    await expect(runPipeline(d)).rejects.toThrow(
+      new RegExp(
+        `SORA would end on 2026-09-\\d\\d, before its committed last date ${FAKE_LAST_DAY}`,
+      ),
+    );
     expect(writes).toEqual([]);
   });
 
   it("a failed sanity check stops the job before any write", async () => {
-    const { d, writes } = deps({
-      // USD (an ECB currency) gains a new day with a 10x jump.
-      fetchEcbCrosses: async (quotes, from) =>
-        new Map(
-          quotes.map((q) => {
-            const rows = readJson(
-              `fx/SGD-${q}.json`,
-              FxFileSchema,
-            )!.rows.filter((r) => r[0] >= from);
-            return [
-              q,
-              q === "USD" ? [...rows, ["2026-10-19", 0.1, 10] as FxRow] : rows,
-            ];
-          }),
-        ),
-    });
-    await expect(runPipeline(d)).rejects.toThrow(/Validation failed.*SGD-USD/s);
+    const { d, writes, files } = deps();
+    // USD (an ECB currency) gains a new day, after its last committed day,
+    // with a 10x jump: the shrink guard is satisfied, so validation must be
+    // what stops the job.
+    d.fetchEcbCrosses = async (quotes, from) => {
+      const fresh = await reserveFx(files)(quotes, from);
+      fresh.get("USD")!.push([FAKE_NEXT_DAY, 0.1, 10]);
+      return fresh;
+    };
+    const error = await runPipeline(d).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ValidationError);
+    expect((error as Error).message).toMatch(/^Validation failed/);
+    expect((error as Error).message).toMatch(/SGD-USD: .*% move on 2026-10-01/);
+    expect((error as Error).message).not.toMatch(
+      /shorter than what is committed/,
+    );
     expect(writes).toEqual([]);
   });
 });
