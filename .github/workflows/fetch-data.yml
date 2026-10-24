@@ -28,7 +28,15 @@ jobs:
       - run: npm run fetch-data
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
-      - run: npm run validate-data
+      # The new data must pass everything the site depends on before it is
+      # committed: type-check, lint, all unit tests, data validation (all part
+      # of `npm run check`) and the production build. If any step fails, the
+      # job stops here, nothing is committed, and the failed run is emailed
+      # to the workflow's owner. (Commits pushed with GITHUB_TOKEN don't
+      # trigger the CI workflow, so this is the only check new data gets
+      # before the nightly CI run.)
+      - run: npm run check
+      - run: npm run build
       - name: Commit if data changed
         run: |
           if git diff --quiet -- data; then
