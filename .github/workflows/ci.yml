@@ -3,6 +3,14 @@ name: CI
 on:
   push:
   pull_request:
+  # Nightly at 05:00 UTC (13:00 SGT), two hours after the 03:00 UTC data job.
+  # The data job's own commits use GITHUB_TOKEN, which doesn't trigger this
+  # workflow, so this run catches anything the new data breaks (including the
+  # Playwright smoke tests and the secret scan). Failed scheduled runs are
+  # emailed to whoever last changed this schedule.
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read

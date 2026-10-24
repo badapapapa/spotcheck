@@ -78,6 +78,13 @@ test("typing in the amount updates the URL once, without route requests or histo
     }
   });
 
+  // Read the S$ hint at 15,000 first, so the check below doesn't depend on
+  // today's USD/SGD rate.
+  const hint = page.getByText(/≈ S\$[\d,.]+ at the latest mid rate/);
+  const sgd = async () =>
+    Number((await hint.textContent())!.replace(/[^\d.]/g, ""));
+  const at15000 = await sgd();
+
   const amount = page.getByLabel("Amount needed (USD)");
   await amount.fill("");
   await amount.pressSequentially("4000", { delay: 60 });
@@ -87,9 +94,8 @@ test("typing in the amount updates the URL once, without route requests or histo
   expect(routeRequests).toEqual([]);
   expect(await page.evaluate(() => history.length)).toBe(historyBefore);
   await expect(page.getByLabel("Amount needed (USD)")).toHaveValue("4000");
-  await expect(
-    page.getByText(/≈ S\$5,1\d\d at the latest mid rate/),
-  ).toBeVisible();
+  // The hint follows the new amount at the same rate.
+  await expect.poll(sgd).toBeCloseTo((at15000 * 4000) / 15000, -1);
 });
 
 test("back/forward and links still drive the state from the URL", async ({
@@ -213,10 +219,12 @@ test("switching currency keeps the SGD value of the amount", async ({
   await page.getByLabel("Currency you need").selectOption("VND");
   const vnd = page.getByLabel("Amount needed (VND)");
   await expect(vnd).toHaveValue(/^\d{3}0+$/); // 3 significant figures
-  expect(Number(await vnd.inputValue())).toBeGreaterThan(100_000_000);
   await expect(amountHint).toBeVisible();
   expect(Math.abs((await sgd()) / before - 1)).toBeLessThan(0.01);
-  await expect(page).toHaveURL(/c=VND&a=\d{9}&/);
+  // The URL carries the converted amount (whatever today's VND rate is).
+  await expect(page).toHaveURL(
+    new RegExp(`c=VND&a=${await vnd.inputValue()}&`),
+  );
 
   await page.getByLabel("Currency you need").selectOption("USD");
   const back = Number(

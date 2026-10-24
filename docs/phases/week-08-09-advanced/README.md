@@ -1,6 +1,6 @@
 # Weeks 8–9 · Phase 4: Advanced tab
 
-**Status:** built on branch `phase-4-advanced` (stacked on `phase-3-planner`), opened as a PR for approval.
+**Status:** merged into `main` in [`c76ed3d`](https://github.com/badapapapa/spotcheck/commit/c76ed3d).
 
 ## What was built
 
