@@ -29,18 +29,18 @@ Principles:
 
 ## 2. Layout
 
-Desktop (≥ 1024px), max content width 1200px:
+Header tabs from 1024px. Two columns from 1280px (converter 40rem, results the rest), max content width 1280px; between 1024 and 1279px the converter sits above the results:
 
 ```
 ┌ header 64px ─────────────────────────────────────────────────────────┐
-│ [icon] SpotCheck     Planner  Hedging          Not financial advice    │
+│ [icon] SpotCheck     Planner  Hedging    Educational only, not advice  │
 ├──────────────────────────────────────────────────────────────────────┤
 │ Exchange money planner                                                 │
 │ Replays four ways of converting over every comparable period.          │
 │                                                                        │
-│ ┌ converter panel (5/12) ──────┐  ┌ results panel (7/12) ──────────┐  │
-│ │ I need [15,000] [USD ▾] by   │  │ What each approach would cost   │  │
-│ │ [1 Aug 2027]                 │  │ Source: ECB …   [Copy] [Excel]  │  │
+│ ┌ converter panel (40rem) ─────┐  ┌ results panel (rest) ──────────┐  │
+│ │ I need [15000] [USD ▾] by [date] │ What each strategy would cost │  │
+│ │ (one line from 1280px)       │  │ [Copy link] [Download Excel]    │  │
 │ │                              │  │ ─────────────────────────────── │  │
 │ │ Converting today             │  │ range chart                      │  │
 │ │ S$19,284  ← yellow mark      │  │ ─────────────────────────────── │  │
@@ -54,7 +54,7 @@ Desktop (≥ 1024px), max content width 1200px:
 ├ footer (navy) ───────────────────────────────────────────────────────┤
 ```
 
-Phone (< 1024px): one column. Header 56px with the wordmark; **bottom tab bar** (64px) for Planner/Hedging; a **sticky summary bar** ("USD 15,000 by 1 Aug 2027", Edit) appears under the header once the converter scrolls out of view. The converter sentence wraps deliberately: amount + currency on line one, "by [date]" on line two.
+Phone (< 1024px): one column; the comparison table and charts must fit 390px with no sideways scroll (the middle-90% cell breaks after its dash). Header 56px with the wordmark; **bottom tab bar** (64px) for Planner/Hedging; a **sticky summary bar** ("USD 15,000 by 1 Aug 2027", Edit) appears under the header once the converter scrolls out of view. The converter sentence wraps deliberately: amount + currency on line one, "by [date]" on line two.
 
 Alignment: everything left-aligned except numbers in comparisons, which are right-aligned.
 
@@ -62,23 +62,23 @@ Alignment: everything left-aligned except numbers in comparisons, which are righ
 
 All colours are CSS variables on `:root`, with a dark set under `@media (prefers-color-scheme: dark)`. Dark values are their own steps, not inversions.
 
-| Token                  | Light     | Dark      | Use                                                                                   |
-| ---------------------- | --------- | --------- | ------------------------------------------------------------------------------------- |
-| `--background`         | `#F4F6FA` | `#0A1020` | Page                                                                                  |
-| `--card` / `--popover` | `#FFFFFF` | `#111A2E` | Panels, popovers                                                                      |
-| `--sunken`             | `#EEF2F8` | `#0D1526` | Table header row, inset areas                                                         |
-| `--border`             | `#D9E0EC` | `#25314B` | Dividers, panel borders                                                               |
-| `--input`              | `#7C8AA6` | `#5A6886` | Input and control outlines (≥ 3:1)                                                    |
-| `--foreground`         | `#0B1B3F` | `#E9EEF8` | Body text                                                                             |
-| `--muted-foreground`   | `#4B5875` | `#A6B1C8` | Secondary text                                                                        |
-| `--heading`            | `#0A2463` | `#FFFFFF` | Headings, wordmark                                                                    |
-| `--navy`               | `#0A2463` | `#0F1E45` | Footer, wordmark tile                                                                 |
-| `--primary`            | `#1A56DB` | `#6B9BFF` | Primary button, links, focus, sliders                                                 |
-| `--primary-foreground` | `#FFFFFF` | `#06102A` | Text on primary                                                                       |
-| `--link`               | `#1A56DB` | `#8AB0FF` | Links, secondary button text                                                          |
-| `--highlight`          | `#FFC52B` | `#FFD24D` | The today's-cost mark and the active-tab bar. Nothing else. Never text, never buttons |
-| `--destructive`        | `#B42318` | `#FF8A80` | Errors                                                                                |
-| `--ring`               | `#1A56DB` | `#8AB0FF` | Focus ring                                                                            |
+| Token                  | Light     | Dark      | Use                                                                                                                                                                         |
+| ---------------------- | --------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--background`         | `#F4F6FA` | `#0A1020` | Page                                                                                                                                                                        |
+| `--card` / `--popover` | `#FFFFFF` | `#111A2E` | Panels, popovers                                                                                                                                                            |
+| `--sunken`             | `#EEF2F8` | `#0D1526` | Table header row, inset areas                                                                                                                                               |
+| `--border`             | `#D9E0EC` | `#25314B` | Dividers, panel borders                                                                                                                                                     |
+| `--input`              | `#7C8AA6` | `#5A6886` | Input and control outlines (≥ 3:1)                                                                                                                                          |
+| `--foreground`         | `#0B1B3F` | `#E9EEF8` | Body text                                                                                                                                                                   |
+| `--muted-foreground`   | `#4B5875` | `#A6B1C8` | Secondary text                                                                                                                                                              |
+| `--heading`            | `#0A2463` | `#FFFFFF` | Headings, wordmark                                                                                                                                                          |
+| `--navy`               | `#0A2463` | `#0F1E45` | Footer, wordmark tile                                                                                                                                                       |
+| `--primary`            | `#1A56DB` | `#6B9BFF` | Primary button, links, focus, sliders                                                                                                                                       |
+| `--primary-foreground` | `#FFFFFF` | `#06102A` | Text on primary                                                                                                                                                             |
+| `--link`               | `#1A56DB` | `#8AB0FF` | Links, secondary button text                                                                                                                                                |
+| `--highlight`          | `#FFC52B` | `#FFD24D` | The today's-cost mark (light: a marker behind the figure; dark: a bar under it, so white digits stay crisp) and the active-tab bar. Nothing else. Never text, never buttons |
+| `--destructive`        | `#B42318` | `#FF8A80` | Errors                                                                                                                                                                      |
+| `--ring`               | `#1A56DB` | `#8AB0FF` | Focus ring                                                                                                                                                                  |
 
 Contrast (WCAG 2.2, computed): body text 15.6–16.9:1 light, 14.9–16.3:1 dark; muted text 6.6–7.1:1 / 8.1–8.8:1; links and secondary-button text 5.6:1 / 7.4:1; primary-button label 5.6:1 / 6.6:1; error text ≥ 6.1:1; input borders 3.48:1 / 3.10:1; focus ring ≥ 3:1. The yellow active-tab bar (1.58:1) is decorative: the active tab is also bold, navy, and `aria-current="page"`.
 
@@ -90,7 +90,7 @@ Two families, self-hosted with `next/font` (downloaded at build time, served fro
 | --------------------------------- | ----------------- | ------ | ------------------ | ------- |
 | Today's-cost figure               | Plus Jakarta Sans | 800    | 48 / 56            | 40 / 48 |
 | Page title (h1)                   | Plus Jakarta Sans | 800    | 28 / 36            | 24 / 32 |
-| Panel / section title (h2)        | Plus Jakarta Sans | 700    | 20 / 28            | 20 / 28 |
+| Panel / section title (h2)        | Plus Jakarta Sans | 700    | 20 / 28            | 18 / 28 |
 | Converter sentence                | Plus Jakarta Sans | 700    | 22 / 32            | 20 / 28 |
 | Body                              | IBM Plex Sans     | 400    | 16 / 24            | 16 / 24 |
 | UI labels, buttons, table headers | IBM Plex Sans     | 600    | 14–16 / 20–24      | same    |
@@ -122,25 +122,25 @@ Validated with the data-viz palette validator in both modes (lightness band, chr
 
 ## 7. Components
 
-| Component                              | Rules                                                                                                                                                                                                                                                                                                                             |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Header**                             | White (dark: `--card`), 64px desktop / 56px phone, bottom border. Wordmark: navy tile with two exchange arrows + "SpotCheck" in Jakarta 800. Tabs "Planner", "Hedging": active = navy bold + 3px yellow bar + `aria-current`. On phones the tabs move to the bottom tab bar. Header right: "Not financial advice" (desktop only). |
-| **Bottom tab bar** (phone)             | Fixed, 64px, two equal targets with icon + label. Safe-area padding.                                                                                                                                                                                                                                                              |
-| **Page title row**                     | h1 + one sentence. No eyebrow, no badge. On Hedging, the scenario chips sit directly under it.                                                                                                                                                                                                                                    |
-| **Converter panel**                    | Sentence: "I need [amount] [currency] by [date]". Then "Converting today" label, the **today's-cost figure** (amount × latest rate × (1 + spread), identical to the "All at once" result) with the yellow mark, and under it "S$X at mid rate, before your Y% spread". Then a divider and **More options**.                       |
-| **Currency picker**                    | Button showing flag + code; opens a listbox with a search field. Matches code, currency name and country name ("Japan" → JPY, "Korea" → KRW, "Germany" → EUR). Popular first: USD, GBP, EUR, AUD, CAD, KRW, JPY; then the rest A–Z. Arrow keys, Enter, Esc, type-to-filter. Flags appear only here, as content.                   |
-| **More options**                       | Disclosure. Closed, it summarises current values in one comma-separated line. Open: conversions, start date, spread, target, each with a visible label and helper text. Closed by default.                                                                                                                                        |
-| **Sticky summary bar** (phone)         | Appears when the converter leaves the viewport; "USD 15,000 by 1 Aug 2027" and an Edit button that scrolls back.                                                                                                                                                                                                                  |
-| **Results panel**                      | Title, source label, then the two actions in a fixed place: **Copy link** (primary) and **Download Excel** (secondary; exports the window selected in "Look at one window"). Then the range chart, the comparison table, and the summary. Fixed minimum height with a skeleton while loading (no layout shift).                   |
-| **Comparison table**                   | One row per strategy; columns Median, Middle 90% (low–high), Worst case. Right-aligned tabular numbers, row dividers, header row on `--sunken`. A colour key beside each name. No row is styled differently.                                                                                                                      |
-| **Sections** (one window, methodology) | Open sections on the page background with a top rule and an h2. Not cards.                                                                                                                                                                                                                                                        |
-| **Hedging**                            | Same header and title row, scenario chips under the title. Panels: "What a forward locks in", "What an option would cost", "How the option responds", "How each hedge would have worked out". Values are label/value rows, not tiles.                                                                                             |
-| **Help tips**                          | A 24px "i" button (44px hit area) next to forward points, premium, delta, gamma, vega and theta. Opens a short "What is this?" popover on click or focus; Esc closes; `aria-describedby`.                                                                                                                                         |
-| **Buttons**                            | Exactly two styles. Primary: `--primary` fill, `--primary-foreground` text. Secondary: transparent with `--link` text and a 1.5px `--primary` border. 44px min height, 10px radius. One primary per panel.                                                                                                                        |
-| **Focus**                              | 3px `--ring` outline with 2px offset on every focusable element.                                                                                                                                                                                                                                                                  |
-| **Icons**                              | lucide-react only, 18–20px, stroke 2. Used for: link, download, chevrons, info, and the two bottom-tab icons.                                                                                                                                                                                                                     |
-| **Footer**                             | Navy (`--navy`), white disclaimer, attribution as a plain list. Wording of the disclaimer and attribution never changes.                                                                                                                                                                                                          |
-| **Favicon / touch icon**               | The wordmark tile (`app/icon.svg`, `public/apple-touch-icon.png`).                                                                                                                                                                                                                                                                |
+| Component                              | Rules                                                                                                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Header**                             | White (dark: `--card`), 64px desktop / 56px phone, bottom border. Wordmark: navy tile with two exchange arrows + "SpotCheck" in Jakarta 800. Tabs "Planner", "Hedging": active = navy bold + 3px yellow bar + `aria-current`. On phones the tabs move to the bottom tab bar. Header right: "Educational only, not advice" (desktop only; the full disclaimer is in the footer on every page). |
+| **Bottom tab bar** (phone)             | Fixed, 64px, two equal targets with icon + label. Safe-area padding.                                                                                                                                                                                                                                                                                                                          |
+| **Page title row**                     | h1 + one sentence. No eyebrow, no badge. On Hedging, the scenario chips (the same sentence, editable, at 18px) sit directly under it.                                                                                                                                                                                                                                                         |
+| **Converter panel**                    | Sentence: "I need [amount] [currency] by [date]". Then "Converting today" label, the **today's-cost figure** (amount × latest rate × (1 + spread), identical to the "All at once" result) with the yellow mark, and under it "S$X at mid rate, before your Y% spread". Then a divider and **More options**.                                                                                   |
+| **Currency picker**                    | Button showing flag + code; opens a listbox with a search field. Matches code, currency name and country name ("Japan" → JPY, "Korea" → KRW, "Germany" → EUR). Popular first: USD, GBP, EUR, AUD, CAD, KRW, JPY; then the rest A–Z. Arrow keys, Enter, Esc, type-to-filter. Flags appear only here, as content.                                                                               |
+| **More options**                       | Disclosure. Closed, it summarises current values in one comma-separated line. Open: conversions, start date, spread, target, each with a visible label and helper text. Closed by default.                                                                                                                                                                                                    |
+| **Sticky summary bar** (phone)         | Appears when the converter leaves the viewport; "USD 15,000 by 1 Aug 2027" and an Edit button that scrolls back.                                                                                                                                                                                                                                                                              |
+| **Results panel**                      | Title, source label, then the two actions in a fixed place: **Copy link** (primary) and **Download Excel** (secondary; exports the window selected in "Look at one window"). Then the range chart, the comparison table, and the summary. Fixed minimum height with a skeleton while loading (no layout shift).                                                                               |
+| **Comparison table**                   | One row per strategy; columns Median, Middle 90% (low–high), Worst case. Right-aligned tabular numbers, row dividers, header row on `--sunken`. A colour key beside each name. No row is styled differently.                                                                                                                                                                                  |
+| **Sections** (one window, methodology) | Open sections on the page background with a top rule and an h2. Not cards.                                                                                                                                                                                                                                                                                                                    |
+| **Hedging**                            | Same header and title row, scenario chips under the title. Panels: "What a forward locks in", "What an option would cost", "How the option responds", "How each hedge would have worked out". Values are label/value rows, not tiles.                                                                                                                                                         |
+| **Help tips**                          | A 24px "i" button (44px hit area) next to forward points, premium, delta, gamma, vega and theta. Opens a short "What is this?" popover on click or focus; Esc closes; `aria-describedby`.                                                                                                                                                                                                     |
+| **Buttons**                            | Exactly two styles. Primary: `--primary` fill, `--primary-foreground` text. Secondary: transparent with `--link` text and a 1.5px `--primary` border. 44px min height, 10px radius. One primary per panel.                                                                                                                                                                                    |
+| **Focus**                              | 3px `--ring` outline with 2px offset on every focusable element.                                                                                                                                                                                                                                                                                                                              |
+| **Icons**                              | lucide-react only, 18–20px, stroke 2. Used for: link, download, chevrons, info, and the two bottom-tab icons.                                                                                                                                                                                                                                                                                 |
+| **Footer**                             | Navy (`--navy`), white disclaimer, attribution as a plain list. Wording of the disclaimer and attribution never changes.                                                                                                                                                                                                                                                                      |
+| **Favicon / touch icon**               | The wordmark tile (`app/icon.svg`, `public/apple-touch-icon.png`).                                                                                                                                                                                                                                                                                                                            |
 
 ## 8. Motion
 
