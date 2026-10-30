@@ -1,42 +1,85 @@
 "use client";
 
+import { ChartLine, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
-/** Planner / Hedging tabs that carry the scenario across in the URL. */
-export function SiteNav() {
-  return <Tabs pathname={usePathname()} query={useSearchParams().toString()} />;
+type Variant = "top" | "bottom";
+
+const TABS = [
+  { href: "/", label: "Planner", Icon: ChartLine },
+  { href: "/advanced", label: "Hedging", Icon: ShieldCheck },
+] as const;
+
+/**
+ * Planner / Hedging tabs that carry the scenario across in the URL. "top" sits
+ * in the header on desktop; "bottom" is the fixed thumb-reach bar on phones
+ * (DESIGN.md §7). Only one is displayed at a time, so each link appears once
+ * to assistive tech.
+ */
+export function SiteNav({ variant }: { variant: Variant }) {
+  return (
+    <Tabs
+      variant={variant}
+      pathname={usePathname()}
+      query={useSearchParams().toString()}
+    />
+  );
 }
 
 /**
  * The same tabs without the query string, rendered into the static HTML so
  * the header has its final size before any JavaScript runs (no layout shift).
  */
-export function SiteNavFallback({ pathname }: { pathname: string }) {
-  return <Tabs pathname={pathname} query="" />;
+export function SiteNavFallback({ variant }: { variant: Variant }) {
+  return <Tabs variant={variant} pathname="" query="" />;
 }
 
-function Tabs({ pathname, query }: { pathname: string; query: string }) {
-  const tabs = [
-    { href: "/", label: "Planner" },
-    { href: "/advanced", label: "Hedging" },
-  ];
+function Tabs({
+  variant,
+  pathname,
+  query,
+}: {
+  variant: Variant;
+  pathname: string;
+  query: string;
+}) {
   return (
-    <nav aria-label="Sections" className="flex gap-1 text-sm">
-      {tabs.map((t) => {
+    <nav
+      aria-label="Sections"
+      className={
+        variant === "top"
+          ? "hidden h-full items-stretch gap-2 lg:flex"
+          : "fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-2 border-t bg-card pb-[env(safe-area-inset-bottom)] lg:hidden"
+      }
+    >
+      {TABS.map(({ href, label, Icon }) => {
         const active =
-          t.href === "/" ? pathname === "/" : pathname.startsWith(t.href);
+          href === "/" ? pathname === "/" : pathname.startsWith(href);
         return (
           <Link
-            key={t.href}
+            key={href}
             // The href changes as the scenario changes; prefetching each new
             // URL would cause a request every time someone edits a field.
             prefetch={false}
-            href={query ? `${t.href}?${query}` : t.href}
+            href={query ? `${href}?${query}` : href}
             aria-current={active ? "page" : undefined}
-            className={`rounded-md px-3 py-1.5 ${active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            className={
+              variant === "top"
+                ? `flex min-h-11 items-center border-b-[3px] px-3 text-[15px] font-semibold ${
+                    active
+                      ? "border-highlight text-heading"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`
+                : `flex flex-col items-center justify-center gap-0.5 text-xs font-semibold ${
+                    active ? "text-heading" : "text-muted-foreground"
+                  }`
+            }
           >
-            {t.label}
+            {variant === "bottom" && (
+              <Icon aria-hidden className="size-5" strokeWidth={2} />
+            )}
+            {label}
           </Link>
         );
       })}
