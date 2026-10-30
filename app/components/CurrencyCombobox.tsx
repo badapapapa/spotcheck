@@ -73,7 +73,7 @@ export function CurrencyCombobox({
         <Combobox.Positioner align="start" sideOffset={6} className="z-50">
           <Combobox.Popup
             aria-label="Choose a currency"
-            className="w-[min(22rem,var(--available-width))] overflow-hidden rounded-[10px] border bg-card text-foreground shadow-[var(--shadow-panel)]"
+            className="w-[min(22rem,var(--available-width))] overflow-hidden rounded-md border bg-surface text-foreground shadow-[var(--shadow-pop)]"
           >
             <div className="flex items-center gap-2 border-b px-3">
               <Search
@@ -112,7 +112,7 @@ export function CurrencyCombobox({
                           {c.name}
                         </span>
                         <Combobox.ItemIndicator>
-                          <Check aria-hidden className="size-4 text-link" />
+                          <Check aria-hidden className="size-4 text-accent" />
                         </Combobox.ItemIndicator>
                       </Combobox.Item>
                     )}

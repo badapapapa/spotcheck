@@ -77,8 +77,8 @@ export function SamplePath({
   return (
     <div className="space-y-4">
       <div className="grid gap-1.5">
-        <label htmlFor={`${id}-start`} className="text-sm font-semibold">
-          Window starting {formatDate(w.start)}
+        <label htmlFor={`${id}-start`} className="t-small font-medium">
+          Start of the period: {formatDate(w.start)}
         </label>
         <input
           id={`${id}-start`}
@@ -88,147 +88,154 @@ export function SamplePath({
           value={index}
           onChange={(e) => onIndex(Number(e.target.value))}
           aria-valuetext={formatDate(start)}
-          className="h-11 w-full accent-primary"
+          className="h-11 w-full"
         />
-        <div className="flex justify-between text-xs text-muted-foreground">
+        <div className="t-label flex justify-between">
           <span>{formatMonth(startDates[0]!)}</span>
           <span>{formatMonth(startDates.at(-1)!)}</span>
         </div>
       </div>
 
-      <div
-        className="h-72 w-full"
-        role="img"
-        aria-label={`SGD per ${scenario.currency} from ${formatDate(w.start)} to ${formatDate(w.deadline)}, with each strategy's conversion dates. The conversions are listed below.`}
-      >
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart
-            data={line}
-            margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
-          >
-            <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-            <XAxis
-              dataKey="x"
-              type="number"
-              domain={["dataMin", "dataMax"]}
-              tickFormatter={(v: number) => formatMonth(fromEpochDay(v))}
-              tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
-              stroke="var(--border)"
-              tickCount={5}
-            />
-            <YAxis
-              domain={yAxis.domain}
-              ticks={yAxis.ticks}
-              tickFormatter={(v: number) => v.toFixed(yAxis.decimals)}
-              tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
-              stroke="var(--border)"
-              width={yAxisWidth}
-            />
-            <Tooltip
-              labelFormatter={(v) => formatDate(fromEpochDay(Number(v)))}
-              formatter={(v) => [
-                formatRate(Number(v)),
-                `SGD per ${scenario.currency}`,
-              ]}
-              contentStyle={{
-                background: "var(--card)",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                color: "var(--foreground)",
-                fontSize: 13,
-              }}
-            />
-            {/* Marker area in px²: about 11 px across, above the 8 px minimum. */}
-            <ZAxis range={[110, 110]} />
-            <Legend
-              wrapperStyle={{ fontSize: 13, color: "var(--foreground)" }}
-            />
-            <Line
-              dataKey="rate"
-              name={`SGD per ${scenario.currency}`}
-              stroke="var(--foreground)"
-              strokeOpacity={0.6}
-              strokeWidth={2}
-              dot={false}
-              isAnimationActive={false}
-              legendType="plainline"
-            />
-            {STRATEGY_IDS.map((sid) => (
-              <Scatter
-                key={sid}
-                name={STRATEGY_STYLE[sid].label}
-                data={w.results[sid].conversions.map((c) => ({
-                  x: toEpochDay(c.date),
-                  rate: c.rate,
-                }))}
-                dataKey="rate"
-                fill={STRATEGY_STYLE[sid].color}
-                stroke="var(--card)"
-                strokeWidth={2}
-                shape={STRATEGY_STYLE[sid].shape}
-                legendType={STRATEGY_STYLE[sid].shape}
-                isAnimationActive={false}
+      <div className="grid gap-8 pt-2 lg:grid-cols-12 lg:gap-6">
+        <div
+          className="h-72 w-full lg:col-span-7"
+          role="img"
+          aria-label={`SGD per ${scenario.currency} from ${formatDate(w.start)} to ${formatDate(w.deadline)}, with each strategy's conversion dates. The conversions are listed below.`}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart
+              data={line}
+              margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+            >
+              <CartesianGrid stroke="var(--rule)" vertical={false} />
+              <XAxis
+                dataKey="x"
+                type="number"
+                domain={["dataMin", "dataMax"]}
+                tickFormatter={(v: number) => formatMonth(fromEpochDay(v))}
+                tick={{ fill: "var(--muted)", fontSize: 12 }}
+                stroke="var(--rule)"
+                tickCount={5}
               />
-            ))}
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
+              <YAxis
+                domain={yAxis.domain}
+                ticks={yAxis.ticks}
+                tickFormatter={(v: number) => v.toFixed(yAxis.decimals)}
+                tick={{ fill: "var(--muted)", fontSize: 12 }}
+                stroke="var(--rule)"
+                width={yAxisWidth}
+              />
+              <Tooltip
+                labelFormatter={(v) => formatDate(fromEpochDay(Number(v)))}
+                formatter={(v) => [
+                  formatRate(Number(v)),
+                  `SGD per ${scenario.currency}`,
+                ]}
+                contentStyle={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--rule)",
+                  borderRadius: 8,
+                  color: "var(--ink)",
+                  fontSize: 13,
+                }}
+              />
+              {/* Marker area in px²: about 11 px across, above the 8 px minimum. */}
+              <ZAxis range={[110, 110]} />
+              <Legend
+                wrapperStyle={{ fontSize: 13, paddingTop: 8 }}
+                // Names in ink; the marker beside each carries the colour.
+                formatter={(name) => (
+                  <span style={{ color: "var(--muted)" }}>{name}</span>
+                )}
+              />
+              <Line
+                dataKey="rate"
+                name={`SGD per ${scenario.currency}`}
+                stroke="var(--ink)"
+                strokeOpacity={0.6}
+                strokeWidth={2}
+                dot={false}
+                isAnimationActive={false}
+                legendType="plainline"
+              />
+              {STRATEGY_IDS.map((sid) => (
+                <Scatter
+                  key={sid}
+                  name={STRATEGY_STYLE[sid].label}
+                  data={w.results[sid].conversions.map((c) => ({
+                    x: toEpochDay(c.date),
+                    rate: c.rate,
+                  }))}
+                  dataKey="rate"
+                  fill={STRATEGY_STYLE[sid].color}
+                  stroke="var(--surface)"
+                  strokeWidth={2}
+                  shape={STRATEGY_STYLE[sid].shape}
+                  legendType={STRATEGY_STYLE[sid].shape}
+                  isAnimationActive={false}
+                />
+              ))}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
 
-      <div>
-        <table className="w-full text-sm tabular-nums">
-          <caption className="sr-only">
-            Conversions made by each strategy in this window
-          </caption>
-          <thead className="bg-sunken text-left text-muted-foreground">
-            <tr>
-              <th
-                scope="col"
-                className="rounded-l-md py-2.5 pr-3 pl-3 font-medium"
-              >
-                Strategy
-              </th>
-              <th scope="col" className="py-2.5 pr-3 font-medium">
-                Converted on
-              </th>
-              <th
-                scope="col"
-                className="rounded-r-md py-2.5 pr-3 text-right font-medium"
-              >
-                Total cost
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {STRATEGY_IDS.map((sid) => {
-              const r = w.results[sid];
-              return (
-                <tr key={sid} className="border-b align-top last:border-0">
-                  <th
-                    scope="row"
-                    className="py-2.5 pr-3 pl-3 text-left font-medium"
-                  >
-                    {STRATEGY_STYLE[sid].label}
-                  </th>
-                  <td className="py-2.5 pr-3 text-muted-foreground">
-                    {r.conversions
-                      .map(
-                        (c) => `${formatDate(c.date)} at ${formatRate(c.rate)}`,
-                      )
-                      .join("; ")}
-                  </td>
-                  <td className="py-2.5 pr-3 text-right">
-                    {formatSgd(r.totalSgd)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Actual SGD paid in that window, at that time&apos;s rates, plus your
-          spread. The target was {formatRate(w.spot * (1 - targetBelowSpot))} (
-          {(targetBelowSpot * 100).toFixed(1)}% below {formatRate(w.spot)}).
-        </p>
+        <div className="lg:col-span-5">
+          <table className="t-small w-full tabular-nums">
+            <caption className="sr-only">
+              Conversions made by each strategy in this window
+            </caption>
+            <thead className="bg-sunken text-left text-muted-foreground">
+              <tr>
+                <th
+                  scope="col"
+                  className="rounded-l-md py-2.5 pr-3 pl-3 font-medium"
+                >
+                  Strategy
+                </th>
+                <th scope="col" className="py-2.5 pr-3 font-medium">
+                  Converted on
+                </th>
+                <th
+                  scope="col"
+                  className="rounded-r-md py-2.5 pr-3 text-right font-medium"
+                >
+                  Total cost
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {STRATEGY_IDS.map((sid) => {
+                const r = w.results[sid];
+                return (
+                  <tr key={sid} className="border-b align-top last:border-0">
+                    <th
+                      scope="row"
+                      className="py-2.5 pr-3 pl-3 text-left font-medium"
+                    >
+                      {STRATEGY_STYLE[sid].label}
+                    </th>
+                    <td className="py-2.5 pr-3 text-muted-foreground">
+                      {r.conversions
+                        .map(
+                          (c) =>
+                            `${formatDate(c.date)} at ${formatRate(c.rate)}`,
+                        )
+                        .join("; ")}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right">
+                      {formatSgd(r.totalSgd)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <p className="t-small mt-3 text-muted-foreground">
+            Actual SGD paid in that window, at that time&apos;s rates, plus your
+            spread. The target was {formatRate(w.spot * (1 - targetBelowSpot))}{" "}
+            ({(targetBelowSpot * 100).toFixed(1)}% below {formatRate(w.spot)}).
+          </p>
+        </div>
       </div>
     </div>
   );

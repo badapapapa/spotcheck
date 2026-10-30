@@ -10,45 +10,51 @@ export type ComparisonRow = {
 
 /**
  * The same three measures for every option, so they compare like for like:
- * median, the middle 90% of windows (5th to 95th percentile) and the most
- * expensive window. Every row is styled the same; nothing is singled out.
+ * median, the middle 90% of periods (5th to 95th percentile) and the most
+ * expensive period. Every row is styled the same; nothing is singled out.
+ * Hovering a row highlights the same option in the chart above (and the
+ * reverse), through `active`.
  */
 export function ComparisonTable({
   rows,
   caption,
   rowHeader,
+  active,
+  onActive,
 }: {
   rows: ComparisonRow[];
   caption: string;
   /** Heading of the first column, e.g. "Strategy" or "Hedge". */
   rowHeader: string;
+  active?: string | null;
+  onActive?: (id: string | null) => void;
 }) {
   return (
-    <table className="w-full text-sm tabular-nums sm:text-[15px]">
+    <table className="t-small w-full tabular-nums sm:text-[15px]">
       <caption className="sr-only">{caption}</caption>
-      <thead className="bg-sunken text-left text-muted-foreground sm:whitespace-nowrap">
-        <tr>
+      <thead className="text-left text-muted-foreground">
+        <tr className="bg-sunken">
           <th
             scope="col"
-            className="rounded-l-md py-2.5 pr-1.5 pl-3 font-medium"
+            className="rounded-l-sm py-2 pr-1.5 pl-3 font-medium sm:pr-2"
           >
             {rowHeader}
           </th>
           <th
             scope="col"
-            className="px-1.5 sm:px-2 py-2.5 text-right font-medium"
+            className="px-1.5 py-2 text-right font-medium sm:px-2"
           >
             Median
           </th>
           <th
             scope="col"
-            className="px-1.5 sm:px-2 py-2.5 text-right font-medium"
+            className="px-1.5 py-2 text-right font-medium sm:px-2"
           >
             Middle 90%
           </th>
           <th
             scope="col"
-            className="rounded-r-md py-2.5 pr-3 pl-1.5 text-right font-medium"
+            className="rounded-r-sm py-2 pr-3 pl-1.5 text-right font-medium sm:pl-2"
           >
             Worst case
           </th>
@@ -56,8 +62,17 @@ export function ComparisonTable({
       </thead>
       <tbody>
         {rows.map(({ id, label, color, summary: s }) => (
-          <tr key={id} className="border-b last:border-0">
-            <th scope="row" className="py-3 pr-1.5 pl-3 text-left font-medium">
+          <tr
+            key={id}
+            onMouseEnter={() => onActive?.(id)}
+            onMouseLeave={() => onActive?.(null)}
+            className="border-b transition-opacity duration-150 last:border-0"
+            style={{ opacity: active && active !== id ? 0.45 : 1 }}
+          >
+            <th
+              scope="row"
+              className="py-3 pr-1.5 pl-3 text-left font-medium sm:pr-2"
+            >
               <span className="flex items-center gap-2">
                 <span
                   aria-hidden
@@ -67,16 +82,18 @@ export function ComparisonTable({
                 {label}
               </span>
             </th>
-            <td className="px-1.5 sm:px-2 py-3 text-right">
+            <td className="px-1.5 py-3 text-right sm:px-2">
               {formatSgd(s.median)}
             </td>
-            <td className="px-1.5 sm:px-2 py-3 text-right">
+            <td className="px-1.5 py-3 text-right sm:px-2">
               {/* Breaks after the dash on narrow screens, never mid-number. */}
               <span className="whitespace-nowrap">{formatSgd(s.p5)}–</span>
               <wbr />
               <span className="whitespace-nowrap">{formatSgd(s.p95)}</span>
             </td>
-            <td className="py-3 pr-3 pl-1.5 text-right">{formatSgd(s.max)}</td>
+            <td className="py-3 pr-3 pl-1.5 text-right sm:pl-2">
+              {formatSgd(s.max)}
+            </td>
           </tr>
         ))}
       </tbody>

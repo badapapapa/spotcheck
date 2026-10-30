@@ -1,11 +1,14 @@
 "use client";
 
-import { Download, Info, Pencil } from "lucide-react";
+import { Download, Pencil } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { rateAsOf } from "@/engine/calendar.ts";
 import { findCurrency, fxSourceLabel } from "@/engine/currencies.ts";
+import type { ReplayResult } from "@/engine/replay.ts";
 import { sampleWindow } from "@/engine/replay.ts";
 import { STRATEGY_IDS } from "@/engine/types.ts";
+import { historicalAnswer, windowCount } from "@/lib/answer.ts";
 import { computeReplay } from "@/lib/compute.ts";
 import { loadFx } from "@/lib/data.ts";
 import { formatDate } from "@/lib/dates.ts";
@@ -16,12 +19,19 @@ import { useLoad } from "@/lib/use-data.ts";
 import { usePlannerState } from "@/lib/use-planner-state.ts";
 import type { PlannerState } from "@/lib/url-state.ts";
 import { ComparisonTable } from "./ComparisonTable";
-import { CopyLinkButton } from "./CopyLinkButton";
 import { DistributionChart } from "./DistributionChart";
-import { Methodology } from "./Methodology";
+import { OutcomeTimeline } from "./OutcomeTimeline";
+import { Result, ResultProgress } from "./Result";
 import { SamplePath } from "./SamplePath";
 import { ScenarioForm } from "./ScenarioForm";
+import { StrategyGuide } from "./StrategyGuide";
 
+/**
+ * The planner, after the static question (app/page.tsx). It returns its
+ * parts as siblings on the page grid (`.layout`): the converter under the
+ * question, the result beside it, then the evidence, the exploration, the
+ * strategies and the evidence strip (DESIGN.md §4).
+ */
 export function Planner() {
   const [state, setState] = usePlannerState();
   const { scenario } = state;
@@ -32,14 +42,11 @@ export function Planner() {
   const series = fx.status === "ready" ? fx.data : undefined;
   const spot = series ? rateAsOf(series, scenario.startDate) : undefined;
 
-  // Replaying ~10,000 windows runs in a Web Worker. The previous result
-  // stays on screen until the new one arrives.
+  // Replaying ~7,000 windows runs in a Web Worker. The previous result
+  // stays on screen (dimmed) until the new one arrives.
   const outcome = useLoad(
     series ? `replay:${JSON.stringify(state)}` : null,
-    async (): Promise<{
-      result: Awaited<ReturnType<typeof computeReplay>>;
-      for: PlannerState;
-    }> => ({
+    async (): Promise<{ result: ReplayResult; for: PlannerState }> => ({
       result: await computeReplay(series!, state.scenario, {
         targetBelowSpot: state.targetBelowSpot,
       }),
@@ -55,11 +62,16 @@ export function Planner() {
       ? outcome.data
       : undefined;
   const result = ready?.result;
+  const stale = outcome.status === "ready" && outcome.stale === true;
   const deferred = ready?.for ?? state;
+  const periodsToCheck = useMemo(
+    () => (series ? windowCount(series, scenario) : undefined),
+    [series, scenario],
+  );
 
-  // The window picked in "Look at one window" (latest by default). It lives
-  // here so the Download Excel button in the results header can export it.
-  // A new set of windows starts again from the latest.
+  // The period picked on the timeline or slider (latest by default). It
+  // lives here so the Excel export and the detail share it. A new set of
+  // periods starts again from the latest.
   const windowsKey = result
     ? `${result.startDates.length}:${result.windowDays}`
     : "";
@@ -69,6 +81,7 @@ export function Planner() {
       ? picked.index
       : result.startDates.length - 1
     : 0;
+  const select = (i: number) => setPicked({ key: windowsKey, index: i });
   const sample = useMemo(
     () =>
       result && series
@@ -97,58 +110,94 @@ export function Planner() {
     }
   }
 
+  // One highlighted strategy, shared by the chart, the table and the timeline.
+  const [active, setActive] = useState<string | null>(null);
+
   const converterRef = useRef<HTMLElement>(null);
   const showBar = useScrolledPast(converterRef);
+  const answer = result ? historicalAnswer(result) : undefined;
+  const months = result ? Math.round(result.windowDays / 30.44) : undefined;
 
   return (
-    <div className="space-y-12">
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[40rem_minmax(0,1fr)] xl:items-start">
-        <section
-          ref={converterRef}
-          aria-label="Converter"
-          className="panel panel-raised converter-min-h xl:sticky xl:top-6"
-        >
-          <ScenarioForm state={state} onChange={setState} spot={spot?.value} />
-          {currency.peggedToSgd && (
-            <p className="mt-4 flex gap-2 text-sm text-muted-foreground">
-              <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
-              The Brunei dollar is pegged 1:1 to the Singapore dollar, so every
-              strategy costs the same (plus your spread).
-            </p>
-          )}
-          {fx.status === "error" && (
-            <p role="alert" className="mt-4 text-sm text-destructive">
-              Couldn&apos;t load the rate history: {fx.error}
-            </p>
-          )}
-        </section>
+    <>
+      {/* The converter, directly under the question. */}
+      <section
+        ref={converterRef}
+        aria-label="Your plan"
+        className="col-main converter-min-h mt-8 self-start rounded-lg border bg-surface p-4 sm:p-6 lg:row-start-2"
+      >
+        <ScenarioForm state={state} onChange={setState} spot={spot?.value} />
+        {fx.status === "error" && (
+          <p role="alert" className="t-small mt-4 text-negative">
+            Couldn&apos;t load the rate history: {fx.error}
+          </p>
+        )}
+      </section>
 
-        <section aria-labelledby="results-title" className="panel">
-          <ResultsHeader
-            onDownload={exportXlsx}
-            downloadDisabled={!sample || exporting}
-            exporting={exporting}
-          />
+      {/* The answer, beside the question on laptops and under it on phones. */}
+      <section
+        aria-label="Your historical result"
+        className="col-side result-min-h mt-12 self-start lg:row-span-2 lg:row-start-1 lg:mt-2 lg:border-l lg:pl-10"
+      >
+        {outcome.status === "error" ? (
+          <p role="alert" className="text-negative">
+            {outcome.error}. Try a shorter period.
+          </p>
+        ) : result ? (
+          <div className="fade-in">
+            <Result
+              result={result}
+              pegged={currency.peggedToSgd === true}
+              stale={stale}
+            />
+          </div>
+        ) : (
+          <ResultProgress periods={periodsToCheck} />
+        )}
+      </section>
+
+      {/* Evidence: the four strategies side by side. */}
+      <section
+        id="evidence"
+        aria-labelledby="evidence-title"
+        className="section scroll-mt-6 lg:grid lg:grid-cols-12 lg:gap-6"
+      >
+        <div className="lg:col-span-4">
+          <h2 id="evidence-title" className="t-h2">
+            How the four strategies compared
+          </h2>
+          <p className="mt-3 text-muted-foreground">
+            {result && months
+              ? `Every ${months}-month period since ${formatDate(result.firstStart)}, each cost rescaled to today's rate.`
+              : "Every past period of the same length as yours, each cost rescaled to today's rate."}
+          </p>
+          {spot && (
+            <p className="t-small mt-3 text-muted-foreground">
+              Today&apos;s mid rate: {formatRate(spot.value)} SGD per{" "}
+              {scenario.currency} ({formatDate(spot.date)}).
+            </p>
+          )}
           <p
-            className="mt-2 text-xs text-muted-foreground"
+            className="t-small mt-1 text-muted-foreground"
             data-testid="fx-source"
           >
             {fxSourceLabel(currency)}
           </p>
-
-          {outcome.status === "error" && (
-            <p role="alert" className="mt-4 text-destructive">
-              {outcome.error}. Try a shorter period.
-            </p>
-          )}
-
+        </div>
+        <div className="mt-8 lg:col-span-8 lg:mt-0">
           {result ? (
-            <div className="mt-6 space-y-6">
-              <DistributionChart result={result} />
+            <div className="space-y-8">
+              <DistributionChart
+                result={result}
+                active={active}
+                onActive={setActive}
+              />
               <div>
                 <ComparisonTable
-                  caption="SGD cost of each strategy across historical windows"
+                  caption="SGD cost of each strategy across comparable past periods"
                   rowHeader="Strategy"
+                  active={active}
+                  onActive={setActive}
                   rows={STRATEGY_IDS.map((id) => ({
                     id,
                     label: STRATEGY_STYLE[id].label,
@@ -156,27 +205,13 @@ export function Planner() {
                     summary: result.stats[id].summary,
                   }))}
                 />
-                <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                  <p>
-                    Middle 90%: from low to high, the range 90% of past windows
-                    fell in. Worst case: the most expensive window.
-                  </p>
-                  {spot && (
-                    <p>
-                      {scenario.amount.toLocaleString("en-SG")}{" "}
-                      {scenario.currency} by {formatDate(scenario.deadline)},
-                      starting from today&apos;s mid rate of{" "}
-                      {formatRate(spot.value)} SGD per {scenario.currency} (
-                      {formatDate(spot.date)}), with a{" "}
-                      {(scenario.spread * 100).toFixed(2)}% spread.
-                    </p>
-                  )}
-                </div>
+                <p className="t-small mt-3 text-muted-foreground">
+                  Middle 90%: from low to high, the range 90% of past periods
+                  fell in. Worst case: the most expensive period.
+                </p>
               </div>
-              <div
-                className="space-y-2 border-t pt-5 text-[15px] leading-relaxed"
-                data-testid="summary"
-              >
+              <div data-testid="summary" className="prose-measure space-y-3">
+                <h3 className="t-h3">In plain words</h3>
                 {describeReplay(
                   result,
                   deferred.scenario,
@@ -187,109 +222,193 @@ export function Planner() {
               </div>
             </div>
           ) : (
-            outcome.status !== "error" && <ResultsSkeleton />
-          )}
-        </section>
-      </div>
-
-      <section aria-labelledby="window-title" className="section-rule">
-        <h2
-          id="window-title"
-          className="text-lg leading-7 font-bold sm:text-xl"
-        >
-          Look at one window
-        </h2>
-        <p className="mt-1 text-muted-foreground">
-          Slide through history to see when each strategy converted and at what
-          rate.
-        </p>
-        <div className="mt-6 min-h-[34rem]">
-          {result && series && sample ? (
-            <SamplePath
-              fx={series}
-              scenario={deferred.scenario}
-              targetBelowSpot={deferred.targetBelowSpot}
-              startDates={result.startDates}
-              index={index}
-              onIndex={(i) => setPicked({ key: windowsKey, index: i })}
-              window={sample}
-            />
-          ) : (
-            <div aria-hidden className="skeleton h-[34rem]" />
+            <div aria-hidden className="space-y-8">
+              <div className="skeleton h-[244px]" />
+              <div className="skeleton h-56" />
+            </div>
           )}
         </div>
       </section>
 
-      <section aria-labelledby="method-title" className="section-rule">
-        <h2
-          id="method-title"
-          className="text-lg leading-7 font-bold sm:text-xl"
-        >
-          Methodology
-        </h2>
-        <div className="mt-2">
-          <Methodology />
+      {/* Exploration: every past period, then one in detail. */}
+      <section
+        aria-labelledby="explore-title"
+        className="bleed mt-16 bg-sunken py-12 lg:mt-24 lg:py-16"
+      >
+        <div className="page">
+          <div className="lg:grid lg:grid-cols-12 lg:gap-6">
+            <div className="lg:col-span-7">
+              <h2 id="explore-title" className="t-h2">
+                What if you had converted in another period?
+              </h2>
+              <p className="mt-3 text-muted-foreground">
+                Each line is what a strategy would have cost, at today&apos;s
+                rate, if your plan had started on that day. Pick a day to see
+                exactly what happened.
+              </p>
+            </div>
+          </div>
+          {/* Legend plus chart: 2 legend rows on phones, 1 on laptops. */}
+          <div className="mt-8 min-h-[320px] sm:min-h-[336px]">
+            {result && answer ? (
+              <OutcomeTimeline
+                result={result}
+                amount={deferred.scenario.amount}
+                selected={index}
+                onSelect={select}
+                active={active}
+                onActive={setActive}
+                compare={{ a: answer.lowest, b: answer.reference }}
+              />
+            ) : (
+              <div
+                aria-hidden
+                className="skeleton h-[320px] bg-paper sm:h-[336px]"
+              />
+            )}
+          </div>
+
+          <div className="mt-10 border-t pt-8">
+            {result && series && sample ? (
+              <>
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                  <h3 className="t-h3">
+                    The period starting {formatDate(sample.start)}
+                  </h3>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={exportXlsx}
+                    disabled={exporting}
+                  >
+                    <Download aria-hidden className="size-4" />
+                    {exporting ? "Preparing…" : "Download Excel"}
+                    <span className="sr-only"> of this period</span>
+                  </button>
+                </div>
+                <div className="mt-6">
+                  <SamplePath
+                    fx={series}
+                    scenario={deferred.scenario}
+                    targetBelowSpot={deferred.targetBelowSpot}
+                    startDates={result.startDates}
+                    index={index}
+                    onIndex={select}
+                    window={sample}
+                  />
+                </div>
+              </>
+            ) : (
+              <div aria-hidden className="skeleton h-[34rem] bg-paper" />
+            )}
+          </div>
         </div>
       </section>
+
+      {/* The strategies, in plain terms. */}
+      <section
+        aria-labelledby="strategies-title"
+        className="mt-16 lg:mt-24 lg:grid lg:grid-cols-12 lg:gap-6"
+      >
+        <div className="lg:col-span-4">
+          <div className="lg:sticky lg:top-8">
+            <h2 id="strategies-title" className="t-h2">
+              The four strategies, in plain terms
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              What each one means you would actually do, and what it trades
+              away.
+            </p>
+          </div>
+        </div>
+        <div className="mt-6 lg:col-span-8 lg:mt-0">
+          <StrategyGuide />
+        </div>
+      </section>
+
+      {/* Why the result can be trusted, and what it isn't. */}
+      <EvidenceStrip
+        result={result}
+        series={series}
+        source={fxSourceLabel(currency)}
+      />
 
       {showBar && (
         <SummaryBar
           text={`${scenario.currency} ${scenario.amount.toLocaleString("en-SG")} by ${formatDate(scenario.deadline)}`}
           onEdit={() => {
-            converterRef.current?.scrollIntoView({ block: "start" });
+            converterRef.current?.scrollIntoView({ block: "center" });
             converterRef.current?.querySelector("input")?.focus();
           }}
         />
       )}
-    </div>
+    </>
   );
 }
 
 /**
- * Title and the two actions. Also drawn, disabled, in the static loading
- * fallback, so the heading paints before any script runs.
+ * The trust strip (DESIGN.md §7): how much history sits behind the result,
+ * where it comes from and how current it is. Every figure is from the data.
  */
-export function ResultsHeader({
-  onDownload,
-  downloadDisabled = true,
-  exporting = false,
+function EvidenceStrip({
+  result,
+  series,
+  source,
 }: {
-  onDownload?: () => void;
-  downloadDisabled?: boolean;
-  exporting?: boolean;
+  result?: ReplayResult;
+  series?: { dates: string[] };
+  source: string;
 }) {
+  const last = series?.dates.at(-1);
+  const first = series?.dates[0];
+  const years =
+    first && last
+      ? Math.floor(
+          (Date.parse(last) - Date.parse(first)) / (365.25 * 86_400_000),
+        )
+      : undefined;
+  const figures: [string | undefined, string][] = [
+    [years?.toString(), "years of daily exchange rates"],
+    [result?.windows.toLocaleString("en-SG"), "comparable periods tested"],
+    [
+      result?.independentWindows.toLocaleString("en-SG"),
+      "separate histories, once overlaps are counted",
+    ],
+    [last ? formatDate(last) : undefined, "latest rate in the data"],
+  ];
   return (
-    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-      <h2 id="results-title" className="text-lg leading-7 font-bold sm:text-xl">
-        What each strategy would have cost
+    <section aria-labelledby="trust-title" className="section">
+      <h2 id="trust-title" className="t-h2">
+        The evidence behind this
       </h2>
-      <div className="flex flex-wrap gap-2">
-        <CopyLinkButton />
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={onDownload}
-          disabled={downloadDisabled}
-        >
-          <Download aria-hidden className="size-4" />
-          {exporting ? "Preparing…" : "Download Excel"}
-          <span className="sr-only">
-            {" "}
-            of the window selected under &ldquo;Look at one window&rdquo;
-          </span>
-        </button>
+      <dl className="mt-8 grid grid-cols-2 gap-y-8 lg:grid-cols-4">
+        {figures.map(([value, label], i) => (
+          <div
+            key={label}
+            // Label after the figure in the DOM order screen readers expect
+            // (dt, dd), but drawn figure-first.
+            className={`flex flex-col-reverse justify-end gap-1 pr-4 ${i % 2 === 1 ? "border-l pl-4" : ""} ${i === 2 ? "lg:border-l" : ""} ${i > 0 ? "lg:pl-6" : ""}`}
+          >
+            <dt className="t-small text-muted-foreground">{label}</dt>
+            <dd className="t-data-l min-h-11 tabular-nums">
+              {value ?? <span className="skeleton inline-block h-9 w-24" />}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <div className="prose-measure mt-10 space-y-3 text-muted-foreground">
+        <p>
+          {source} These are mid-market reference rates; your bank&apos;s spread
+          is added to every conversion. Past periods show what happened, not
+          what will: future rates can move in ways this history never did.
+        </p>
+        <p>
+          <Link href="/how-it-works" prefetch={false} className="link">
+            How SpotCheck works: the method, the data and its limits
+          </Link>
+        </p>
       </div>
-    </div>
-  );
-}
-
-/** Holds the results' space while the first replay runs (no layout shift). */
-export function ResultsSkeleton() {
-  return (
-    <div aria-hidden className="mt-6 space-y-6">
-      <div className="skeleton h-[332px]" />
-      <div className="skeleton h-56" />
-    </div>
+    </section>
   );
 }
 
@@ -309,21 +428,34 @@ function useScrolledPast(ref: React.RefObject<HTMLElement | null>) {
 }
 
 /**
- * Phones: once the converter scrolls away, a bar under the top edge keeps the
- * scenario in view, with a way back to edit it.
+ * Phones: once the converter scrolls away, a bar along the top edge keeps
+ * the scenario in view, with a way back to edit it.
  */
 function SummaryBar({ text, onEdit }: { text: string; onEdit: () => void }) {
   return (
-    <div className="fixed inset-x-0 top-0 z-30 border-b bg-card lg:hidden">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-        <p className="truncate font-heading font-bold text-heading tabular-nums">
-          {text}
-        </p>
+    <div className="fixed inset-x-0 top-0 z-30 border-b bg-paper lg:hidden">
+      <div className="page flex h-14 items-center justify-between gap-3">
+        <p className="truncate font-medium tabular-nums">{text}</p>
         <button type="button" className="btn-secondary px-3" onClick={onEdit}>
           <Pencil aria-hidden className="size-4" />
           Edit
         </button>
       </div>
     </div>
+  );
+}
+
+/** The loading shape of the converter and result, for the static page. */
+export function PlannerFallback() {
+  return (
+    <>
+      <div
+        aria-hidden
+        className="col-main converter-min-h mt-8 rounded-lg border bg-surface lg:row-start-2"
+      />
+      <div className="col-side result-min-h mt-12 lg:row-span-2 lg:row-start-1 lg:mt-2 lg:border-l lg:pl-10">
+        <ResultProgress />
+      </div>
+    </>
   );
 }

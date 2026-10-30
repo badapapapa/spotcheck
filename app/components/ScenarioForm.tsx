@@ -145,7 +145,7 @@ export function ScenarioForm({
 
   return (
     <form
-      className={chips ? "max-w-3xl space-y-2" : "space-y-5"}
+      className={chips ? "max-w-3xl space-y-2" : "space-y-6"}
       onSubmit={(e) => e.preventDefault()}
       aria-label="Scenario"
     >
@@ -153,8 +153,8 @@ export function ScenarioForm({
           mid-group; wider screens keep the sentence on one line. */}
       <p
         ref={sentenceRef}
-        className={`flex flex-wrap items-center gap-x-2 gap-y-2 font-heading font-bold text-heading ${
-          chips ? "text-lg" : "text-[20px] leading-7 lg:text-[22px]"
+        className={`flex flex-wrap items-center gap-x-2.5 gap-y-2 text-ink ${
+          chips ? "text-[18px] font-medium" : "t-data-m"
         }`}
       >
         <span className="flex items-center gap-2 whitespace-nowrap">
@@ -169,7 +169,9 @@ export function ScenarioForm({
             step="any"
             className="field-chip no-spin text-right tabular-nums"
             // Grows with the number so the sentence stays tidy.
-            style={{ width: `${Math.max(4, draft.amount.length) + 1.5}ch` }}
+            style={{
+              width: `calc(${Math.max(4, draft.amount.length) + 0.5}ch + 1.75rem)`,
+            }}
           />
           <CurrencyPicker value={currency} onChange={changeCurrency} />
         </span>
@@ -195,39 +197,37 @@ export function ScenarioForm({
       {errorText("deadline")}
 
       {!chips && (
-        // Always the same height, so nothing moves when the rates arrive.
-        <div>
-          <p className="text-sm font-semibold text-muted-foreground">
-            Converting today
+        // The baseline every strategy is measured against: converting it all
+        // today (equal to the All at once result). Same height loaded or not.
+        <div className="border-t pt-4">
+          <div className="flex items-baseline justify-between gap-4">
+            <p className="t-label">Converting it all today</p>
+            {cost ? (
+              <p className="t-data-m tabular-nums" data-testid="today-cost">
+                {formatSgd(cost.withSpread)}
+              </p>
+            ) : (
+              // Invisible text of the same shape, so the row has the same
+              // baseline and height before and after the rate arrives.
+              <p aria-hidden className="t-data-m">
+                <span className="skeleton text-transparent">S$00,000</span>
+              </p>
+            )}
+          </div>
+          <p className="t-small mt-1 min-h-5 text-right text-muted-foreground tabular-nums">
+            {cost &&
+              `${formatSgd(cost.mid)} at mid rate, before your ${pctText(s.spread)}% spread`}
           </p>
-          {cost ? (
-            <>
-              <p className="mt-1 font-heading text-[40px] leading-[48px] font-extrabold tracking-tight text-heading tabular-nums lg:text-[48px] lg:leading-[56px]">
-                <span className="highlight-mark" data-testid="today-cost">
-                  {formatSgd(cost.withSpread)}
-                </span>
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-                {formatSgd(cost.mid)} at mid rate, before your{" "}
-                {pctText(s.spread)}% spread
-              </p>
-            </>
-          ) : (
-            <div aria-hidden>
-              <div className="skeleton mt-1 h-12 w-56 lg:h-14" />
-              <div className="skeleton mt-1 h-5 w-64" />
-            </div>
-          )}
         </div>
       )}
 
       <details
         open={moreOpen}
         onToggle={(e) => setMoreOpen(e.currentTarget.open)}
-        className={chips ? "" : "border-t pt-2"}
+        className={chips ? "" : "-mt-2"}
       >
         <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-[15px] [&::-webkit-details-marker]:hidden">
-          <span className="font-semibold whitespace-nowrap text-link">
+          <span className="font-medium whitespace-nowrap text-accent">
             More options
           </span>
           <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground tabular-nums">
@@ -323,7 +323,7 @@ function Field({
 }) {
   return (
     <div className="grid content-start gap-1.5">
-      <label htmlFor={id} className="text-sm font-semibold">
+      <label htmlFor={id} className="t-small font-medium">
         {label}
       </label>
       {children}
