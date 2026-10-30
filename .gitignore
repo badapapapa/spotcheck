@@ -50,3 +50,6 @@ next-env.d.ts
 # Playwright
 /test-results/
 /playwright-report/
+
+# Design reference screenshots of other sites: never commit
+.design-references/
