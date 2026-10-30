@@ -2,20 +2,12 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DISCLAIMER } from "@/lib/site";
+import { BANNED_IN_SOURCE as BANNED } from "./advisory-patterns.ts";
 
 // Guard for the no-financial-advice rule: user-facing source must never use
 // advisory wording. This scans the UI folders, not the engine, whose comments
 // may legitimately discuss e.g. "best execution" in a technical sense.
 const UI_DIRS = ["app", "components", "lib"];
-
-const BANNED = [
-  /\bbest\b/i,
-  /\brecommend(s|ed|ation|ations)?\b/i,
-  /\byou should\b/i,
-  /\bbuy now\b/i,
-  /\bsell now\b/i,
-  /\bguarantee(d|s)?\b/i,
-];
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -33,6 +25,10 @@ describe("advisory wording", () => {
   it("scans at least the layout and home page", () => {
     expect(files).toContain(join("app", "layout.tsx"));
     expect(files).toContain(join("app", "page.tsx"));
+    // The redesign's comparison table and hedging rows.
+    expect(files).toContain(join("app", "components", "ComparisonTable.tsx"));
+    expect(files).toContain(join("app", "components", "ValueRows.tsx"));
+    expect(files).toContain(join("app", "components", "HelpTip.tsx"));
   });
 
   it.each(files)("%s contains no advisory wording", (file) => {

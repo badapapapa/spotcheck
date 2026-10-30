@@ -1,7 +1,6 @@
 "use client";
 
-import { Download } from "lucide-react";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo } from "react";
 import {
   CartesianGrid,
   ComposedChart,
@@ -15,19 +14,24 @@ import {
   ZAxis,
 } from "recharts";
 import { fromEpochDay, indexOnOrAfter, toEpochDay } from "@/engine/calendar.ts";
-import { sampleWindow } from "@/engine/replay.ts";
+import type { sampleWindow } from "@/engine/replay.ts";
 import { STRATEGY_IDS, type Scenario, type Series } from "@/engine/types.ts";
 import { formatDate, formatMonth } from "@/lib/dates.ts";
 import { formatRate, formatSgd } from "@/lib/format.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { niceTicks } from "@/lib/ticks.ts";
-import { Button } from "@/components/ui/button";
+
+export type Window = ReturnType<typeof sampleWindow>;
 
 type Props = {
   fx: Series;
   scenario: Scenario;
   targetBelowSpot: number;
   startDates: string[];
+  /** The selected window. The planner owns it so Download Excel can export it. */
+  index: number;
+  onIndex: (index: number) => void;
+  window: Window;
 };
 
 /** One historical window: the rate line, and where each strategy converted. */
@@ -36,26 +40,12 @@ export function SamplePath({
   scenario,
   targetBelowSpot,
   startDates,
+  index,
+  onIndex,
+  window: w,
 }: Props) {
   const id = useId();
-  const [index, setIndex] = useState(startDates.length - 1);
-  const [exporting, setExporting] = useState(false);
-  const start = startDates[Math.min(index, startDates.length - 1)]!;
-  const w = useMemo(
-    () => sampleWindow(fx, scenario, start, { targetBelowSpot }),
-    [fx, scenario, start, targetBelowSpot],
-  );
-
-  async function exportXlsx() {
-    setExporting(true);
-    try {
-      // Loaded on demand: ExcelJS is large and most visitors never export.
-      const { downloadWorkbook } = await import("@/lib/xlsx.ts");
-      await downloadWorkbook(fx, scenario, targetBelowSpot, w);
-    } finally {
-      setExporting(false);
-    }
-  }
+  const start = startDates[index]!;
 
   const line = useMemo(() => {
     const out: { x: number; rate: number }[] = [];
@@ -87,7 +77,7 @@ export function SamplePath({
   return (
     <div className="space-y-4">
       <div className="grid gap-1.5">
-        <label htmlFor={`${id}-start`} className="text-sm font-medium">
+        <label htmlFor={`${id}-start`} className="text-sm font-semibold">
           Window starting {formatDate(w.start)}
         </label>
         <input
@@ -96,9 +86,9 @@ export function SamplePath({
           min={0}
           max={startDates.length - 1}
           value={index}
-          onChange={(e) => setIndex(Number(e.target.value))}
+          onChange={(e) => onIndex(Number(e.target.value))}
           aria-valuetext={formatDate(start)}
-          className="w-full accent-primary"
+          className="h-11 w-full accent-primary"
         />
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>{formatMonth(startDates[0]!)}</span>
@@ -141,10 +131,11 @@ export function SamplePath({
                 `SGD per ${scenario.currency}`,
               ]}
               contentStyle={{
-                background: "var(--popover)",
+                background: "var(--card)",
                 border: "1px solid var(--border)",
                 borderRadius: 8,
-                color: "var(--popover-foreground)",
+                color: "var(--foreground)",
+                fontSize: 13,
               }}
             />
             {/* Marker area in px²: about 11 px across, above the 8 px minimum. */}
@@ -172,8 +163,8 @@ export function SamplePath({
                 }))}
                 dataKey="rate"
                 fill={STRATEGY_STYLE[sid].color}
-                stroke="var(--background)"
-                strokeWidth={1.5}
+                stroke="var(--card)"
+                strokeWidth={2}
                 shape={STRATEGY_STYLE[sid].shape}
                 legendType={STRATEGY_STYLE[sid].shape}
                 isAnimationActive={false}
@@ -183,20 +174,26 @@ export function SamplePath({
         </ResponsiveContainer>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[30rem] text-sm tabular-nums">
+      <div>
+        <table className="w-full text-sm tabular-nums">
           <caption className="sr-only">
             Conversions made by each strategy in this window
           </caption>
-          <thead className="text-left text-muted-foreground">
-            <tr className="border-b border-border">
-              <th scope="col" className="py-2 pr-3 font-medium">
+          <thead className="bg-sunken text-left text-muted-foreground">
+            <tr>
+              <th
+                scope="col"
+                className="rounded-l-md py-2.5 pr-3 pl-3 font-medium"
+              >
                 Strategy
               </th>
-              <th scope="col" className="py-2 pr-3 font-medium">
+              <th scope="col" className="py-2.5 pr-3 font-medium">
                 Converted on
               </th>
-              <th scope="col" className="py-2 pr-3 text-right font-medium">
+              <th
+                scope="col"
+                className="rounded-r-md py-2.5 pr-3 text-right font-medium"
+              >
                 Total cost
               </th>
             </tr>
@@ -205,21 +202,21 @@ export function SamplePath({
             {STRATEGY_IDS.map((sid) => {
               const r = w.results[sid];
               return (
-                <tr
-                  key={sid}
-                  className="border-b border-border align-top last:border-0"
-                >
-                  <th scope="row" className="py-2 pr-3 text-left font-medium">
+                <tr key={sid} className="border-b align-top last:border-0">
+                  <th
+                    scope="row"
+                    className="py-2.5 pr-3 pl-3 text-left font-medium"
+                  >
                     {STRATEGY_STYLE[sid].label}
                   </th>
-                  <td className="py-2 pr-3 text-muted-foreground">
+                  <td className="py-2.5 pr-3 text-muted-foreground">
                     {r.conversions
                       .map(
                         (c) => `${formatDate(c.date)} at ${formatRate(c.rate)}`,
                       )
                       .join("; ")}
                   </td>
-                  <td className="py-2 pr-3 text-right">
+                  <td className="py-2.5 pr-3 text-right">
                     {formatSgd(r.totalSgd)}
                   </td>
                 </tr>
@@ -232,18 +229,6 @@ export function SamplePath({
           spread. The target was {formatRate(w.spot * (1 - targetBelowSpot))} (
           {(targetBelowSpot * 100).toFixed(1)}% below {formatRate(w.spot)}).
         </p>
-        <Button
-          type="button"
-          variant="outline"
-          className="mt-3"
-          onClick={exportXlsx}
-          disabled={exporting}
-        >
-          <Download aria-hidden />
-          {exporting
-            ? "Preparing…"
-            : "Download this window as .xlsx (live formulas)"}
-        </Button>
       </div>
     </div>
   );

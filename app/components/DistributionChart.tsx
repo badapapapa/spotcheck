@@ -17,6 +17,8 @@ const AXIS_H = 28;
 export type RangeRow = {
   id: string;
   label: string;
+  /** Drawn instead of `label` when the chart is narrow, so it can't run into the median. */
+  shortLabel?: string;
   color: string;
   summary: Summary;
   /** Extra text for the hover/focus caption, e.g. how often it beat another row. */
@@ -27,7 +29,7 @@ export type RangeRow = {
 export function DistributionChart({ result }: { result: ReplayResult }) {
   return (
     <RangeChart
-      label="Range of SGD cost for each strategy across all historical windows. Details are in the table below."
+      label="Range of SGD cost for each strategy across all historical windows. The same numbers are in the table below."
       rows={STRATEGY_IDS.map((id) => ({
         id,
         label: STRATEGY_STYLE[id].label,
@@ -61,7 +63,8 @@ export function RangeChart({
   const lo = Math.min(...all.map((s) => s.min));
   const hi = Math.max(...all.map((s) => s.max));
   // Tidy ticks whose labels never repeat; the axis spans whole tick steps.
-  const axis = niceTicks(lo, hi, W < 480 ? 3 : 4);
+  // Fewer ticks on narrow screens so the S$ labels never touch.
+  const axis = niceTicks(lo, hi, W < 400 ? 2 : W < 480 ? 3 : 4);
   const ticks = axis.ticks;
   const domain = axis.domain;
   const tickDecimals = sgdTickDecimals(axis);
@@ -77,7 +80,9 @@ export function RangeChart({
         width={W}
         height={H}
         className="block max-w-full"
-        role="img"
+        // A group, not an image: its rows are focusable buttons, which an
+        // image role would hide from screen readers.
+        role="group"
         aria-label={label}
       >
         {ticks.map((t) => (
@@ -146,7 +151,7 @@ export function RangeChart({
                 y={y0 + 20}
                 className="fill-foreground text-[15px] font-medium"
               >
-                {row.label}
+                {W < 480 ? (row.shortLabel ?? row.label) : row.label}
               </text>
               <text
                 aria-hidden
@@ -164,8 +169,7 @@ export function RangeChart({
                     x2={x(s.max)}
                     y1={yBar}
                     y2={yBar}
-                    stroke="var(--muted-foreground)"
-                    strokeOpacity={0.5}
+                    stroke="var(--whisker)"
                     strokeWidth={2}
                   />
                   <rect
@@ -184,7 +188,7 @@ export function RangeChart({
                 cy={yBar}
                 r={7}
                 fill={row.color}
-                stroke="var(--background)"
+                stroke="var(--card)"
                 strokeWidth={2.5}
               />
             </g>

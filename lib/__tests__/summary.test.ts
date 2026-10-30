@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { replay } from "@/engine/replay.ts";
 import { loadUsd } from "@/engine/__tests__/helpers.ts";
 import { describeReplay } from "../summary.ts";
+import { BANNED_IN_UI_TEXT as ADVISORY } from "@/tests/advisory-patterns.ts";
 
 const scenario = {
   currency: "USD",
@@ -32,15 +33,7 @@ describe("describeReplay", () => {
   });
 
   it("never uses advisory wording", () => {
-    for (const banned of [
-      /\bbest\b/i,
-      /recommend/i,
-      /\bshould\b/i,
-      /\bbuy now\b/i,
-      /\bguarantee/i,
-    ]) {
-      expect(text).not.toMatch(banned);
-    }
+    for (const banned of ADVISORY) expect(text).not.toMatch(banned);
   });
 
   it("leaves out the tranche comparison when there is only one conversion", () => {

@@ -101,8 +101,10 @@ export function Methodology() {
     <Accordion className="w-full">
       {items.map((item) => (
         <AccordionItem key={item.title} value={item.title}>
-          <AccordionTrigger>{item.title}</AccordionTrigger>
-          <AccordionContent className="space-y-2 text-muted-foreground">
+          <AccordionTrigger className="min-h-11 items-center py-3 text-[15px] font-semibold">
+            {item.title}
+          </AccordionTrigger>
+          <AccordionContent className="max-w-3xl space-y-2 text-muted-foreground">
             {item.body}
           </AccordionContent>
         </AccordionItem>

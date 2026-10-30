@@ -2,7 +2,6 @@
 
 import { Check, Link as LinkIcon } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 
 export function CopyLinkButton() {
   const [copied, setCopied] = useState(false);
@@ -16,9 +15,19 @@ export function CopyLinkButton() {
     }
   }
   return (
-    <Button type="button" variant="outline" onClick={copy} aria-live="polite">
-      {copied ? <Check aria-hidden /> : <LinkIcon aria-hidden />}
-      {copied ? "Link copied" : "Copy link to this scenario"}
-    </Button>
+    <button
+      type="button"
+      className="btn-primary"
+      onClick={copy}
+      aria-live="polite"
+    >
+      {copied ? (
+        <Check aria-hidden className="size-4" />
+      ) : (
+        <LinkIcon aria-hidden className="size-4" />
+      )}
+      {copied ? "Link copied" : "Copy link"}
+      {!copied && <span className="sr-only"> to this scenario</span>}
+    </button>
   );
 }
