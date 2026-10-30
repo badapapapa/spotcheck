@@ -24,11 +24,11 @@ export function ForwardPanel({
 }: Props) {
   const carry = (q.forward - q.spot) * amount;
   return (
-    <section aria-labelledby="forward-title" className="panel">
-      <h2 id="forward-title" className="text-lg leading-7 font-bold sm:text-xl">
+    <section aria-labelledby="forward-title">
+      <h2 id="forward-title" className="t-h2">
         What a forward locks in
       </h2>
-      <p className="mt-1 text-muted-foreground">
+      <p className="mt-3 text-muted-foreground">
         Today&apos;s forward fixes the rate now for a conversion on your
         deadline.
       </p>

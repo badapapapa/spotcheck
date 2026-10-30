@@ -18,14 +18,14 @@ export function HelpTipPopover({
       >
         <span
           aria-hidden
-          className="flex size-6 items-center justify-center rounded-full border-[1.5px] border-input font-heading text-[13px] font-bold text-link group-hover:border-primary group-data-[popup-open]:border-primary"
+          className="flex size-[22px] items-center justify-center rounded-full border-[1.5px] border-input text-[12px] font-semibold text-accent group-hover:border-ink group-data-[popup-open]:border-accent"
         >
           i
         </span>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner sideOffset={4} className="z-50">
-          <Popover.Popup className="max-w-[min(20rem,var(--available-width))] rounded-lg border bg-card p-3 text-foreground shadow-[var(--shadow-panel)] outline-none">
+          <Popover.Popup className="max-w-[min(20rem,var(--available-width))] rounded-lg border bg-surface p-3 text-foreground shadow-[var(--shadow-pop)] outline-none">
             <Popover.Title className="text-sm font-semibold">
               What is {term}?
             </Popover.Title>

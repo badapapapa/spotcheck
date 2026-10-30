@@ -40,12 +40,12 @@ type Props = {
   onVol: (override: number | undefined, lookback: VolLookback) => void;
 };
 
-const axisTick = { fill: "var(--muted-foreground)", fontSize: 12 };
+const axisTick = { fill: "var(--muted)", fontSize: 12 };
 const tooltipStyle = {
-  background: "var(--card)",
-  border: "1px solid var(--border)",
+  background: "var(--surface)",
+  border: "1px solid var(--rule)",
   borderRadius: 8,
-  color: "var(--foreground)",
+  color: "var(--ink)",
   fontSize: 13,
 };
 
@@ -104,15 +104,15 @@ export function OptionPanel(props: Props) {
 
   return (
     <>
-      <section aria-labelledby="option-title" className="panel space-y-6">
+      <section
+        aria-labelledby="option-title"
+        className="space-y-6 lg:border-l lg:pl-12"
+      >
         <div>
-          <h2
-            id="option-title"
-            className="text-lg leading-7 font-bold sm:text-xl"
-          >
+          <h2 id="option-title" className="t-h2">
             What an option would cost
           </h2>
-          <p className="mt-1 text-muted-foreground">
+          <p className="mt-3 text-muted-foreground">
             A call option gives the right, not the obligation, to buy {currency}{" "}
             at the strike on your deadline. You pay a premium today; if the rate
             ends up above the strike you convert at the strike, otherwise at the
@@ -121,7 +121,7 @@ export function OptionPanel(props: Props) {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid content-start gap-1.5">
-            <label htmlFor={`${id}-strike`} className="text-sm font-semibold">
+            <label htmlFor={`${id}-strike`} className="t-small font-medium">
               Strike: {formatRate(K)} ({Math.round(strikePct * 100)}% of spot)
             </label>
             <input
@@ -137,7 +137,7 @@ export function OptionPanel(props: Props) {
             />
           </div>
           <div className="grid content-start gap-1.5">
-            <label htmlFor={`${id}-vol`} className="text-sm font-semibold">
+            <label htmlFor={`${id}-vol`} className="t-small font-medium">
               Volatility (% a year)
             </label>
             <div className="flex gap-2">
@@ -218,7 +218,7 @@ export function OptionPanel(props: Props) {
         />
 
         <figure className="space-y-2">
-          <figcaption className="text-[15px] font-semibold">
+          <figcaption className="t-h3">
             Total SGD cost on {formatDate(props.deadline)}, by where the rate
             ends up
           </figcaption>
@@ -233,14 +233,14 @@ export function OptionPanel(props: Props) {
                 // Room above the plot for the "today" label on the dashed line.
                 margin={{ top: 24, right: 8, bottom: 0, left: 8 }}
               >
-                <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+                <CartesianGrid stroke="var(--rule)" vertical={false} />
                 <XAxis
                   dataKey="ST"
                   type="number"
                   domain={["dataMin", "dataMax"]}
                   tickFormatter={(v: number) => formatRate(v)}
                   tick={axisTick}
-                  stroke="var(--border)"
+                  stroke="var(--rule)"
                   ticks={[0.85, 0.925, 1, 1.075, 1.15].map((f) => base.S * f)}
                 />
                 <YAxis
@@ -250,7 +250,7 @@ export function OptionPanel(props: Props) {
                     formatSgd(v, { decimals: sgdTickDecimals(payoffAxis) })
                   }
                   tick={axisTick}
-                  stroke="var(--border)"
+                  stroke="var(--rule)"
                   width={76}
                 />
                 <Tooltip
@@ -260,14 +260,20 @@ export function OptionPanel(props: Props) {
                   }
                   formatter={(v, name) => [formatSgd(Number(v)), name]}
                 />
-                <Legend wrapperStyle={{ fontSize: 13 }} />
+                <Legend
+                  wrapperStyle={{ fontSize: 13, paddingTop: 8 }}
+                  // Names in ink; the marker beside each carries the colour.
+                  formatter={(name) => (
+                    <span style={{ color: "var(--muted)" }}>{name}</span>
+                  )}
+                />
                 <ReferenceLine
                   x={base.S}
-                  stroke="var(--muted-foreground)"
+                  stroke="var(--muted)"
                   strokeDasharray="4 4"
                   label={{
                     value: "today",
-                    fill: "var(--muted-foreground)",
+                    fill: "var(--muted)",
                     fontSize: 12,
                     position: "top",
                   }}
@@ -299,16 +305,13 @@ export function OptionPanel(props: Props) {
 
       <section
         aria-labelledby="greeks-title"
-        className="panel space-y-4 xl:col-span-2"
+        className="space-y-6 border-t pt-10 lg:col-span-2"
       >
         <div>
-          <h2
-            id="greeks-title"
-            className="text-lg leading-7 font-bold sm:text-xl"
-          >
+          <h2 id="greeks-title" className="t-h2">
             How the option responds
           </h2>
-          <p className="mt-1 text-muted-foreground">
+          <p className="mt-3 text-muted-foreground">
             The Greeks: how the option&apos;s value changes as the rate,
             volatility and time move.
           </p>
@@ -391,17 +394,14 @@ export function OptionPanel(props: Props) {
                       data={greekCurves}
                       margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
                     >
-                      <CartesianGrid
-                        stroke="var(--chart-grid)"
-                        vertical={false}
-                      />
+                      <CartesianGrid stroke="var(--rule)" vertical={false} />
                       <XAxis
                         dataKey="S"
                         type="number"
                         domain={["dataMin", "dataMax"]}
                         tickFormatter={(v: number) => formatRate(v)}
                         tick={axisTick}
-                        stroke="var(--border)"
+                        stroke="var(--rule)"
                         ticks={[0.85, 1, 1.15].map((f) => base.S * f)}
                       />
                       <YAxis
@@ -415,7 +415,7 @@ export function OptionPanel(props: Props) {
                             : v.toFixed(g.axis.decimals)
                         }
                         tick={axisTick}
-                        stroke="var(--border)"
+                        stroke="var(--rule)"
                         width={64}
                       />
                       <Tooltip
@@ -425,7 +425,7 @@ export function OptionPanel(props: Props) {
                       />
                       <ReferenceLine
                         x={base.S}
-                        stroke="var(--muted-foreground)"
+                        stroke="var(--muted)"
                         strokeDasharray="4 4"
                       />
                       <Line

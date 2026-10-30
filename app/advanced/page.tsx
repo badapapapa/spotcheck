@@ -2,34 +2,33 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Advanced } from "../components/advanced/Advanced";
-import { PageTitle } from "../components/PageTitle";
 
 export const metadata: Metadata = {
-  title: "Hedging: forwards and options · SpotCheck",
+  title: "Hedging: forwards and options | SpotCheck",
 };
 
 export default function AdvancedPage() {
   return (
-    <div className="space-y-4 lg:space-y-6">
-      <PageTitle title="Hedging: forwards and options">
-        For the same scenario as the{" "}
-        <Link
-          href="/"
-          prefetch={false}
-          className="text-link underline underline-offset-2"
-        >
-          planner
-        </Link>
-        : what locking a forward or buying an option would cost today, and how
-        each would have worked out in the past.
-      </PageTitle>
+    <div className="page pt-10 lg:pt-16">
+      {/* Static, so it paints before any script runs. */}
+      <div className="max-w-4xl">
+        <h1 className="t-h1">Hedging: forwards and options</h1>
+        <p className="t-lede mt-5">
+          What fixing your rate today with a forward, or capping it with an
+          option, would cost for the same plan as the{" "}
+          <Link href="/" prefetch={false} className="link">
+            planner
+          </Link>
+          , and how each would have worked out in past periods.
+        </p>
+      </div>
       <Suspense
         fallback={
-          <div aria-hidden className="space-y-6">
+          <div aria-hidden className="mt-8 space-y-6">
             <div className="skeleton h-11 w-full max-w-xl" />
             <div className="skeleton h-11 w-64" />
             {/* Taller than any screen, so the footer never jumps. */}
-            <div className="skeleton h-[60rem]" />
+            <div className="skeleton mt-12 h-[60rem]" />
           </div>
         }
       >

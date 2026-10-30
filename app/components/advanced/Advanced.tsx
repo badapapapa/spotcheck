@@ -8,13 +8,14 @@ import type {
   HedgeReplayResult,
   OptionSettings,
 } from "@/engine/hedge-replay.ts";
+import { gkCall } from "@/engine/options.ts";
 import { toContinuous } from "@/engine/rates.ts";
 import { realisedVol } from "@/engine/stats.ts";
 import type { Series } from "@/engine/types.ts";
 import { computeHedges } from "@/lib/compute.ts";
 import { loadFx, loadRate, loadSora } from "@/lib/data.ts";
 import { formatDate } from "@/lib/dates.ts";
-import { formatPercent } from "@/lib/format.ts";
+import { formatPercent, formatRate, formatSgd } from "@/lib/format.ts";
 import { HEDGE_STYLE } from "@/lib/hedge-style.ts";
 import { useLoad } from "@/lib/use-data.ts";
 import { usePlannerState } from "@/lib/use-planner-state.ts";
@@ -48,13 +49,15 @@ export function Advanced() {
   );
 
   return (
-    <div className="space-y-6">
+    <>
       {/* The scenario as compact, editable chips directly under the title. */}
-      <ScenarioForm state={state} onChange={setState} variant="chips" />
+      <div className="mt-8">
+        <ScenarioForm state={state} onChange={setState} variant="chips" />
+      </div>
 
       {!rateSeries && (
-        <p className="flex max-w-3xl gap-2 border-t pt-4 text-[15px]">
-          <Info aria-hidden className="mt-1 size-4 shrink-0 text-link" />
+        <p className="prose-measure mt-10 flex gap-2 border-t pt-6">
+          <Info aria-hidden className="mt-1 size-4 shrink-0 text-caution" />
           <span>
             Forward and option pricing needs {scenario.currency} interest-rate
             history, which SpotCheck only has for USD so far. Pick USD above to
@@ -64,14 +67,14 @@ export function Advanced() {
       )}
       {data.status === "loading" && rateSeries && <HedgingSkeleton />}
       {data.status === "error" && (
-        <p role="alert" className="text-destructive">
+        <p role="alert" className="mt-10 text-negative">
           Couldn&apos;t load the data: {data.error}
         </p>
       )}
       {data.status === "ready" && data.data && (
         <Panels data={data.data} state={state} setState={setState} />
       )}
-    </div>
+    </>
   );
 }
 
@@ -114,12 +117,76 @@ function Panels({
     { keepPrevious: true },
   );
 
+  const K = quote.spot * state.strikePct;
+  const premium = gkCall({
+    S: quote.spot,
+    K,
+    rd: toContinuous(quote.rd, T),
+    rf: toContinuous(quote.rf, T),
+    T,
+    sigma: Math.max(state.volOverride ?? vol.sigma, 1e-4),
+  });
+  const carry = (quote.forward - quote.spot) * s.amount;
+  const amountText = `${s.amount.toLocaleString("en-SG")} ${s.currency}`;
+  const forwardShare =
+    history.status === "ready"
+      ? share(
+          history.data.result.relativeCosts.forward!,
+          history.data.result.relativeCosts.unhedged!,
+        )
+      : undefined;
+
   return (
     <>
-      <p className="text-xs text-muted-foreground" data-testid="fx-source">
-        {fxSourceLabel(findCurrency(s.currency)!)}
-      </p>
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-2 xl:items-start">
+      {/* The answer: what fixing the rate would cost today, as prices. */}
+      <section
+        aria-label="Fixing the rate today"
+        className="mt-12 lg:grid lg:grid-cols-12 lg:gap-6"
+      >
+        <div className="lg:col-span-8">
+          <p className="t-label">Fixing the rate today</p>
+          <p className="t-result mt-4" data-testid="answer">
+            A forward would fix {formatRate(quote.forward)} SGD per {s.currency}{" "}
+            for {formatDate(deadline)}: {formatSgd(Math.abs(carry))}{" "}
+            {carry < 0 ? "below" : "above"} today&apos;s spot for your{" "}
+            {amountText}.
+          </p>
+          <dl className="mt-6 grid border-t sm:grid-cols-3">
+            <HeadlineFigure
+              value={formatRate(quote.forward)}
+              label={`SGD per ${s.currency}, the forward rate to ${formatDate(deadline)}`}
+            />
+            <HeadlineFigure
+              value={formatSgd(premium * s.amount)}
+              label={`premium for a call option with a ${Math.round(state.strikePct * 100)}% strike`}
+            />
+            <HeadlineFigure
+              value={
+                forwardShare === undefined
+                  ? undefined
+                  : formatPercent(forwardShare)
+              }
+              label={
+                history.status === "ready"
+                  ? `of ${history.data.result.windows.toLocaleString("en-SG")} past periods, the forward cost less than staying unhedged`
+                  : "of past periods, the forward cost less than staying unhedged"
+              }
+            />
+          </dl>
+          <p className="t-small mt-5 font-medium">
+            Past outcomes, not a forecast. Prices use past rates, not a bank
+            quote.
+          </p>
+          <p
+            className="t-small mt-2 text-muted-foreground"
+            data-testid="fx-source"
+          >
+            {fxSourceLabel(findCurrency(s.currency)!)}
+          </p>
+        </div>
+      </section>
+
+      <div className="section grid grid-cols-[minmax(0,1fr)] gap-x-12 gap-y-16 lg:grid-cols-2">
         <ForwardPanel
           quote={quote}
           currency={s.currency}
@@ -153,28 +220,25 @@ function Panels({
           }
         />
       </div>
-      <section aria-labelledby="history-title" className="panel">
-        <h2
-          id="history-title"
-          className="text-lg leading-7 font-bold sm:text-xl"
-        >
+      <section aria-labelledby="history-title" className="section">
+        <h2 id="history-title" className="t-h2">
           How each hedge would have worked out
         </h2>
-        <p className="mt-1 text-muted-foreground">
+        <p className="prose-measure mt-3 text-muted-foreground">
           Every past window of the same length since interest-rate data begins
           (SORA from July 2005), each priced with only the rates and volatility
           known on its first day, rescaled to today&apos;s rate like the
           planner.
         </p>
-        <div className="mt-6 min-h-[38rem] space-y-6">
+        <div className="mt-8 min-h-[36rem] space-y-8 lg:max-w-4xl">
           {history.status === "loading" && (
-            <div aria-hidden className="space-y-6">
-              <div className="skeleton h-[268px]" />
+            <div aria-hidden className="space-y-8">
+              <div className="skeleton h-[200px]" />
               <div className="skeleton h-48" />
             </div>
           )}
           {history.status === "error" && (
-            <p role="alert" className="text-destructive">
+            <p role="alert" className="text-negative">
               {history.error}
             </p>
           )}
@@ -193,11 +257,10 @@ function Panels({
 /** Holds the panels' space while the rate files load. */
 function HedgingSkeleton() {
   return (
-    <div aria-hidden className="space-y-6">
-      <div className="grid gap-6 xl:grid-cols-2">
-        <div className="panel h-[60rem] xl:h-[40rem]" />
-        <div className="panel h-[40rem]" />
-      </div>
+    // Taller than any screen, so the footer never jumps when panels arrive.
+    <div aria-hidden className="mt-12 space-y-6">
+      <div className="skeleton h-9 w-3/4 max-w-2xl" />
+      <div className="skeleton h-[60rem]" />
     </div>
   );
 }
@@ -227,7 +290,7 @@ function HedgeHistory({
         rowHeader="Hedge"
         rows={rows}
       />
-      <p className="text-[15px] leading-relaxed">
+      <p className="prose-measure">
         {h.windows.toLocaleString("en-SG")} windows starting{" "}
         {formatDate(h.firstStart)} to {formatDate(h.lastStart)}. The forward
         cost less than staying unhedged in{" "}
@@ -242,6 +305,17 @@ function HedgeHistory({
         average cheaper.
       </p>
     </>
+  );
+}
+
+function HeadlineFigure({ value, label }: { value?: string; label: string }) {
+  return (
+    <div className="flex flex-col-reverse justify-end gap-1 border-b py-4 sm:border-b-0 sm:pr-4 sm:[&+&]:border-l sm:[&+&]:pl-4">
+      <dt className="t-small text-muted-foreground">{label}</dt>
+      <dd className="t-data-m min-h-7 tabular-nums">
+        {value ?? <span className="skeleton inline-block h-7 w-16" />}
+      </dd>
+    </div>
   );
 }
 
