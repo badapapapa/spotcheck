@@ -1,21 +1,30 @@
 "use client";
 
-import { ChartLine, ShieldCheck } from "lucide-react";
+import { BookOpen, ChartLine, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 type Variant = "top" | "bottom";
 
+/**
+ * Planner and Hedging carry the scenario across in the URL; How it works is
+ * a plain page and doesn't need it.
+ */
 const TABS = [
-  { href: "/", label: "Planner", Icon: ChartLine },
-  { href: "/advanced", label: "Hedging", Icon: ShieldCheck },
+  { href: "/", label: "Planner", Icon: ChartLine, carries: true },
+  { href: "/advanced", label: "Hedging", Icon: ShieldCheck, carries: true },
+  {
+    href: "/how-it-works",
+    label: "How it works",
+    Icon: BookOpen,
+    carries: false,
+  },
 ] as const;
 
 /**
- * Planner / Hedging tabs that carry the scenario across in the URL. "top" sits
- * in the header on desktop; "bottom" is the fixed thumb-reach bar on phones
- * (DESIGN.md §7). Only one is displayed at a time, so each link appears once
- * to assistive tech.
+ * "top" is the header nav on laptops; "bottom" is the fixed thumb-reach bar
+ * on phones (DESIGN.md §7). Only one is displayed at a time, so each link
+ * appears once to assistive tech.
  */
 export function SiteNav({ variant }: { variant: Variant }) {
   return (
@@ -49,11 +58,11 @@ function Tabs({
       aria-label="Sections"
       className={
         variant === "top"
-          ? "hidden h-full items-stretch gap-2 lg:flex"
-          : "fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-2 border-t bg-card pb-[env(safe-area-inset-bottom)] lg:hidden"
+          ? "hidden h-full items-stretch gap-1 lg:flex"
+          : "fixed inset-x-0 bottom-0 z-30 grid h-14 grid-cols-3 border-t bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden"
       }
     >
-      {TABS.map(({ href, label, Icon }) => {
+      {TABS.map(({ href, label, Icon, carries }) => {
         const active =
           href === "/" ? pathname === "/" : pathname.startsWith(href);
         return (
@@ -62,22 +71,22 @@ function Tabs({
             // The href changes as the scenario changes; prefetching each new
             // URL would cause a request every time someone edits a field.
             prefetch={false}
-            href={query ? `${href}?${query}` : href}
+            href={carries && query ? `${href}?${query}` : href}
             aria-current={active ? "page" : undefined}
             className={
               variant === "top"
-                ? `flex min-h-11 items-center border-b-[3px] px-3 text-[15px] font-semibold ${
+                ? `flex min-h-11 items-center border-b-2 px-3 text-[15px] transition-colors ${
                     active
-                      ? "border-highlight text-heading"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
+                      ? "border-accent font-medium text-ink"
+                      : "border-transparent text-muted-foreground hover:text-ink"
                   }`
-                : `flex flex-col items-center justify-center gap-0.5 text-xs font-semibold ${
-                    active ? "text-heading" : "text-muted-foreground"
+                : `flex flex-col items-center justify-center gap-0.5 text-xs font-medium ${
+                    active ? "text-accent" : "text-muted-foreground"
                   }`
             }
           >
             {variant === "bottom" && (
-              <Icon aria-hidden className="size-5" strokeWidth={2} />
+              <Icon aria-hidden className="size-5" strokeWidth={1.75} />
             )}
             {label}
           </Link>

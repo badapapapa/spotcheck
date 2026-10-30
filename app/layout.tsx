@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans, Plus_Jakarta_Sans } from "next/font/google";
+import { IBM_Plex_Sans, Newsreader } from "next/font/google";
 import meta from "@/data/meta.json";
 import { formatDate } from "@/lib/dates.ts";
 import { DISCLAIMER, SITE_NAME, TAGLINE } from "@/lib/site";
@@ -10,15 +10,16 @@ import "./globals.css";
 
 // next/font downloads the fonts at build time and serves them from our own
 // origin, so the page makes no third-party requests at runtime (CSP keeps
-// font-src 'self'). Jakarta is for headings and the big figures; Plex Sans for
-// everything else, chosen for its clear tabular figures (DESIGN.md §4).
-// Both are variable fonts: one file each covers every weight we use, which
-// keeps the font requests (and the time to first meaningful paint) down.
-const display = Plus_Jakarta_Sans({
-  variable: "--font-display",
+// font-src 'self'). One file per family (DESIGN.md §3): Newsreader at its
+// single display weight (the variable font with optical sizes is 129 KB;
+// this is a fraction of that) for questions and headings, and IBM Plex Sans,
+// variable, for everything else, chosen for its clear tabular figures.
+const serif = Newsreader({
+  variable: "--font-serif",
   subsets: ["latin"],
-  // Not preloaded: the body face carries the first paint, and the heading
-  // face swaps in moments later over a size-matched fallback (no shift).
+  weight: "400",
+  // Not preloaded: the first paint uses a size-matched fallback and the
+  // serif swaps in a moment later, so it never delays the page.
   preload: false,
 });
 
@@ -28,7 +29,7 @@ const body = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  title: `${SITE_NAME}: historical FX scenarios for exchange students`,
+  title: `${SITE_NAME}: when should you exchange your money?`,
   description: TAGLINE,
   // iPhone/iPad home-screen icon (also served at the conventional path).
   icons: { apple: "/apple-touch-icon.png" },
@@ -37,59 +38,58 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   colorScheme: "light dark",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f6fa" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a1020" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f4ee" },
+    { media: "(prefers-color-scheme: dark)", color: "#111311" },
   ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  const ratesTo = formatDate(meta.series["SGD-USD"]?.last ?? "");
   return (
     <html
       lang="en"
-      className={`${display.variable} ${body.variable} h-full antialiased`}
+      className={`${serif.variable} ${body.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <header className="border-b bg-card">
-          <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:h-16 lg:px-8">
-            <div className="flex h-full items-center gap-8">
+        <header className="border-b">
+          <div className="page flex h-14 items-center justify-between gap-6 lg:h-16">
+            <div className="flex h-full items-center gap-10">
               <Wordmark />
               <Suspense fallback={<SiteNavFallback variant="top" />}>
                 <SiteNav variant="top" />
               </Suspense>
             </div>
-            <p className="hidden text-sm text-muted-foreground lg:block">
-              Educational only, not advice
+            <p className="t-small hidden text-muted-foreground lg:block">
+              Historical data, not advice
             </p>
           </div>
         </header>
 
         {/* Bottom padding keeps content clear of the phone tab bar. */}
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 pt-4 pb-24 sm:px-6 lg:px-8 lg:pt-6 lg:pb-12">
-          {children}
-        </main>
+        <main className="flex-1 pb-24 lg:pb-0">{children}</main>
 
-        <footer className="bg-navy pb-16 text-[color:var(--on-navy-muted)] lg:pb-0">
-          <div className="mx-auto w-full max-w-7xl space-y-4 px-4 py-8 text-sm sm:px-6 lg:px-8">
-            <p className="font-medium text-[color:var(--on-navy)]">
-              {DISCLAIMER}
-            </p>
-            <div>
-              <p>Data:</p>
-              <ul className="mt-1">
+        <footer className="mt-16 border-t pb-20 lg:mt-24 lg:pb-0">
+          <div className="page grid gap-8 py-10 lg:grid-cols-12 lg:gap-6">
+            <div className="lg:col-span-5">
+              <p className="t-small font-medium">{DISCLAIMER}</p>
+              <p className="t-small mt-3 text-muted-foreground">
+                Rates up to {ratesTo}. Updated each working day.
+              </p>
+            </div>
+            <div className="lg:col-span-6 lg:col-start-7">
+              <p className="t-label">Data</p>
+              <ul className="t-small mt-1">
                 {meta.attribution.map((source) => (
                   <li key={source.name}>
                     <a
                       href={source.url}
-                      className="inline-flex min-h-11 items-center underline underline-offset-2 hover:text-[color:var(--on-navy)]"
+                      className="inline-flex min-h-11 items-center text-muted-foreground underline decoration-rule underline-offset-[3px] hover:text-ink hover:decoration-ink"
                     >
                       {source.name}
                     </a>
                   </li>
                 ))}
               </ul>
-              <p className="mt-2">
-                Rates up to {formatDate(meta.series["SGD-USD"]?.last ?? "")}.
-              </p>
             </div>
           </div>
         </footer>

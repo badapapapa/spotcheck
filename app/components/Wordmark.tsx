@@ -2,21 +2,20 @@ import Link from "next/link";
 import { SITE_NAME } from "@/lib/site";
 
 /**
- * SpotCheck's mark: a navy tile with two opposing exchange arrows. The same
- * drawing is used for app/icon.svg and the apple-touch-icon (DESIGN.md §7).
+ * The spot motif (DESIGN.md §5): a dot on two hairlines, a crosshair at one
+ * point in history. The same drawing is app/icon.svg and the touch icon.
  */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" aria-hidden className={className}>
-      <rect width="32" height="32" rx="8" fill="#0A2463" />
+    <svg viewBox="0 0 24 24" aria-hidden className={className}>
       <path
-        d="M8.5 12.5h14l-3.6-3.6M23.5 19.5h-14l3.6 3.6"
-        fill="none"
-        stroke="#FFFFFF"
-        strokeWidth="2.6"
+        d="M12 2.5v19M2.5 12h19"
+        stroke="currentColor"
+        strokeWidth="1.25"
         strokeLinecap="round"
-        strokeLinejoin="round"
+        opacity="0.55"
       />
+      <circle cx="12" cy="12" r="4.25" fill="var(--accent)" />
     </svg>
   );
 }
@@ -27,9 +26,9 @@ export function Wordmark() {
       href="/"
       // No prefetch: it would fetch the page payload on every load.
       prefetch={false}
-      className="flex min-h-11 items-center gap-2.5 font-heading text-[22px] font-extrabold tracking-tight text-heading"
+      className="-ml-1 flex min-h-11 items-center gap-2 px-1 font-display text-[23px] leading-none font-normal tracking-[-0.01em] text-ink"
     >
-      <LogoMark className="size-8" />
+      <LogoMark className="size-6 text-ink" />
       {SITE_NAME}
     </Link>
   );
