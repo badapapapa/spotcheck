@@ -1,12 +1,9 @@
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+// The method, written out in full on the How it works page. Kept as data so
+// the advisory-wording scan reads it like any other UI text.
 
-const items: { title: string; body: React.ReactNode }[] = [
+export const METHOD: { id: string; title: string; body: React.ReactNode }[] = [
   {
+    id: "replay",
     title: "How the replay works",
     body: (
       <>
@@ -25,6 +22,7 @@ const items: { title: string; body: React.ReactNode }[] = [
     ),
   },
   {
+    id: "rescaling",
     title: "Why the costs are rescaled to today's rate",
     body: (
       <p>
@@ -39,6 +37,7 @@ const items: { title: string; body: React.ReactNode }[] = [
     ),
   },
   {
+    id: "trends",
     title: "Long trends in the history",
     body: (
       <p>
@@ -51,6 +50,7 @@ const items: { title: string; body: React.ReactNode }[] = [
     ),
   },
   {
+    id: "overlap",
     title: "Overlapping windows",
     body: (
       <p>
@@ -62,6 +62,7 @@ const items: { title: string; body: React.ReactNode }[] = [
     ),
   },
   {
+    id: "sources",
     title: "Where the rates come from",
     body: (
       <>
@@ -85,6 +86,7 @@ const items: { title: string; body: React.ReactNode }[] = [
     ),
   },
   {
+    id: "limits",
     title: "What this tool doesn't do",
     body: (
       <p>
@@ -95,20 +97,3 @@ const items: { title: string; body: React.ReactNode }[] = [
     ),
   },
 ];
-
-export function Methodology() {
-  return (
-    <Accordion className="w-full">
-      {items.map((item) => (
-        <AccordionItem key={item.title} value={item.title}>
-          <AccordionTrigger className="min-h-11 items-center py-3 text-[15px] font-semibold">
-            {item.title}
-          </AccordionTrigger>
-          <AccordionContent className="max-w-3xl space-y-2 text-muted-foreground">
-            {item.body}
-          </AccordionContent>
-        </AccordionItem>
-      ))}
-    </Accordion>
-  );
-}

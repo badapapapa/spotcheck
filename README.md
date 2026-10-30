@@ -14,6 +14,7 @@ SpotCheck is a free web app for students going on exchange who need a lump of fo
 
 - **Planner.** Pick a currency (40 used by NUS, NTU and SMU exchange destinations), amount, start date, deadline, number of conversions and your bank's spread. SpotCheck runs four strategies (all at once, equal tranches, wait until the deadline, target rate with a deadline fallback) over every historical window that starts on a trading day (about 7,000 for a 9-month plan) and shows the median, middle 90% and extremes, plus a plain-English summary and a slider to inspect any single window.
 - **Hedging tab.** Today's forward (spot, forward points, the SORA and fed-funds rates behind it), an option pricer with a strike slider, payoff chart and live Greeks, and a historical comparison of unhedged vs forward vs option.
+- **How it works.** The four strategies in plain terms, the method, the data sources and what the results can't tell you, on one page.
 - **Shareable.** The whole scenario lives in the URL. No accounts, no cookies, no data stored.
 - **Auditable.** Download any historical window as an `.xlsx` whose cost cells are live formulas.
 
