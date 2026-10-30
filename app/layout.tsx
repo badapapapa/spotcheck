@@ -18,9 +18,8 @@ const serif = Newsreader({
   variable: "--font-serif",
   subsets: ["latin"],
   weight: "400",
-  // Not preloaded: the first paint uses a size-matched fallback and the
-  // serif swaps in a moment later, so it never delays the page.
-  preload: false,
+  // Preloaded: at one weight it is small, and arriving with the first paint
+  // means the question never re-flows when the font swaps in.
 });
 
 const body = IBM_Plex_Sans({

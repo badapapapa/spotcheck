@@ -119,9 +119,11 @@ export function ResultProgress({ periods }: { periods?: number }) {
   return (
     <div aria-live="polite">
       <p className="t-label">Your historical result</p>
-      <div className="mt-6 flex items-center gap-4">
-        <div className="spot-track" aria-hidden />
-        <p className="t-small text-muted-foreground">
+      {/* Two lines reserved: the message can wrap on a phone once the
+          number of periods is known, and nothing should move when it does. */}
+      <div className="mt-6 flex items-start gap-4">
+        <div className="spot-track mt-1 shrink-0" aria-hidden />
+        <p className="t-small min-h-10 text-muted-foreground">
           {periods === undefined
             ? "Loading the rate history…"
             : `Checking ${periods.toLocaleString("en-SG")} comparable past periods…`}
