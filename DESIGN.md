@@ -1,151 +1,195 @@
-# DESIGN.md — SpotCheck
+# SpotCheck design system
 
-The single source of truth for SpotCheck's UI: palette, type, spacing, radii, shadows, chart colours and component rules. **All UI work follows this file.** If a component needs something this file doesn't cover, add it here first.
+The single source of truth for SpotCheck's interface. Read it before changing any component. Every value below is defined once, as a token in `app/globals.css`; components use the tokens, never raw values.
 
-Direction: **A · Bank-classic navy**, chosen from the two directions in `docs/design/mockups/` (proposal history), with the review changes below.
+The direction: **a financial research publication for ordinary people.** Warm paper, deep ink, one restrained green, editorial serif headings and precise sans-serif figures. Hierarchy comes from type, alignment and thin rules, not from boxes. The product's own data is the only imagery.
 
-## 1. What the page is for
+The audit that led here is in `docs/design/audit.md`.
 
-SpotCheck is a tool, not a landing page. A student types an amount, a currency and a date, and sees what converting would have cost under four approaches. The first thing on screen is that converter, and the one memorable element is **the cost of converting today**, highlighted once.
+## 1. Principles
 
-Principles:
+1. **Question → answer → evidence → exploration → method.** Every page leads with the user's question and a plain answer drawn from the actual calculation. Charts and tables are the evidence. Single periods, assumptions and sources come after, for whoever wants them.
+2. **What happened, never what to do.** SpotCheck states historical facts confidently ("Equal tranches had the lowest median cost across comparable past periods") and never recommends future behaviour. Banned in all UI text: "best", "recommend(ed)", "should", "buy now", "guarantee". "Past outcomes, not a forecast" sits next to every headline result.
+3. **Type before containers.** A heading, a rule and white space separate things. A box is used only for an object that really is separate: the converter, a popover, a table header band.
+4. **Colour means something.** The interface is neutral ink on paper. Green marks the interactive and the brand; amber marks caution; red marks a cost that is higher. The four strategy colours appear only where a strategy is being identified.
+5. **Only real numbers.** Every figure, count and date on screen comes from the data and the engine. No sample, decorative or rounded-up statistics.
 
-1. **Tool first.** Compact header, no hero band, no marketing pill. The converter is above the fold at 390×844 and 1366×768.
-2. **One bold thing.** The highlighted cost number is the only yellow on the page apart from the active-tab bar. Everything around it is quiet.
-3. **Rows, not boxes.** Structure comes from alignment, dividers and white space. No card inside a card. Label on the left, value on the right, numbers right-aligned with tabular figures wherever they are compared.
-4. **Same measures for everyone.** Strategies and hedges are compared on identical columns. Nothing is styled as "better".
-5. **Plain words.** Sentence case, active voice, no all-caps labels, no "·"-joined meta strings, no arrows appended to links.
+## 2. Colour
 
-### Review against generic defaults
+### Neutrals and meaning
 
-| Generic default the first draft had                           | Changed to                                                                                     | Why                                                                 |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Full-width navy hero band with headline and pill badge        | Compact white header; small page title row                                                     | The tool is the hero; the converter must be above the fold          |
-| Inter for everything                                          | IBM Plex Sans body, Plus Jakarta Sans headings                                                 | Plex has clear, true tabular figures; two clearly distinct families |
-| Every block in an identical rounded card with the same shadow | Two panels (converter, results) on desktop; everything else is an open section with a top rule | Cards only where they group a task; hierarchy from space            |
-| Three stat tiles with different measures                      | One comparison table with the same columns for every strategy                                  | Like-for-like comparison                                            |
-| "A · B · C" meta strings                                      | Commas, or separate labelled rows                                                              | Reads as prose, not chrome                                          |
-| Emoji as icons                                                | One icon set (lucide), used sparingly; flags only as content in the currency list              | Consistent, accessible                                              |
+| Token             | Light     | Dark      | Use                                                           |
+| ----------------- | --------- | --------- | ------------------------------------------------------------- |
+| `--paper`         | `#F6F4EE` | `#111311` | Page background                                               |
+| `--surface`       | `#FCFBF8` | `#181B19` | The converter, popovers, tooltips                             |
+| `--sunken`        | `#EEEBE3` | `#1F2320` | Table header bands, the exploration band, skeletons           |
+| `--rule`          | `#D9D4C8` | `#2C312D` | Dividers and hairlines (decorative, not a boundary to read)   |
+| `--input`         | `#8A8578` | `#6E756F` | Borders of fields and controls (≥ 3:1 on every surface)       |
+| `--ink`           | `#16181A` | `#ECEAE3` | Text, headings, figures                                       |
+| `--muted`         | `#575B5E` | `#A6AAA3` | Secondary text, labels, axes (≥ 5.7:1 on every surface)       |
+| `--accent`        | `#1D5C45` | `#7CC4A0` | Links, the primary button, focus, the spot motif, active nav  |
+| `--accent-strong` | `#164836` | `#9AD6B8` | Hover/pressed accent                                          |
+| `--accent-fg`     | `#FFFFFF` | `#0D1A13` | Text on an accent fill                                        |
+| `--accent-soft`   | `#E1EBE4` | `#1C2B23` | Selected rows and options                                     |
+| `--caution`       | `#8A5800` | `#E0B15C` | Caution notes (e.g. blended-rate volatility, USD-only notice) |
+| `--negative`      | `#A3392A` | `#F0907F` | Errors; a difference that is a higher cost                    |
 
-## 2. Layout
+Contrast (WCAG 2.x): ink 14.9–17.2:1, muted 5.8–7.9:1, accent text 6.6–9.1:1, white on accent 7.9:1, input borders 3.1–3.9:1, all on every background above in both themes.
 
-Header tabs from 1024px. Two columns from 1280px (converter 40rem, results the rest), max content width 1280px; between 1024 and 1279px the converter sits above the results:
+Dark mode is its own palette with the same roles, chosen for a warm near-black, not an inversion. It follows the system setting.
+
+### Strategy and hedge colours
+
+Validated with the dataviz palette checker (lightness band, chroma, colour-blind separation, contrast) against `--surface` in each theme. Colour is never the only cue: every series is named in place, and the strategies also have marker shapes.
+
+| Slot | Light     | Dark      | Planner             | Hedging     | Shape    |
+| ---- | --------- | --------- | ------------------- | ----------- | -------- |
+| 1    | `#2763B0` | `#4A86E8` | All at once         | Forward     | circle   |
+| 2    | `#C9581F` | `#E0662A` | Equal tranches      | Call option | diamond  |
+| 3    | `#00897A` | `#12A388` | Wait until deadline | Unhedged    | square   |
+| 4    | `#9150A8` | `#9A72DA` | Target rate         | –           | triangle |
+
+The brand green is deliberately not a strategy colour, so no strategy looks "approved".
+
+## 3. Typography
+
+Two families, self-hosted with `next/font` (the CSP keeps `font-src 'self'`), one file each:
+
+- **Newsreader** (display serif), one static weight (400): page questions, section headings, the result headline and the wordmark. Never for figures, controls or body text. The variable version with optical sizes is 129 KB and sat on the critical path for the headline; one weight is a fraction of that.
+- **IBM Plex Sans** (interface, variable): everything else. Its tabular figures (`tabular-nums`) keep compared numbers aligned.
+
+| Role        | Family     | Weight | Desktop size / line | Phone   | Notes                                  |
+| ----------- | ---------- | ------ | ------------------- | ------- | -------------------------------------- |
+| Display     | Newsreader | 400    | 60 / 64             | 36 / 40 | The page question. Tracking −0.015em   |
+| H1          | Newsreader | 400    | 44 / 50             | 34 / 40 | Titles of secondary pages              |
+| H2          | Newsreader | 400    | 32 / 38             | 26 / 32 | Section headings                       |
+| Result      | Newsreader | 400    | 30 / 38             | 24 / 31 | The answer sentence                    |
+| H3          | Plex       | 600    | 17 / 24             | 17 / 24 | Sub-headings inside a section          |
+| Body large  | Plex       | 400    | 19 / 30             | 17 / 27 | Ledes                                  |
+| Body        | Plex       | 400    | 16 / 25             | 16 / 25 | Default; long text capped at 68ch      |
+| Small       | Plex       | 400    | 14 / 20             | 14 / 20 | Notes, table cells on phones           |
+| Label       | Plex       | 500    | 13 / 16             | 13 / 16 | Field and metric labels, muted         |
+| Data large  | Plex       | 500    | 40 / 44             | 32 / 36 | Headline figures. Tracking −0.02em     |
+| Data medium | Plex       | 500    | 22 / 28             | 20 / 26 | Secondary figures, the converter field |
+
+Sentence case everywhere. No all-caps eyebrows, no letter-spaced labels.
+
+## 4. Space, layout and shape
+
+**Spacing scale (px):** 4, 8, 12, 16, 24, 32, 48, 64, 96, 128. Components use 4–32. Sections are separated by 96 on desktop and 64 on phones, so the gap between sections is always clearly larger than any gap inside one.
+
+**Layout:**
+
+- **Content width:** max 1200px, with 16px side gutters on phones, 24px on tablets and 40px on desktop.
+- **Columns:** 12 columns with 24px gaps from 1024px. Text measures cap at 68ch, so nothing stretches on wide screens.
+- **Breakpoints:** 640 (large phone), 768 (tablet), 1024 (laptop), 1280 (desktop).
+
+**Composition varies by section:**
+
+- **Hero:** asymmetric, 7 + 5 columns, with the question and converter on the left and the live result on the right.
+- **Evidence:** a 4-column heading rail beside an 8-column chart and table.
+- **Exploration:** a full-width sunken band, the densest section.
+- **Strategies:** a sticky heading rail beside a long text column.
+- **Evidence strip:** four figures in one row divided by vertical rules.
+
+**Radii:**
+
+- 4px: small controls, tags and the table header band.
+- 6px: fields, buttons and the currency menu.
+- 8px: the converter and popovers only.
+
+No pills. Nothing is fully rounded except the spot motif and swatches.
+
+**Shadows:** none on page content. Popovers, tooltips and the currency menu use one soft shadow (`--shadow-pop`). Depth otherwise comes from `--surface` against `--paper` and from rules.
+
+**Borders:** 1px `--rule` for dividers; 1.5px `--input` for fields; 2px `--accent` for the active nav underline.
+
+## 5. The spot motif
+
+A filled dot on two hairlines, a crosshair at a single point:
 
 ```
-┌ header 64px ─────────────────────────────────────────────────────────┐
-│ [icon] SpotCheck     Planner  Hedging    Educational only, not advice  │
-├──────────────────────────────────────────────────────────────────────┤
-│ Exchange money planner                                                 │
-│ Replays four ways of converting over every comparable period.          │
-│                                                                        │
-│ ┌ converter panel (40rem) ─────┐  ┌ results panel (rest) ──────────┐  │
-│ │ I need [15000] [USD ▾] by [date] │ What each strategy would cost │  │
-│ │ (one line from 1280px)       │  │ [Copy link] [Download Excel]    │  │
-│ │                              │  │ ─────────────────────────────── │  │
-│ │ Converting today             │  │ range chart                      │  │
-│ │ S$19,284  ← yellow mark      │  │ ─────────────────────────────── │  │
-│ │ S$19,188 at mid rate, before │  │ comparison table                 │  │
-│ │ your 0.5% spread             │  │ summary                          │  │
-│ │ ───────────────────────────  │  └─────────────────────────────────┘  │
-│ │ More options            ▾    │                                       │
-│ └──────────────────────────────┘                                       │
-│ ── Look at one window ──────────────────────────────────────────────── │
-│ ── Methodology ─────────────────────────────────────────────────────── │
-├ footer (navy) ───────────────────────────────────────────────────────┤
+      │
+  ────●────
+      │
 ```
 
-Phone (< 1024px): one column; the comparison table and charts must fit 390px with no sideways scroll (the middle-90% cell breaks after its dash). Header 56px with the wordmark; **bottom tab bar** (64px) for Planner/Hedging; a **sticky summary bar** ("USD 15,000 by 1 Aug 2027", Edit) appears under the header once the converter scrolls out of view. The converter sentence wraps deliberately: amount + currency on line one, "by [date]" on line two.
+It stands for checking one point in history, a spot rate and the name.
 
-Alignment: everything left-aligned except numbers in comparisons, which are right-aligned.
+It appears only in these places:
 
-## 3. Colour
+- the logo mark and favicon;
+- the cursor on the outcome timeline (a vertical hairline with a dot on each series);
+- the marker for the selected period;
+- the progress indicator while periods are checked, where a dot travels along a hairline.
 
-All colours are CSS variables on `:root`, with a dark set under `@media (prefers-color-scheme: dark)`. Dark values are their own steps, not inversions.
-
-| Token                  | Light     | Dark      | Use                                                                                                                                                                         |
-| ---------------------- | --------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--background`         | `#F4F6FA` | `#0A1020` | Page                                                                                                                                                                        |
-| `--card` / `--popover` | `#FFFFFF` | `#111A2E` | Panels, popovers                                                                                                                                                            |
-| `--sunken`             | `#EEF2F8` | `#0D1526` | Table header row, inset areas                                                                                                                                               |
-| `--border`             | `#D9E0EC` | `#25314B` | Dividers, panel borders                                                                                                                                                     |
-| `--input`              | `#7C8AA6` | `#5A6886` | Input and control outlines (≥ 3:1)                                                                                                                                          |
-| `--foreground`         | `#0B1B3F` | `#E9EEF8` | Body text                                                                                                                                                                   |
-| `--muted-foreground`   | `#4B5875` | `#A6B1C8` | Secondary text                                                                                                                                                              |
-| `--heading`            | `#0A2463` | `#FFFFFF` | Headings, wordmark                                                                                                                                                          |
-| `--navy`               | `#0A2463` | `#0F1E45` | Footer, wordmark tile                                                                                                                                                       |
-| `--primary`            | `#1A56DB` | `#6B9BFF` | Primary button, links, focus, sliders                                                                                                                                       |
-| `--primary-foreground` | `#FFFFFF` | `#06102A` | Text on primary                                                                                                                                                             |
-| `--link`               | `#1A56DB` | `#8AB0FF` | Links, secondary button text                                                                                                                                                |
-| `--highlight`          | `#FFC52B` | `#FFD24D` | The today's-cost mark (light: a marker behind the figure; dark: a bar under it, so white digits stay crisp) and the active-tab bar. Nothing else. Never text, never buttons |
-| `--destructive`        | `#B42318` | `#FF8A80` | Errors                                                                                                                                                                      |
-| `--ring`               | `#1A56DB` | `#8AB0FF` | Focus ring                                                                                                                                                                  |
-
-Contrast (WCAG 2.2, computed): body text 15.6–16.9:1 light, 14.9–16.3:1 dark; muted text 6.6–7.1:1 / 8.1–8.8:1; links and secondary-button text 5.6:1 / 7.4:1; primary-button label 5.6:1 / 6.6:1; error text ≥ 6.1:1; input borders 3.48:1 / 3.10:1; focus ring ≥ 3:1. The yellow active-tab bar (1.58:1) is decorative: the active tab is also bold, navy, and `aria-current="page"`.
-
-## 4. Type
-
-Two families, self-hosted with `next/font` (downloaded at build time, served from `/_next/static/media`; CSP stays `font-src 'self'`).
-
-| Role                              | Family            | Weight | Size / line height | Phone   |
-| --------------------------------- | ----------------- | ------ | ------------------ | ------- |
-| Today's-cost figure               | Plus Jakarta Sans | 800    | 48 / 56            | 40 / 48 |
-| Page title (h1)                   | Plus Jakarta Sans | 800    | 28 / 36            | 24 / 32 |
-| Panel / section title (h2)        | Plus Jakarta Sans | 700    | 20 / 28            | 18 / 28 |
-| Converter sentence                | Plus Jakarta Sans | 700    | 22 / 32            | 20 / 28 |
-| Body                              | IBM Plex Sans     | 400    | 16 / 24            | 16 / 24 |
-| UI labels, buttons, table headers | IBM Plex Sans     | 600    | 14–16 / 20–24      | same    |
-| Small / helper                    | IBM Plex Sans     | 400    | 14 / 20            | same    |
-| Caption, axis labels              | IBM Plex Sans     | 500    | 12 / 16            | same    |
-
-Weights shipped: Jakarta 700, 800; Plex 400, 500, 600. Every number, rate and amount uses `font-variant-numeric: tabular-nums` (utility `tabular-nums`). Line length ≤ 75 characters for prose. Sentence case everywhere; no all-caps.
-
-## 5. Spacing, radii, shadows
-
-- **Spacing (8px grid):** 8, 16, 24, 32, 40, 48, 64. 4px only between an icon and its label.
-- **Page gutters:** 16px phone, 24px tablet, 32px desktop. Panels: 24px padding (phone 16px). Space between major sections: 48px.
-- **Radii:** inputs and buttons 10px; panels 16px; tooltips 8px; avatars/flags round. Nothing else is rounded.
-- **Shadow:** only the converter panel: `0 1px 2px rgb(10 36 99 / 6%), 0 8px 24px rgb(10 36 99 / 8%)` (dark: `0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 35%)`). The results panel has a border, no shadow. No other shadows.
-- **Tap targets:** ≥ 44×44px for every control; converter fields 52–56px tall.
+It never appears as decoration elsewhere.
 
 ## 6. Charts
 
-One entity keeps one colour on every page. Legends stay, plus direct labels and marker shapes, so colour is never the only signal.
+One chart language across both pages:
 
-| Slot | Light     | Dark      | Planner             | Hedging     |
-| ---- | --------- | --------- | ------------------- | ----------- |
-| 1    | `#1A56DB` | `#4A86F0` | All at once         | Forward     |
-| 2    | `#E8590C` | `#E5641F` | Equal tranches      | Call option |
-| 3    | `#0F9D8A` | `#12A388` | Wait until deadline | Unhedged    |
-| 4    | `#7A4CC2` | `#8F6EE6` | Target rate         | –           |
-
-Validated with the data-viz palette validator in both modes (lightness band, chroma, colour-blind separation worst ΔE 14.8 / 13.5, ≥ 3:1 against the panel). Gridlines use `--border`; axis labels 12px `--muted-foreground`; tick decimals come from the tick spacing (`lib/ticks.ts`). Yellow is never a series colour.
+- **Axes:** hairline axes in `--rule`, tick labels in `--muted` at 12–13px tabular figures.
+- **Gridlines:** no vertical gridlines; horizontal gridlines in `--rule`.
+- **Lines and bars:** lines 2px. The middle-90% bars are 10px tall with 2px corners, the median dot is 9px with a 2px `--surface` ring, and the full-range whisker is a 1.5px `--muted` line.
+- **Hover:** hovering or focusing a strategy (a chart row, a legend item, a table row) dims the others over 150ms: chart rows to 30% opacity, table rows to 45%, and the dense timeline lines to 15%.
+- **Tooltips:** `--surface`, 1px `--rule` border, 8px radius and `--shadow-pop`. They show the period in bold, then one row per series with a swatch, name and right-aligned value, then the difference that matters. They never hold more than six rows.
+- **Touch:** on touch screens, dragging horizontally across the timeline scrubs it and lifting selects the period. Vertical drags still scroll the page.
+- **States:** a chart's space is held by a `--sunken` block of the same height while it loads. An error replaces it with a one-line message in `--negative`.
+- **Accessibility:** every chart has a text equivalent: the comparison table, the conversions table, a slider with a spoken value, or a summary label.
 
 ## 7. Components
 
-| Component                              | Rules                                                                                                                                                                                                                                                                                                                                                                                         |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Header**                             | White (dark: `--card`), 64px desktop / 56px phone, bottom border. Wordmark: navy tile with two exchange arrows + "SpotCheck" in Jakarta 800. Tabs "Planner", "Hedging": active = navy bold + 3px yellow bar + `aria-current`. On phones the tabs move to the bottom tab bar. Header right: "Educational only, not advice" (desktop only; the full disclaimer is in the footer on every page). |
-| **Bottom tab bar** (phone)             | Fixed, 64px, two equal targets with icon + label. Safe-area padding.                                                                                                                                                                                                                                                                                                                          |
-| **Page title row**                     | h1 + one sentence. No eyebrow, no badge. On Hedging, the scenario chips (the same sentence, editable, at 18px) sit directly under it.                                                                                                                                                                                                                                                         |
-| **Converter panel**                    | Sentence: "I need [amount] [currency] by [date]". Then "Converting today" label, the **today's-cost figure** (amount × latest rate × (1 + spread), identical to the "All at once" result) with the yellow mark, and under it "S$X at mid rate, before your Y% spread". Then a divider and **More options**.                                                                                   |
-| **Currency picker**                    | Button showing flag + code; opens a listbox with a search field. Matches code, currency name and country name ("Japan" → JPY, "Korea" → KRW, "Germany" → EUR). Popular first: USD, GBP, EUR, AUD, CAD, KRW, JPY; then the rest A–Z. Arrow keys, Enter, Esc, type-to-filter. Flags appear only here, as content.                                                                               |
-| **More options**                       | Disclosure. Closed, it summarises current values in one comma-separated line. Open: conversions, start date, spread, target, each with a visible label and helper text. Closed by default.                                                                                                                                                                                                    |
-| **Sticky summary bar** (phone)         | Appears when the converter leaves the viewport; "USD 15,000 by 1 Aug 2027" and an Edit button that scrolls back.                                                                                                                                                                                                                                                                              |
-| **Results panel**                      | Title, source label, then the two actions in a fixed place: **Copy link** (primary) and **Download Excel** (secondary; exports the window selected in "Look at one window"). Then the range chart, the comparison table, and the summary. Fixed minimum height with a skeleton while loading (no layout shift).                                                                               |
-| **Comparison table**                   | One row per strategy; columns Median, Middle 90% (low–high), Worst case. Right-aligned tabular numbers, row dividers, header row on `--sunken`. A colour key beside each name. No row is styled differently.                                                                                                                                                                                  |
-| **Sections** (one window, methodology) | Open sections on the page background with a top rule and an h2. Not cards.                                                                                                                                                                                                                                                                                                                    |
-| **Hedging**                            | Same header and title row, scenario chips under the title. Panels: "What a forward locks in", "What an option would cost", "How the option responds", "How each hedge would have worked out". Values are label/value rows, not tiles.                                                                                                                                                         |
-| **Help tips**                          | A 24px "i" button (44px hit area) next to forward points, premium, delta, gamma, vega and theta. Opens a short "What is this?" popover on click or focus; Esc closes; `aria-describedby`.                                                                                                                                                                                                     |
-| **Buttons**                            | Exactly two styles. Primary: `--primary` fill, `--primary-foreground` text. Secondary: transparent with `--link` text and a 1.5px `--primary` border. 44px min height, 10px radius. One primary per panel.                                                                                                                                                                                    |
-| **Focus**                              | 3px `--ring` outline with 2px offset on every focusable element.                                                                                                                                                                                                                                                                                                                              |
-| **Icons**                              | lucide-react only, 18–20px, stroke 2. Used for: link, download, chevrons, info, and the two bottom-tab icons.                                                                                                                                                                                                                                                                                 |
-| **Footer**                             | Navy (`--navy`), white disclaimer, attribution as a plain list. Wording of the disclaimer and attribution never changes.                                                                                                                                                                                                                                                                      |
-| **Favicon / touch icon**               | The wordmark tile (`app/icon.svg`, `public/apple-touch-icon.png`).                                                                                                                                                                                                                                                                                                                            |
+| Component        | Rules                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Header           | `--paper` with a bottom rule, 64px desktop / 56px phone. Logo mark plus "SpotCheck" in Newsreader. Nav: Planner, Hedging, How it works as text links; the active one gets ink text and a 2px accent underline, plus `aria-current`. Right: "Historical data, not advice".                                                                                                                                                                                                                                                                                           |
+| Bottom tab bar   | Phones only: three equal 56px targets (icon and label), `--paper` with a top rule, safe-area padding.                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Converter        | The one boxed object on the page: `--surface`, 1px `--rule`, 8px radius, no shadow. The sentence "I need [amount] [currency] by [date]", then the baseline "Converting it all today: S$X", then More options.                                                                                                                                                                                                                                                                                                                                                       |
+| Sentence fields  | 6px radius, 1.5px `--input` border, `--surface` fill, Data-medium type. On focus a 3px accent focus ring appears. The amount grows with its digits; the date is sized to its content.                                                                                                                                                                                                                                                                                                                                                                               |
+| Currency picker  | A button showing the flag and code. It opens a menu with a search field (code, currency name, country), popular destinations first, then A–Z. Flags appear only here.                                                                                                                                                                                                                                                                                                                                                                                               |
+| More options     | A disclosure with its current values summarised in one line; closed by default.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Result           | Label "Your historical result", the answer sentence (Result type), three metrics (figure plus label) separated by rules, "Past outcomes, not a forecast.", then the actions. All three metrics compare the same pair: the strategy with the lowest median against all at once (or, if all at once is lowest, the next-lowest). They cover the median gap, the share of cheaper periods and the worst-case gap; a higher worst case is shown in `--negative`, never hidden. While periods are checked: the progress motif and "Checking N comparable past periods…". |
+| Metric           | A figure over a short label, left-aligned. Never boxed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Comparison table | One row per strategy: Median, Middle 90% (low–high), Worst case. Header band on `--sunken` with 4px radius, row rules, right-aligned tabular figures. No row styled differently.                                                                                                                                                                                                                                                                                                                                                                                    |
+| Outcome timeline | Each strategy's cost (rescaled to today's rate) by the period's start date, with the spot cursor, a tooltip and click/tap to select.                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Strategy guide   | For each strategy: swatch and name, "What you'd do", and "What it trades" in one or two sentences. A "More detail" disclosure holds the rest.                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Evidence strip   | Years of data, periods tested, separate histories and rates up to a date, each a figure over a label, divided by vertical rules. Then the sources line and a link to How it works.                                                                                                                                                                                                                                                                                                                                                                                  |
+| Buttons          | Primary: `--accent` fill with `--accent-fg` text. Secondary: transparent with `--ink` text and a 1.5px `--input` border. Both 44px tall, 6px radius, Plex 500 15px, with hover, pressed, focus-ring, disabled (50% opacity) and busy ("Preparing…") states. One primary per screen.                                                                                                                                                                                                                                                                                 |
+| Links            | `--accent`, underlined 1px with a 3px offset; hover thickens the underline.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Help tips        | An "i" in a 22px circle (1.5px `--input` border) inside a 44px hit area; it opens a popover titled "What is …?". Hedging only.                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Focus            | A 3px `--accent` outline at 2px offset on everything focusable.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Footer           | `--paper`, top rule, Small type. The disclaimer, the sources as a list and the date rates run to.                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Icons            | Lucide only, 16–20px, used only where they help recognition (nav on phones, download, link, search, chevrons).                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ## 8. Motion
 
-Only in answer to an action: the More options disclosure and the currency list open with a 150ms fade/slide; respect `prefers-reduced-motion`. No entrance animations.
+Motion appears only in response to something the user did, or to show progress:
 
-## 9. History
+- **Fades:** series dim and results fade in over 150ms.
+- **Progress:** the spot motif travels its hairline over 1.2s while periods are checked.
+- **Disclosures:** open without animation.
+- **Reduced motion:** with `prefers-reduced-motion`, everything is instant and the progress dot stays still.
 
-The proposal (two directions, mockups) is kept in `docs/design/mockups/`. Screenshot-loop rounds for each redesign PR go in `docs/design/rounds/`.
+## 9. Responsive rules
+
+- **Phones (< 640):**
+  - One column. Order: the question, the converter, the result, then the evidence.
+  - The sentence wraps as "I need [amount] [currency]" then "by [date]".
+  - The comparison table uses Small type and lets the middle-90% cell break after its dash.
+  - The timeline is 220px tall.
+  - The bottom tab bar replaces the header nav.
+- **Tablets (640–1023):** one column at a wider measure; the evidence strip shows two figures per row.
+- **Laptops (≥ 1024):** the asymmetric layouts described in section 4 switch on. The header nav appears.
+- **Wide screens:** content stops at 1200px; charts never stretch beyond it.
+
+## 10. History
+
+Two earlier directions came first: the proposal mockups (`docs/design/mockups/`) and the navy Direction A (PR #7, with its screenshot loop in `docs/design/rounds/`). This direction keeps their working parts:
+
+- the converter;
+- the currency search;
+- the comparison table;
+- today's-cost arithmetic;
+- the tests.
+
+It replaces their look and page structure. Its own screenshot loop is in `docs/design/rounds-b/`.
