@@ -3,14 +3,14 @@
     "scenario": "c=USD&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2",
     "identical": true,
     "diffs": [],
-    "values": {
-      "planner": [
+    "compared": {
+      "strategyRows": [
         "All at once: median S$19,284, 5th to 95th percentile S$19,284 to S$19,284",
         "Equal tranches: median S$19,199, 5th to 95th percentile S$18,511 to S$19,963",
         "Wait until deadline: median S$19,132, 5th to 95th percentile S$17,865 to S$20,416",
         "Target rate: median S$18,888, 5th to 95th percentile S$18,805 to S$20,340"
       ],
-      "summary": [
+      "summaryParagraphs": [
         "SpotCheck replayed your 9-month plan over 6,922 overlapping windows starting between 4 Jan 1999 and 14 Jan 2026. Because neighbouring windows share most of their days, that is closer to 35 separate histories than 6,922.",
         "Converting everything at once costs S$19,284 at today's mid rate plus your spread. That cost is known today, so it has no range.",
         "Waiting until the deadline ranged from S$17,865 to S$20,416 in 90% of windows, with a most expensive case of S$22,094. It cost less than converting at once in 57% of windows.",
@@ -18,29 +18,25 @@
         "A target 2.0% below the starting rate was reached before the deadline in 64% of windows; when it wasn't, the plan fell back to converting on the deadline. Its median cost was S$396 below converting at once.",
         "These are past outcomes, not forecasts: future rates can move in ways this history never did."
       ],
-      "hedging": {
-        "rows": {
-          "Spot (16 Oct 2026)": "1.2792 SGD per USD",
-          "Forward to 1 Aug 2027": "1.2534 SGD per USD",
-          "Forward pointsi": "-258.1 pips (−0.02581)",
-          "SGD rate: SORA compounded over the last 289 days, to 16 Oct 2026": "1.140%",
-          "USD rate: fed funds compounded the same way, to 16 Oct 2026": "3.764%",
-          "Premium per uniti": "0.006097 SGD",
-          "Premium for 15,000 USD": "S$91.46",
-          "Premium, % of notional": "0.48%",
-          "Worst-case cost": "S$19,376",
-          "Delta, per uniti": "0.255",
-          "Gamma, per uniti": "7.90",
-          "Vega, per volatility pointi": "S$54.06",
-          "Theta, per dayi": "S$0.02"
-        },
-        "chart": [
-          "Unhedged (convert on deadline): median S$19,171, 5th to 95th percentile S$17,752 to S$20,636",
-          "Forward locked on day one: median S$19,255, 5th to 95th percentile S$18,906 to S$19,297",
-          "Call option bought on day one: median S$19,418, 5th to 95th percentile S$18,110 to S$19,697"
-        ]
+      "hedgingRows": {
+        "SGD per USD, the forward rate to 1 Aug 2027": "1.2534",
+        "premium for a call option with a 100% strike": "S$91.46",
+        "of 5,054 past periods, the forward cost less than staying unhedged": "52%",
+        "Spot (16 Oct 2026)": "1.2792 SGD per USD",
+        "Forward to 1 Aug 2027": "1.2534 SGD per USD",
+        "Forward pointsi": "-258.1 pips (−0.02581)",
+        "SGD rate: SORA compounded over the last 289 days, to 16 Oct 2026": "1.140%",
+        "USD rate: fed funds compounded the same way, to 16 Oct 2026": "3.764%",
+        "Premium per uniti": "0.006097 SGD",
+        "Premium for 15,000 USD": "S$91.46",
+        "Premium, % of notional": "0.48%",
+        "Worst-case cost": "S$19,376",
+        "Delta, per uniti": "0.255",
+        "Gamma, per uniti": "7.90",
+        "Vega, per volatility pointi": "S$54.06",
+        "Theta, per dayi": "S$0.02"
       },
-      "mainHedgingRows": {
+      "liveHedgingRows": {
         "Spot (16 Oct 2026)": "1.2792 SGD per USD",
         "Forward to 1 Aug 2027": "1.2534 SGD per USD",
         "Forward points": "-258.1 pips (−0.02581)",
@@ -61,14 +57,14 @@
     "scenario": "c=JPY&a=500000&s=2026-10-17&d=2027-03-01&k=4&sp=1&t=3",
     "identical": true,
     "diffs": [],
-    "values": {
-      "planner": [
+    "compared": {
+      "strategyRows": [
         "All at once: median S$4,088, 5th to 95th percentile S$4,088 to S$4,088",
         "Equal tranches: median S$4,064, 5th to 95th percentile S$3,898 to S$4,266",
         "Wait until deadline: median S$4,046, 5th to 95th percentile S$3,747 to S$4,410",
         "Target rate: median S$3,965, 5th to 95th percentile S$3,937 to S$4,404"
       ],
-      "summary": [
+      "summaryParagraphs": [
         "SpotCheck replayed your 4-month plan over 7,028 overlapping windows starting between 4 Jan 1999 and 16 Jun 2026. Because neighbouring windows share most of their days, that is closer to 75 separate histories than 7,028.",
         "Converting everything at once costs S$4,088 at today's mid rate plus your spread. That cost is known today, so it has no range.",
         "Waiting until the deadline ranged from S$3,747 to S$4,410 in 90% of windows, with a most expensive case of S$5,338. It cost less than converting at once in 60% of windows.",
@@ -82,14 +78,14 @@
     "scenario": "c=EUR&a=8000&s=2026-10-17&d=2027-06-01&k=3&sp=0.75&t=2&ks=105",
     "identical": true,
     "diffs": [],
-    "values": {
-      "planner": [
+    "compared": {
+      "strategyRows": [
         "All at once: median S$11,602, 5th to 95th percentile S$11,602 to S$11,602",
         "Equal tranches: median S$11,587, 5th to 95th percentile S$11,050 to S$12,086",
         "Wait until deadline: median S$11,584, 5th to 95th percentile S$10,528 to S$12,477",
         "Target rate: median S$11,364, 5th to 95th percentile S$11,289 to S$12,449"
       ],
-      "summary": [
+      "summaryParagraphs": [
         "SpotCheck replayed your 7-month plan over 6,965 overlapping windows starting between 4 Jan 1999 and 16 Mar 2026. Because neighbouring windows share most of their days, that is closer to 44 separate histories than 6,965.",
         "Converting everything at once costs S$11,602 at today's mid rate plus your spread. That cost is known today, so it has no range.",
         "Waiting until the deadline ranged from S$10,528 to S$12,477 in 90% of windows, with a most expensive case of S$13,668. It cost less than converting at once in 51% of windows.",

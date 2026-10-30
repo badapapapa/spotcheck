@@ -1,17 +1,11 @@
 # Numbers parity: main vs the redesign
 
-The redesign changes no calculation, so every figure must match the current
-site exactly. It was checked twice, with the same script and scenarios:
-
-1. **Local builds:** a static build of `main` at `48f790c` (built in a
-   separate worktree) against this branch, both on the same committed data
-   (`diff -r data/` shows no differences).
-2. **Deployed sites:** the live site, https://spotcheck-7qb.pages.dev (built
-   from `main`), against this branch's Cloudflare preview,
-   https://redesign-a.spotcheck-7qb.pages.dev. Both show "Rates up to
-   29 Oct 2026".
-
-Both comparisons came out identical.
+Neither redesign changes a calculation, so every figure must match the live
+site exactly. For the editorial redesign (this version of the file), the live
+site, https://spotcheck-7qb.pages.dev (built from `main`), was compared with
+a local build of the branch, on the same data: both show "Rates up to
+29 Oct 2026". Direction A was checked the same way earlier, against a local
+build of `main` and against its Cloudflare preview.
 
 `parity.json` holds the result for three scenarios:
 
@@ -21,7 +15,8 @@ Both comparisons came out identical.
 | JPY 500,000 by 1 Mar 2027, 4 conversions, 1% spread, 3% target  | identical | not applicable (USD only)                                                                  |
 | EUR 8,000 by 1 Jun 2027, 3 conversions, 0.75% spread, 2% target | identical | not applicable (USD only)                                                                  |
 
-"Planner" compares, as text:
+"Planner" compares, as text (the summary paragraph by paragraph, since the
+redesign gives it a heading of its own):
 
 - every strategy's median, 5th and 95th percentile (from the chart rows' labels);
 - the whole plain-English summary;

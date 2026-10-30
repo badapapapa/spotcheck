@@ -18,10 +18,9 @@ above it and its "after" is the folder below it:
 | `4-final/`         | After round 3 (performance and accessibility) |
 
 File names: `{planner|hedging}-{phone|laptop}-{light|dark}.jpg` (the visible
-viewport, i.e. what is above the fold). Full-page captures of the final build
-are in `../final/`. In full-page phone captures the fixed bottom tab bar
-appears part-way down the page; that's an artefact of stitching, not the
-layout.
+viewport, i.e. what is above the fold). Full-page captures of Direction A's final build are in this file's git
+history (commit `fc36be9`, `docs/design/final/`). That folder now holds the
+current design; its own loop is in `../rounds-b/`.
 
 ## Round 1: `1-first-build` → `2-after-round-1`
 
