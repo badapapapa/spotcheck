@@ -1,4 +1,17 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import { BANNED_IN_UI_TEXT as ADVISORY } from "../tests/advisory-patterns.ts";
+
+/** Opens the currency picker, searches, and picks the matching currency. */
+async function pickCurrency(page: Page, search: string, code: string) {
+  await page.getByLabel("Currency you need").click();
+  await page.getByPlaceholder("Country, currency or code").fill(search);
+  await page.getByRole("option", { name: new RegExp(`\\b${code}\\b`) }).click();
+}
+
+/** The mid-rate line under today's cost, e.g. "S$19,188 at mid rate, …". */
+const MID_HINT = /^S\$[\d,.]+ at mid rate, before your/;
+const firstSgd = (text: string | null) =>
+  Number(/S\$([\d,.]+)/.exec(text ?? "")![1]!.replaceAll(",", ""));
 
 test("planner loads with defaults and shows the outcome chart", async ({
   page,
@@ -10,7 +23,7 @@ test("planner loads with defaults and shows the outcome chart", async ({
   await expect(page.getByText("Not financial advice")).toBeVisible();
   // The chart's accessible label and one row per strategy.
   await expect(
-    page.getByRole("img", { name: /Range of SGD cost/ }),
+    page.getByRole("group", { name: /Range of SGD cost/ }),
   ).toBeVisible();
   for (const name of [
     "All at once",
@@ -29,12 +42,13 @@ test("planner loads with defaults and shows the outcome chart", async ({
 
 test("the scenario round-trips through the URL", async ({ page }) => {
   await page.goto("/?c=EUR&a=8000&s=2026-10-17&d=2027-06-01&k=4&sp=0.75&t=3");
-  await expect(page.getByLabel("Currency you need")).toHaveValue("EUR");
+  await expect(page.getByLabel("Currency you need")).toHaveText(/\bEUR\b/);
   await expect(page.getByLabel("Amount needed (EUR)")).toHaveValue("8000");
   await expect(page.getByTestId("summary")).toContainText(
     "spreading over 4 conversions",
   );
 
+  await page.getByText("More options").click();
   await page.getByLabel("Most conversions you'd make").fill("3");
   await expect(page).toHaveURL(/k=3/);
   await expect(page.getByTestId("summary")).toContainText(
@@ -44,9 +58,7 @@ test("the scenario round-trips through the URL", async ({ page }) => {
 
 test("downloads the selected window as an .xlsx", async ({ page }) => {
   await page.goto("/");
-  const button = page.getByRole("button", {
-    name: /Download this window as \.xlsx/,
-  });
+  const button = page.getByRole("button", { name: /^Download Excel/ });
   await expect(button).toBeVisible();
   const [download] = await Promise.all([
     page.waitForEvent("download"),
@@ -80,9 +92,8 @@ test("typing in the amount updates the URL once, without route requests or histo
 
   // Read the S$ hint at 15,000 first, so the check below doesn't depend on
   // today's USD/SGD rate.
-  const hint = page.getByText(/≈ S\$[\d,.]+ at the latest mid rate/);
-  const sgd = async () =>
-    Number((await hint.textContent())!.replace(/[^\d.]/g, ""));
+  const hint = page.getByText(MID_HINT);
+  const sgd = async () => firstSgd(await hint.textContent());
   const at15000 = await sgd();
 
   const amount = page.getByLabel("Amount needed (USD)");
@@ -104,9 +115,9 @@ test("back/forward and links still drive the state from the URL", async ({
   await page.goto("/?c=USD&a=9000&s=2026-10-17&d=2027-06-01&k=3&sp=0.5&t=2");
   await expect(page.getByLabel("Amount needed (USD)")).toHaveValue("9000");
   await page.goto("/?c=EUR&a=7000&s=2026-10-17&d=2027-06-01&k=3&sp=0.5&t=2");
-  await expect(page.getByLabel("Currency you need")).toHaveValue("EUR");
+  await expect(page.getByLabel("Currency you need")).toHaveText(/\bEUR\b/);
   await page.goBack();
-  await expect(page.getByLabel("Currency you need")).toHaveValue("USD");
+  await expect(page.getByLabel("Currency you need")).toHaveText(/\bUSD\b/);
 });
 
 test("serves and links an apple-touch-icon", async ({ page, request }) => {
@@ -133,9 +144,7 @@ test("ExcelJS is downloaded only when the user clicks Download", async ({
   const isExcelJs = (src: string) => src.includes("xl/workbook.xml");
 
   await page.goto("/");
-  const button = page.getByRole("button", {
-    name: /Download this window as \.xlsx/,
-  });
+  const button = page.getByRole("button", { name: /^Download Excel/ });
   await expect(button).toBeVisible();
   const before = await Promise.all(scripts.map((s) => s.body));
   expect(before.some(isExcelJs)).toBe(false);
@@ -179,7 +188,7 @@ for (const currency of ["JPY", "KRW", "IDR", "VND"]) {
     await page.goto(
       `/?c=${currency}&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2`,
     );
-    const chart = page.getByRole("img", { name: /Range of SGD cost/ });
+    const chart = page.getByRole("group", { name: /Range of SGD cost/ });
     await expect(chart).toBeVisible();
 
     // Outcome chart: axis labels distinct.
@@ -210,13 +219,13 @@ test("switching currency keeps the SGD value of the amount", async ({
   page,
 }) => {
   await page.goto("/?c=USD&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2");
-  const amountHint = page.getByText(/≈ S\$[\d,.]+ at the latest mid rate/);
-  const sgd = async () =>
-    Number((await amountHint.textContent())!.replace(/[^\d.]/g, ""));
+  const amountHint = page.getByText(MID_HINT);
+  const sgd = async () => firstSgd(await amountHint.textContent());
   await expect(amountHint).toBeVisible();
   const before = await sgd();
 
-  await page.getByLabel("Currency you need").selectOption("VND");
+  // Found by country name, not just by code.
+  await pickCurrency(page, "Vietnam", "VND");
   const vnd = page.getByLabel("Amount needed (VND)");
   await expect(vnd).toHaveValue(/^\d{3}0+$/); // 3 significant figures
   await expect(amountHint).toBeVisible();
@@ -226,7 +235,7 @@ test("switching currency keeps the SGD value of the amount", async ({
     new RegExp(`c=VND&a=${await vnd.inputValue()}&`),
   );
 
-  await page.getByLabel("Currency you need").selectOption("USD");
+  await pickCurrency(page, "USD", "USD");
   const back = Number(
     await page.getByLabel("Amount needed (USD)").inputValue(),
   );
@@ -242,3 +251,46 @@ test("a shared link's amount is taken as written, never converted", async ({
   await expect(page.getByLabel("Amount needed (VND)")).toHaveValue("15000");
   await expect(page).toHaveURL(/a=15000/);
 });
+
+test("today's cost matches the All at once result, including the spread", async ({
+  page,
+}) => {
+  await page.goto("/?c=USD&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2");
+  const lump = page.getByRole("button", { name: /^All at once: median S\$/ });
+  await expect(lump).toBeVisible();
+  const median = /median (S\$\d{1,3}(?:,\d{3})*(?:\.\d\d)?)/.exec(
+    (await lump.getAttribute("aria-label"))!,
+  )![1]!;
+  await expect(page.getByTestId("today-cost")).toHaveText(median);
+  // The mid-rate figure underneath is the same cost without the 0.5% spread.
+  const mid = firstSgd(await page.getByText(MID_HINT).textContent());
+  expect(firstSgd(median) / mid).toBeCloseTo(1.005, 4);
+});
+
+test("the converter and today's cost are visible without scrolling", async ({
+  page,
+}) => {
+  await page.goto("/");
+  for (const control of [
+    page.getByLabel(/^Amount needed/),
+    page.getByLabel("Currency you need"),
+    page.getByLabel("Needed by"),
+    page.getByTestId("today-cost"),
+  ]) {
+    await expect(control).toBeInViewport({ ratio: 1 });
+  }
+});
+
+for (const path of ["/", "/advanced"]) {
+  test(`${path}: no advisory wording anywhere on the page`, async ({
+    page,
+  }) => {
+    await page.goto(path);
+    await expect(page.getByRole("group").first()).toBeVisible();
+    // Open every disclosure so hidden text is checked too.
+    for (const d of await page.locator("details").all())
+      await d.evaluate((el) => el.setAttribute("open", ""));
+    const text = await page.locator("body").innerText();
+    for (const banned of ADVISORY) expect(text).not.toMatch(banned);
+  });
+}

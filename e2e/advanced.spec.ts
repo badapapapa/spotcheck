@@ -11,7 +11,9 @@ test("hedging tab prices a forward and an option for USD", async ({ page }) => {
   await expect(page.getByText(/Forward to 1 Aug 2027/)).toBeVisible();
   await expect(page.getByText("Premium per unit")).toBeVisible();
   await expect(
-    page.getByRole("img", { name: /no hedge, a forward, and a call option/ }),
+    page.getByRole("group", {
+      name: /no hedge, a forward, and a call option/,
+    }),
   ).toBeVisible();
   await expect(page.getByText("Not financial advice")).toBeVisible();
 });
