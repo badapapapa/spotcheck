@@ -1,0 +1,33 @@
+"use client";
+
+import { lazy, Suspense } from "react";
+
+// Loaded after the page, like the currency picker, so the popover code
+// doesn't hold up the first paint. The placeholder looks the same.
+const HelpTipPopover = lazy(() =>
+  import("./HelpTipPopover").then((m) => ({ default: m.HelpTipPopover })),
+);
+
+/**
+ * A small "i" next to a term that opens a plain-English "What is this?"
+ * note. The visible circle is 24px; the button around it is 44px so it is
+ * easy to tap.
+ */
+export function HelpTip(props: { term: string; children: string }) {
+  return (
+    <Suspense
+      fallback={
+        <span className="-my-2.5 inline-flex size-11 shrink-0 items-center justify-center">
+          <span
+            aria-hidden
+            className="flex size-6 items-center justify-center rounded-full border-[1.5px] border-input font-heading text-[13px] font-bold text-link"
+          >
+            i
+          </span>
+        </span>
+      }
+    >
+      <HelpTipPopover {...props} />
+    </Suspense>
+  );
+}
