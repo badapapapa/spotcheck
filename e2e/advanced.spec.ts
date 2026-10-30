@@ -31,6 +31,20 @@ test("other currencies get a USD-only notice", async ({ page }) => {
   await expect(page.getByText(/only has for USD so far/)).toBeVisible();
 });
 
+test("the hedging headline states the forward's price", async ({ page }) => {
+  await page.goto(
+    "/advanced?c=USD&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2",
+  );
+  const forward = page
+    .getByText(/^Forward to 1 Aug 2027/)
+    .locator("xpath=..")
+    .locator("dd");
+  const rate = (await forward.textContent())!.split(" ")[0]!;
+  await expect(page.getByTestId("answer")).toContainText(
+    `A forward would fix ${rate} SGD per USD for 1 Aug 2027`,
+  );
+});
+
 test("the nav keeps the scenario when switching tabs", async ({ page }) => {
   await page.goto("/?c=USD&a=9000&s=2026-10-17&d=2027-06-01&k=3&sp=0.5&t=2");
   await page.getByRole("link", { name: "Hedging" }).click();

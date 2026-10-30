@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DISCLAIMER } from "@/lib/site";
@@ -20,7 +20,8 @@ function sourceFiles(dir: string): string[] {
 }
 
 describe("advisory wording", () => {
-  const files = UI_DIRS.flatMap(sourceFiles);
+  // components/ held the shadcn primitives; it may be empty or gone.
+  const files = UI_DIRS.filter((d) => existsSync(d)).flatMap(sourceFiles);
 
   it("scans at least the layout and home page", () => {
     expect(files).toContain(join("app", "layout.tsx"));
@@ -29,6 +30,10 @@ describe("advisory wording", () => {
     expect(files).toContain(join("app", "components", "ComparisonTable.tsx"));
     expect(files).toContain(join("app", "components", "ValueRows.tsx"));
     expect(files).toContain(join("app", "components", "HelpTip.tsx"));
+    // The redesign's result, strategy guide and How it works page.
+    expect(files).toContain(join("app", "components", "Result.tsx"));
+    expect(files).toContain(join("app", "components", "StrategyGuide.tsx"));
+    expect(files).toContain(join("app", "how-it-works", "page.tsx"));
   });
 
   it.each(files)("%s contains no advisory wording", (file) => {

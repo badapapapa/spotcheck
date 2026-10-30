@@ -18,7 +18,10 @@ test("planner loads with defaults and shows the outcome chart", async ({
 }) => {
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Exchange money planner" }),
+    page.getByRole("heading", {
+      level: 1,
+      name: "When should you exchange your money?",
+    }),
   ).toBeVisible();
   await expect(page.getByText("Not financial advice")).toBeVisible();
   // The chart's accessible label and one row per strategy.
@@ -48,7 +51,7 @@ test("the scenario round-trips through the URL", async ({ page }) => {
     "spreading over 4 conversions",
   );
 
-  await page.getByText("More options").click();
+  await page.locator("summary", { hasText: "More options" }).click();
   await page.getByLabel("Most conversions you'd make").fill("3");
   await expect(page).toHaveURL(/k=3/);
   await expect(page.getByTestId("summary")).toContainText(
@@ -281,12 +284,14 @@ test("the converter and today's cost are visible without scrolling", async ({
   }
 });
 
-for (const path of ["/", "/advanced"]) {
+for (const path of ["/", "/advanced", "/how-it-works"]) {
   test(`${path}: no advisory wording anywhere on the page`, async ({
     page,
   }) => {
     await page.goto(path);
-    await expect(page.getByRole("group").first()).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    if (path !== "/how-it-works")
+      await expect(page.getByRole("group").first()).toBeVisible();
     // Open every disclosure so hidden text is checked too.
     for (const d of await page.locator("details").all())
       await d.evaluate((el) => el.setAttribute("open", ""));
@@ -294,3 +299,57 @@ for (const path of ["/", "/advanced"]) {
     for (const banned of ADVISORY) expect(text).not.toMatch(banned);
   });
 }
+
+test("the headline names the strategy with the lowest median in the chart", async ({
+  page,
+}) => {
+  await page.goto("/?c=USD&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2");
+  const rows = page.getByRole("button", { name: /: median S\$/ });
+  await expect(rows).toHaveCount(4);
+  const medians = await rows.evaluateAll((els) =>
+    els.map((el) => {
+      const label = el.getAttribute("aria-label")!;
+      return {
+        name: label.split(":")[0]!,
+        median: Number(
+          /median S\$([\d,.]+)/.exec(label)![1]!.replaceAll(",", ""),
+        ),
+      };
+    }),
+  );
+  const lowest = medians.reduce((a, b) => (b.median < a.median ? b : a));
+  await expect(page.getByTestId("answer")).toHaveText(
+    `${lowest.name} had the lowest median cost across comparable past periods.`,
+  );
+  await expect(page.getByText("Past outcomes, not a forecast.")).toBeVisible();
+});
+
+test("picking a day on the timeline selects that period", async ({ page }) => {
+  await page.goto("/?c=USD&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2");
+  const heading = page.getByRole("heading", { name: /^The period starting / });
+  await expect(heading).toBeVisible();
+  const latest = await heading.textContent();
+  const timeline = page.getByRole("img", { name: /^Cost of each strategy/ });
+  await timeline.scrollIntoViewIfNeeded();
+  const box = (await timeline.boundingBox())!;
+  // A quarter of the way along: a period years before the latest one.
+  await page.mouse.click(box.x + box.width * 0.25, box.y + box.height / 2);
+  await expect(heading).not.toHaveText(latest!);
+  // The slider, the keyboard control for the same choice, follows.
+  const slider = page.getByLabel(/^Start of the period:/);
+  expect(Number(await slider.inputValue())).toBeLessThan(
+    Number(await slider.getAttribute("max")),
+  );
+});
+
+test("How it works explains the method and the data", async ({ page }) => {
+  await page.goto("/how-it-works");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "How SpotCheck works" }),
+  ).toBeVisible();
+  for (const name of ["The four strategies", "The method", "The data"])
+    await expect(page.getByRole("heading", { level: 2, name })).toBeVisible();
+  await expect(page.getByRole("contentinfo")).toContainText(
+    "Not financial advice",
+  );
+});
