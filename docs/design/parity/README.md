@@ -1,11 +1,17 @@
 # Numbers parity: main vs the redesign
 
 The redesign changes no calculation, so every figure must match the current
-site exactly. There is no live deployment yet (Cloudflare Pages isn't
-connected), so "the current site" is a static build of `main` at `48f790c`,
-built from a separate worktree. Both builds use the same committed data (`diff -r data/`
-shows no differences) and were served side by side, `main` on port 4174 and
-this branch on 4173.
+site exactly. It was checked twice, with the same script and scenarios:
+
+1. **Local builds:** a static build of `main` at `48f790c` (built in a
+   separate worktree) against this branch, both on the same committed data
+   (`diff -r data/` shows no differences).
+2. **Deployed sites:** the live site, https://spotcheck-7qb.pages.dev (built
+   from `main`), against this branch's Cloudflare preview,
+   https://redesign-a.spotcheck-7qb.pages.dev. Both show "Rates up to
+   29 Oct 2026".
+
+Both comparisons came out identical.
 
 `parity.json` holds the result for three scenarios:
 
