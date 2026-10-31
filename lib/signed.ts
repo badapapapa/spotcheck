@@ -13,3 +13,14 @@ export function signedSgd(v: number, scale?: number): string {
   if (/^S\$0(\.00)?$/.test(s)) return s;
   return `${v < 0 ? "−" : "+"}${s}`;
 }
+
+/**
+ * The difference between two figures as they are shown: each is rounded to
+ * the scenario's precision first, so medians of S$121 and S$122 differ by
+ * "−S$1", never "S$0" (or "−S$0").
+ */
+export function signedDiff(a: number, b: number, scale: number): string {
+  const digits = sgdDigits(scale);
+  const round = (v: number) => Number(v.toFixed(digits));
+  return signedSgd(Number((round(a) - round(b)).toFixed(digits)), scale);
+}

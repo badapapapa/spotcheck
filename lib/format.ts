@@ -51,3 +51,29 @@ export function formatRate(rate: number): string {
 export function formatPercent(fraction: number, digits = 0): string {
   return `${(fraction * 100).toFixed(digits)}%`;
 }
+
+/** U+2212, the minus sign used for every negative figure. */
+export const MINUS = "−";
+
+/**
+ * Per-unit option premium in SGD. Deep out-of-the-money calls are worth
+ * fractions of a millionth; "<0.000001" reads better than "2.250e-10".
+ */
+export function formatPremiumPerUnit(premium: number): string {
+  return premium > 0 && premium < 1e-6 ? "<0.000001" : formatRate(premium);
+}
+
+/** Forward points: "−245.3 pips (−0.02453)", with U+2212 in both places. */
+export function formatPips(points: number): string {
+  const sign = points < 0 ? MINUS : "+";
+  const pips = Math.abs(points * 10_000).toFixed(1);
+  return `${points < 0 ? MINUS : ""}${pips} pips (${sign}${formatRate(Math.abs(points))})`;
+}
+
+/**
+ * A rate for a currency pegged 1:1 to SGD: four decimals, like the peg
+ * itself ("1.0000", "0.9800"), never "0.98000".
+ */
+export function formatPegRate(rate: number): string {
+  return rate.toFixed(4);
+}
