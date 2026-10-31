@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import { replay } from "@/engine/replay.ts";
 import { loadUsd } from "@/engine/__tests__/helpers.ts";
 import { describeReplay } from "../summary.ts";
-import { BANNED_IN_UI_TEXT as ADVISORY } from "@/tests/advisory-patterns.ts";
+import {
+  BANNED_IN_UI_TEXT as ADVISORY,
+  namesRanking,
+} from "@/tests/advisory-patterns.ts";
+import { addDays } from "@/engine/calendar.ts";
+import { loadFx } from "@/engine/__tests__/helpers.ts";
 
 const scenario = {
   currency: "USD",
@@ -29,6 +34,32 @@ describe("describeReplay", () => {
       if (value >= 100)
         expect(m[0], "whole dollars from S$100").not.toMatch(/\./);
       else expect(m[0], "cents below S$100").toMatch(/\.\d\d$/);
+    }
+  });
+
+  it("never names a strategy as coming top or bottom, in any history", () => {
+    for (const [code, days, k] of [
+      ["USD", 290, 6],
+      ["JPY", 30, 2],
+      ["VND", 730, 12],
+      ["EUR", 180, 1],
+      ["GBP", 400, 4],
+    ] as const) {
+      const fx = loadFx(code);
+      const s = {
+        ...scenario,
+        currency: code,
+        startDate: fx.dates.at(-1)!,
+        deadline: addDays(fx.dates.at(-1)!, days),
+        tranches: k,
+      };
+      const lines = describeReplay(
+        replay(fx, s, { targetBelowSpot: 0.02 }),
+        s,
+        0.02,
+      ).join(" ");
+      expect(namesRanking(lines), code).toBeUndefined();
+      for (const banned of ADVISORY) expect(lines).not.toMatch(banned);
     }
   });
 

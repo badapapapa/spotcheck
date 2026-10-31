@@ -1,5 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
-import { BANNED_IN_UI_TEXT as ADVISORY } from "../tests/advisory-patterns.ts";
+import {
+  BANNED_IN_UI_TEXT as ADVISORY,
+  STRATEGY_NAMES,
+  namesRanking,
+} from "../tests/advisory-patterns.ts";
 
 /** Opens the currency picker, searches, and picks the matching currency. */
 async function pickCurrency(page: Page, search: string, code: string) {
@@ -20,7 +24,7 @@ test("planner loads with defaults and shows the outcome chart", async ({
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "When should you exchange your money?",
+      name: "What difference does your exchange strategy make?",
     }),
   ).toBeVisible();
   await expect(page.getByText("Not financial advice")).toBeVisible();
@@ -207,7 +211,15 @@ for (const currency of ["JPY", "KRW", "IDR", "VND"]) {
       else expect(m).not.toMatch(/\./);
     }
 
-    // Sample-path rate axis: labels distinct.
+    // Sample-path rate axis: labels distinct. The chart loads just after
+    // the page, so wait for its ticks before reading them.
+    await expect(
+      page
+        .locator(
+          ".recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value",
+        )
+        .first(),
+    ).toBeVisible();
     const yTicks = await page
       .locator(
         ".recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value",
@@ -300,28 +312,88 @@ for (const path of ["/", "/advanced", "/how-it-works"]) {
   });
 }
 
-test("the headline names the strategy with the lowest median in the chart", async ({
+// Very different scenarios: a result-dependent order, verdict or colour
+// would show up in at least one of them.
+const SCENARIOS = [
+  "c=USD&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2",
+  "c=JPY&a=500000&s=2026-10-17&d=2026-11-20&k=2&sp=1&t=3",
+  "c=VND&a=300000000&s=2026-10-17&d=2028-10-01&k=12&sp=0.5&t=2",
+  "c=EUR&a=8000&s=2026-10-17&d=2027-04-15&k=1&sp=0.75&t=5",
+  "c=BND&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2",
+];
+
+for (const q of SCENARIOS) {
+  test(`neutral comparison, fixed order: ${q.slice(0, 5)}`, async ({
+    page,
+  }) => {
+    await page.goto(`/?${q}`);
+    await expect(page.getByTestId("summary")).toBeVisible();
+
+    // The same fixed order everywhere a strategy list appears.
+    const glance = page.getByRole("region", { name: "Comparison at a glance" });
+    expect(await glance.locator("tbody th").allTextContents()).toEqual(
+      STRATEGY_NAMES,
+    );
+    const chartRows = await page
+      .getByRole("button", { name: /: median S\$/ })
+      .evaluateAll((els) =>
+        els.map((el) => el.getAttribute("aria-label")!.split(":")[0]),
+      );
+    expect(chartRows).toEqual(STRATEGY_NAMES);
+    const table = page.getByRole("table", {
+      name: "SGD cost of each strategy across comparable past periods",
+    });
+    if (await table.isVisible()) {
+      expect(await table.locator("tbody th").allTextContents()).toEqual(
+        STRATEGY_NAMES,
+      );
+    }
+    const legend = page
+      .getByRole("region", { name: /What if you had converted/ })
+      .locator("ul")
+      .first()
+      .getByRole("button");
+    // The timeline loads just after the page.
+    await expect(legend).toHaveCount(STRATEGY_NAMES.length);
+    expect(await legend.allTextContents()).toEqual(STRATEGY_NAMES);
+
+    // No sentence names a strategy as coming top or bottom.
+    const text = await page.locator("main").innerText();
+    expect(namesRanking(text)).toBeUndefined();
+
+    // No good/bad colouring anywhere in the results.
+    const coloured = await page
+      .locator(
+        "section[aria-label='Comparison at a glance'] *, #evidence *, [aria-labelledby='explore-title'] *",
+      )
+      .evaluateAll((els) =>
+        els
+          .map((el) => el.getAttribute("class") ?? "")
+          .filter((c) =>
+            /\b(text|bg|border)-(negative|positive|caution|success|danger|red|green)\b/.test(
+              c,
+            ),
+          ),
+      );
+    expect(coloured).toEqual([]);
+    await expect(page.getByTestId("context")).toHaveText(
+      "Historical results reflect exchange-rate trends during the periods tested. Different market conditions may produce different outcomes.",
+    );
+  });
+}
+
+test("highlighting a strategy only happens when the user picks one", async ({
   page,
 }) => {
-  await page.goto("/?c=USD&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2");
-  const rows = page.getByRole("button", { name: /: median S\$/ });
-  await expect(rows).toHaveCount(4);
-  const medians = await rows.evaluateAll((els) =>
-    els.map((el) => {
-      const label = el.getAttribute("aria-label")!;
-      return {
-        name: label.split(":")[0]!,
-        median: Number(
-          /median S\$([\d,.]+)/.exec(label)![1]!.replaceAll(",", ""),
-        ),
-      };
-    }),
-  );
-  const lowest = medians.reduce((a, b) => (b.median < a.median ? b : a));
-  await expect(page.getByTestId("answer")).toHaveText(
-    `${lowest.name} had the lowest median cost across comparable past periods.`,
-  );
-  await expect(page.getByText("Past outcomes, not a forecast.")).toBeVisible();
+  await page.goto(`/?${SCENARIOS[0]}`);
+  const glance = page.getByRole("region", { name: "Comparison at a glance" });
+  await expect(glance.getByRole("button", { pressed: true })).toHaveCount(0);
+  await glance.getByRole("button", { name: "Equal tranches" }).click();
+  await expect(
+    glance.getByRole("button", { name: "Equal tranches", pressed: true }),
+  ).toBeVisible();
+  await glance.getByRole("button", { name: "Equal tranches" }).click();
+  await expect(glance.getByRole("button", { pressed: true })).toHaveCount(0);
 });
 
 test("picking a day on the timeline selects that period", async ({ page }) => {

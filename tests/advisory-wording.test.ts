@@ -31,7 +31,7 @@ describe("advisory wording", () => {
     expect(files).toContain(join("app", "components", "ValueRows.tsx"));
     expect(files).toContain(join("app", "components", "HelpTip.tsx"));
     // The redesign's result, strategy guide and How it works page.
-    expect(files).toContain(join("app", "components", "Result.tsx"));
+    expect(files).toContain(join("app", "components", "Glance.tsx"));
     expect(files).toContain(join("app", "components", "StrategyGuide.tsx"));
     expect(files).toContain(join("app", "how-it-works", "page.tsx"));
   });
