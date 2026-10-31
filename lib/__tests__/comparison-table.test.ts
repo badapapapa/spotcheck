@@ -19,6 +19,7 @@ import {
 } from "@/tests/advisory-patterns.ts";
 import { formatSgd } from "../format.ts";
 import { STRATEGY_STYLE } from "../strategy-style.ts";
+import { parseState } from "../url-state.ts";
 
 /** Very different histories, so a result-dependent order would show. */
 function scenario(code: string, days: number, tranches: number) {
@@ -77,6 +78,7 @@ function glance(r: ReplayResult) {
   return renderToStaticMarkup(
     createElement(Glance, {
       result: r,
+      state: parseState(new URLSearchParams(), "2026-10-31"),
       pegged: false,
       stale: false,
       active: null,

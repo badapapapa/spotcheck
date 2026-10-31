@@ -6,9 +6,10 @@
 
 import type { ReplayResult } from "@/engine/replay.ts";
 import type { Scenario, StrategyId } from "@/engine/types.ts";
-import { formatDate } from "./dates.ts";
+import { formatDate, planLength } from "./dates.ts";
 import { formatPct, formatPercent, formatSgdAt } from "./format.ts";
-import { signedSgd } from "./signed.ts";
+import { signedDiff } from "./signed.ts";
+import { lumpSumSentence, type StartContext } from "./start-context.ts";
 import { STRATEGY_STYLE } from "./strategy-style.ts";
 
 /** The strategies described against all at once, in the fixed order. */
@@ -18,20 +19,21 @@ export function describeReplay(
   r: ReplayResult,
   scenario: Scenario,
   targetBelowSpot: number,
+  // Which rate the plan starts from (see start-context.ts); by default the
+  // latest, as for a plan starting today.
+  start: StartContext = { kind: "latest", rateDate: r.referenceDate },
 ): string[] {
   const { stats } = r;
-  const months = Math.round(r.windowDays / 30.44);
   const lump = stats.lumpSum.summary.median;
   const sgd = (v: number) => formatSgdAt(v, lump);
+  const count = (n: number) => n.toLocaleString("en-SG");
   const lines: string[] = [];
 
   lines.push(
-    `SpotCheck replayed your ${months}-month plan over ${r.windows.toLocaleString("en-SG")} overlapping windows starting between ${formatDate(r.firstStart)} and ${formatDate(r.lastStart)}. ` +
-      `Because neighbouring windows share most of their days, that is closer to ${r.independentWindows} separate histories than ${r.windows.toLocaleString("en-SG")}.`,
+    `SpotCheck replayed your ${planLength(r.windowDays)} plan over ${count(r.windows)} overlapping windows starting between ${formatDate(r.firstStart)} and ${formatDate(r.lastStart)}. ` +
+      `Because neighbouring windows share most of their days, that is closer to ${count(r.independentWindows)} separate histories than ${count(r.windows)}.`,
   );
-  lines.push(
-    `All at once: ${sgd(lump)} at the latest mid rate plus your spread, known today, so it has no range.`,
-  );
+  lines.push(lumpSumSentence(start, sgd(lump)));
   for (const id of COMPARED) {
     const s = stats[id].summary;
     // The only per-strategy extra is what the strategy is set to (and, for
@@ -42,9 +44,15 @@ export function describeReplay(
         : id === "target"
           ? ` (${formatPct(targetBelowSpot)} below the starting rate, reached in ${formatPercent(r.targetHitShare)} of windows)`
           : "";
+    // A range that rounds to one figure (the BND peg) reads "(fixed)", as
+    // in the table, not "S$15,075–S$15,075".
+    const middle =
+      sgd(s.p5) === sgd(s.p95)
+        ? `${sgd(s.p5)} (fixed)`
+        : `${sgd(s.p5)}–${sgd(s.p95)}`;
     lines.push(
-      `${STRATEGY_STYLE[id].label}${setting}: median ${signedSgd(s.median - lump, lump)} vs all at once, ` +
-        `middle 90% ${sgd(s.p5)}–${sgd(s.p95)}, worst case ${sgd(s.max)}; ` +
+      `${STRATEGY_STYLE[id].label}${setting}: median ${signedDiff(s.median, lump, lump)} vs all at once, ` +
+        `middle 90% ${middle}, worst case ${sgd(s.max)}; ` +
         `cheaper than all at once in ${formatPercent(stats[id].beatLumpSum)} of windows.`,
     );
   }

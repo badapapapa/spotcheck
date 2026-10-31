@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 import { Advanced } from "../components/advanced/Advanced";
+import { ScenarioLink } from "../components/ScenarioLink";
 
 export const metadata: Metadata = {
   title: "Hedging: forwards and options | SpotCheck",
@@ -16,10 +16,8 @@ export default function AdvancedPage() {
         <p className="t-lede mt-5">
           What fixing your rate today with a forward, or capping it with an
           option, would cost for the same plan as the{" "}
-          <Link href="/" prefetch={false} className="link">
-            planner
-          </Link>
-          , and how each would have worked out in past periods.
+          <ScenarioLink href="/">planner</ScenarioLink>, and how each would have
+          worked out in past periods.
         </p>
       </div>
       <Suspense

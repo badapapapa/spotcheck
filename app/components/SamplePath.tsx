@@ -17,7 +17,13 @@ import { fromEpochDay, indexOnOrAfter, toEpochDay } from "@/engine/calendar.ts";
 import type { sampleWindow } from "@/engine/replay.ts";
 import { STRATEGY_IDS, type Scenario, type Series } from "@/engine/types.ts";
 import { formatDate, formatMonth } from "@/lib/dates.ts";
-import { formatPct, formatRate, formatSgdAt } from "@/lib/format.ts";
+import {
+  formatPct,
+  formatPegRate,
+  formatRate as formatAnyRate,
+  formatSgdAt,
+} from "@/lib/format.ts";
+import { findCurrency } from "@/engine/currencies.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { niceTicks } from "@/lib/ticks.ts";
 import { useCoarsePointer } from "@/lib/use-coarse-pointer.ts";
@@ -45,6 +51,10 @@ export function SamplePath({
   onIndex,
   window: w,
 }: Props) {
+  // A pegged currency's rates read like the peg (1.0000, 0.9800).
+  const formatRate = findCurrency(scenario.currency)?.peggedToSgd
+    ? formatPegRate
+    : formatAnyRate;
   const id = useId();
   const coarse = useCoarsePointer();
   // The point last tapped, for the touch readout under the chart.

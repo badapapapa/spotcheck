@@ -1,8 +1,9 @@
 import type { ReplayResult } from "@/engine/replay.ts";
 import { STRATEGY_IDS, type StrategyId } from "@/engine/types.ts";
 import { formatSgdAt } from "@/lib/format.ts";
-import { signedSgd } from "@/lib/signed.ts";
+import { signedDiff } from "@/lib/signed.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
+import type { PlannerState } from "@/lib/url-state.ts";
 import { CopyLinkButton } from "./CopyLinkButton";
 
 /** The context line that sits next to every set of historical results. */
@@ -16,16 +17,23 @@ export const HISTORICAL_CONTEXT =
  */
 export function Glance({
   result,
+  state,
   pegged,
   stale,
+  outdated,
   active,
   pinned,
   onHover,
   onToggle,
 }: {
   result: ReplayResult;
+  /** The scenario on screen, for Copy link. */
+  state: PlannerState;
   pegged: boolean;
+  /** A newer result is on its way: dim this one. */
   stale: boolean;
+  /** A field holds a value that isn't valid yet: these are the last results. */
+  outdated?: boolean;
   /** Highlighted now (hovered or pinned): the others dim. */
   active: string | null;
   /** Pinned by a click: the only state a button reports as pressed. */
@@ -36,9 +44,14 @@ export function Glance({
   const lump = result.stats.lumpSum.summary.median;
   return (
     <div
-      className={`transition-opacity duration-150 ${stale ? "opacity-60" : ""}`}
+      className={`transition-opacity duration-150 ${stale || outdated ? "opacity-60" : ""}`}
       aria-busy={stale || undefined}
     >
+      {outdated && (
+        <p className="t-small mb-3 font-medium" data-testid="outdated">
+          Not current: these results are for your last valid entry.
+        </p>
+      )}
       <h2 className="t-h3">
         Across {result.windows.toLocaleString("en-SG")} comparable past periods
       </h2>
@@ -102,7 +115,7 @@ export function Glance({
                       <span className="sr-only">the reference</span>
                     </span>
                   ) : (
-                    signedSgd(median - lump, lump)
+                    signedDiff(median, lump, lump)
                   )}
                 </td>
               </tr>
@@ -121,7 +134,7 @@ export function Glance({
       </p>
       <p className="t-small mt-2 font-medium">Past outcomes, not a forecast.</p>
       <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
-        <CopyLinkButton />
+        <CopyLinkButton state={state} />
         <a href="#evidence" className="link inline-flex min-h-11 items-center">
           See the full comparison
         </a>

@@ -1,10 +1,13 @@
 import type { ForwardQuote } from "@/engine/forwards.ts";
 import { formatDate } from "@/lib/dates.ts";
-import { formatRate, formatSgd } from "@/lib/format.ts";
+import { formatPips, formatRate, formatSgdAt } from "@/lib/format.ts";
+import { spotWhen, type StartContext } from "@/lib/start-context.ts";
 import { HelpTip } from "../HelpTip";
 import { ValueRows } from "../ValueRows";
 
 type Props = {
+  /** Which day the forward is priced on (see start-context.ts). */
+  ctx: StartContext;
   quote: ForwardQuote;
   currency: string;
   amount: number;
@@ -16,6 +19,7 @@ const pct = (r: number) => `${(r * 100).toFixed(3)}%`;
 
 /** Panel 1: what a forward would lock in today, and why it differs from spot. */
 export function ForwardPanel({
+  ctx,
   quote: q,
   currency,
   amount,
@@ -29,8 +33,11 @@ export function ForwardPanel({
         What a forward locks in
       </h2>
       <p className="mt-3 text-muted-foreground">
-        Today&apos;s forward fixes the rate now for a conversion on your
-        deadline.
+        {ctx.kind === "latest"
+          ? "Today's forward fixes the rate now for a conversion on your deadline."
+          : ctx.kind === "past"
+            ? `A forward on ${formatDate(ctx.rateDate)} fixes the rate that day for a conversion on your deadline.`
+            : `Priced from the latest rates (${formatDate(ctx.rateDate)}): a forward fixes the rate for a conversion on your deadline.`}
       </p>
       <div className="mt-4">
         <ValueRows
@@ -55,7 +62,7 @@ export function ForwardPanel({
                   </HelpTip>
                 </>
               ),
-              value: `${(q.points * 10_000).toFixed(1)} pips (${q.points >= 0 ? "+" : "−"}${formatRate(Math.abs(q.points))})`,
+              value: formatPips(q.points),
             },
             {
               label: `SGD rate: SORA compounded over the last ${Math.round(q.T * 365)} days, to ${formatDate(sgdRateDate)}`,
@@ -71,9 +78,10 @@ export function ForwardPanel({
       <p className="mt-4 border-t pt-4 text-[15px]">
         For {amount.toLocaleString("en-SG")} {currency}, the forward price is{" "}
         <span className="font-semibold tabular-nums">
-          {formatSgd(Math.abs(carry))}
+          {/* The headline's precision: whole dollars for a plan of S$100+. */}
+          {formatSgdAt(Math.abs(carry), q.spot * amount)}
         </span>{" "}
-        {carry < 0 ? "below" : "above"} converting at today&apos;s spot, because{" "}
+        {carry < 0 ? "below" : "above"} converting at {spotWhen(ctx)}, because{" "}
         {currency} interest rates are {q.rf > q.rd ? "higher" : "lower"} than
         SGD rates over this period. That gap is the carry; it isn&apos;t a
         forecast of the rate&apos;s direction.

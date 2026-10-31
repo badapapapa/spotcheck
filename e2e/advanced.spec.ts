@@ -7,7 +7,11 @@ test("hedging tab prices a forward and an option for USD", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Hedging: forwards and options" }),
   ).toBeVisible();
-  await expect(page.getByText("Today's forward")).toBeVisible();
+  // The link starts on Saturday 17 Oct 2026, so the forward is priced on
+  // that Friday's rates, and says so (not "today").
+  await expect(
+    page.getByText(/^A forward on 16 Oct 2026 fixes the rate that day/),
+  ).toBeVisible();
   await expect(page.getByText(/Forward to 1 Aug 2027/)).toBeVisible();
   await expect(page.getByText("Premium per unit")).toBeVisible();
   await expect(
@@ -70,7 +74,7 @@ test("the nav keeps the scenario when switching tabs", async ({ page }) => {
   await page.goto("/?c=USD&a=9000&s=2026-10-17&d=2027-06-01&k=3&sp=0.5&t=2");
   await page.getByRole("link", { name: "Hedging" }).click();
   await expect(page).toHaveURL(/\/advanced\?.*a=9000/);
-  await expect(page.getByLabel("Amount needed (USD)")).toHaveValue("9000");
+  await expect(page.getByLabel("Amount needed (USD)")).toHaveValue("9,000");
 });
 
 test("the payoff chart's 'today' label sits fully inside the chart", async ({
@@ -96,5 +100,5 @@ test("hedging tab: ECB source shown, 250-day volatility by default", async ({
   await expect(page.getByLabel("Realised volatility lookback")).toHaveValue(
     "250",
   );
-  await expect(page.getByText(/from 250 trading days/)).toBeVisible();
+  await expect(page.getByText(/from 250 daily changes, /)).toBeVisible();
 });
