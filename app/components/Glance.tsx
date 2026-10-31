@@ -83,8 +83,8 @@ export function Glance({
             return (
               <tr
                 key={id}
-                className="border-b transition-opacity duration-150"
-                style={{ opacity: dim ? 0.4 : 1 }}
+                className="border-b transition-colors duration-150"
+                data-dimmed={dim || undefined}
               >
                 <th scope="row" className="text-left font-normal">
                   <button
@@ -99,7 +99,7 @@ export function Glance({
                   >
                     <span
                       aria-hidden
-                      className="size-2.5 shrink-0 rounded-full"
+                      className="mark size-2.5 shrink-0 rounded-full"
                       style={{ background: STRATEGY_STYLE[id].color }}
                     />
                     {STRATEGY_STYLE[id].label}

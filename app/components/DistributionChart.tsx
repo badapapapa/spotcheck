@@ -155,25 +155,28 @@ export function RangeChart({
           return (
             <g
               key={id}
-              tabIndex={0}
-              role="button"
-              aria-label={`${row.label}: median ${sgd(s.median)}, 5th to 95th percentile ${sgd(s.p5)} to ${sgd(s.p95)}`}
+              // A button only where clicking pins the row (the planner); on
+              // Hedging the rows just preview on hover, and the table below
+              // holds the same figures for the keyboard.
+              {...(onToggle
+                ? {
+                    tabIndex: 0,
+                    role: "button",
+                    "aria-label": `${row.label}: median ${sgd(s.median)}, 5th to 95th percentile ${sgd(s.p5)} to ${sgd(s.p95)}`,
+                    onFocus: () => setActive(id),
+                    onBlur: () => setActive(null),
+                    onClick: () => onToggle(id),
+                    onKeyDown: (e: React.KeyboardEvent) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onToggle(id);
+                      }
+                    },
+                  }
+                : { "aria-hidden": true })}
               onMouseEnter={() => setActive(id)}
               onMouseLeave={() => setActive(null)}
-              onFocus={() => setActive(id)}
-              onBlur={() => setActive(null)}
-              onClick={() => onToggle?.(id)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onToggle?.(id);
-                }
-              }}
               className={`${onToggle ? "cursor-pointer" : "cursor-default"} outline-none [&:focus-visible>rect:first-child]:stroke-[var(--accent)]`}
-              style={{
-                opacity: dim ? 0.3 : 1,
-                transition: "opacity var(--fast) var(--ease)",
-              }}
             >
               {/* Hit target larger than the marks; the focus ring draws on it. */}
               <rect
@@ -196,11 +199,13 @@ export function RangeChart({
                   strokeWidth={1}
                 />
               )}
+              {/* Dimmed rows keep their text at --muted (≥ 4.5:1); only the
+                  marks fade (DESIGN.md §6). */}
               <text
                 aria-hidden
                 x={0}
                 y={yText}
-                className="fill-[var(--ink)] text-[14px] font-medium"
+                className={`${dim ? "fill-[var(--muted)]" : "fill-[var(--ink)]"} text-[14px] font-medium`}
               >
                 {stacked ? (row.shortLabel ?? row.label) : row.label}
               </text>
@@ -209,38 +214,43 @@ export function RangeChart({
                 x={W}
                 y={yText}
                 textAnchor="end"
-                className="fill-[var(--ink)] text-[14px] tabular-nums"
+                className={`${dim ? "fill-[var(--muted)]" : "fill-[var(--ink)]"} text-[14px] tabular-nums`}
               >
                 median {sgd(s.median)}
               </text>
-              {!point && (
-                <>
-                  <line
-                    x1={x(s.min)}
-                    x2={x(s.max)}
-                    y1={yBar}
-                    y2={yBar}
-                    stroke="var(--muted)"
-                    strokeWidth={1.5}
-                  />
-                  <rect
-                    x={x(s.p5)}
-                    y={yBar - 5}
-                    width={Math.max(2, x(s.p95) - x(s.p5))}
-                    height={10}
-                    rx={2}
-                    fill={row.color}
-                  />
-                </>
-              )}
-              <circle
-                cx={x(s.median)}
-                cy={yBar}
-                r={point ? 5.5 : 4.5}
-                fill={point ? row.color : "var(--surface)"}
-                stroke={point ? "var(--surface)" : "var(--ink)"}
-                strokeWidth={2}
-              />
+              <g
+                opacity={dim ? 0.3 : 1}
+                style={{ transition: "opacity var(--fast) var(--ease)" }}
+              >
+                {!point && (
+                  <>
+                    <line
+                      x1={x(s.min)}
+                      x2={x(s.max)}
+                      y1={yBar}
+                      y2={yBar}
+                      stroke="var(--muted)"
+                      strokeWidth={1.5}
+                    />
+                    <rect
+                      x={x(s.p5)}
+                      y={yBar - 5}
+                      width={Math.max(2, x(s.p95) - x(s.p5))}
+                      height={10}
+                      rx={2}
+                      fill={row.color}
+                    />
+                  </>
+                )}
+                <circle
+                  cx={x(s.median)}
+                  cy={yBar}
+                  r={point ? 5.5 : 4.5}
+                  fill={point ? row.color : "var(--surface)"}
+                  stroke={point ? "var(--surface)" : "var(--ink)"}
+                  strokeWidth={2}
+                />
+              </g>
             </g>
           );
         })}
