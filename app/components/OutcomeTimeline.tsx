@@ -7,7 +7,7 @@ import type { ReplayResult } from "@/engine/replay.ts";
 import { STRATEGY_IDS, type StrategyId } from "@/engine/types.ts";
 import { formatDate, formatMonth } from "@/lib/dates.ts";
 import { formatSgd, formatSgdAt } from "@/lib/format.ts";
-import { signedSgd } from "@/lib/signed.ts";
+import { signedDiff } from "@/lib/signed.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { niceTicks, sgdTickDecimals } from "@/lib/ticks.ts";
 import { stepMonth } from "@/lib/periods.ts";
@@ -29,6 +29,8 @@ type Props = {
   pinned: string | null;
   onActive: (id: string | null) => void;
   onToggle: (id: string) => void;
+  /** What costs are rescaled to: "today's rate", "the rate on 2 Jan 2025". */
+  rescaled?: string;
 };
 
 /** Periods grouped by the month they start in, for the phone view. */
@@ -68,6 +70,7 @@ export function OutcomeTimeline({
   pinned,
   onActive,
   onToggle,
+  rescaled = "today's rate",
 }: Props) {
   const [ref, measured] = useWidth<HTMLDivElement>();
   const W = Math.max(280, measured);
@@ -99,7 +102,12 @@ export function OutcomeTimeline({
       }
     // Fitted to the data with a 5% margin, not stretched to whole tick
     // steps, so the lines fill the chart; round ticks inside that range.
-    const pad = (hi - lo) * scale * 0.05;
+    // A flat history (the BND peg: every period costs the same) has no
+    // range to fit, so it gets a small band; a zero-height domain would
+    // divide by zero and draw nothing (NaN paths).
+    const span = (hi - lo) * scale;
+    const pad =
+      span > 0 ? span * 0.05 : Math.max(Math.abs(lo * scale) * 0.01, 1);
     const domain: [number, number] = [lo * scale - pad, hi * scale + pad];
     const nice = niceTicks(lo * scale, hi * scale, 6);
     return {
@@ -266,7 +274,7 @@ export function OutcomeTimeline({
           style={{ width: "100%", height: H }}
           className="block touch-pan-y select-none"
           role="img"
-          aria-label={`Cost of each strategy at today's rate, for every period starting ${formatDate(result.firstStart)} to ${formatDate(result.lastStart)}${monthly ? ", grouped by month" : ""}. The selected period starts ${formatDate(result.startDates[selected]!)}. Use the period slider below to pick another.`}
+          aria-label={`Cost of each strategy at ${rescaled}, for every period starting ${formatDate(result.firstStart)} to ${formatDate(result.lastStart)}${monthly ? ", grouped by month" : ""}. The selected period starts ${formatDate(result.startDates[selected]!)}. Use the period slider below to pick another.`}
           onPointerMove={(e) => {
             if (e.pointerType === "touch" && !dragging.current) return;
             setHover(indexAt(e.clientX, e.currentTarget));
@@ -439,8 +447,9 @@ export function OutcomeTimeline({
                     <td className="pl-2 text-right text-muted-foreground">
                       {id === "lumpSum"
                         ? "–"
-                        : signedSgd(
-                            value(id, shown) - value("lumpSum", shown),
+                        : signedDiff(
+                            value(id, shown),
+                            value("lumpSum", shown),
                             scale,
                           )}
                     </td>

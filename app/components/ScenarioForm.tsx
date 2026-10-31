@@ -1,38 +1,65 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useId, useState } from "react";
-import { daysBetween, rateAsOf } from "@/engine/calendar.ts";
+import { useEffect, useId, useRef, useState } from "react";
+import { addDays, rateAsOf } from "@/engine/calendar.ts";
+import type { ISODate } from "@/engine/types.ts";
 import { convertAmount } from "@/lib/convert.ts";
+import {
+  latestDeadline,
+  MIN_WINDOW_DAYS,
+  maxTranches,
+  tranchesRange,
+  windowError,
+} from "@/lib/coverage.ts";
 import { loadFx } from "@/lib/data.ts";
 import { formatDate } from "@/lib/dates.ts";
 import { formatSgdAt } from "@/lib/format.ts";
+import { formatNumberText, readNumberField } from "@/lib/number-input.ts";
 import { todayCost } from "@/lib/today-cost.ts";
-import { LIMITS, type PlannerState } from "@/lib/url-state.ts";
+import { LIMITS, serializeState, type PlannerState } from "@/lib/url-state.ts";
 import { CurrencyPicker } from "./CurrencyPicker";
+
+/** A date problem, and the field it belongs under. */
+export type DateIssue = { field: "startDate" | "deadline"; message: string };
 
 type Props = {
   state: PlannerState;
   onChange: (next: PlannerState) => void;
-  /** Latest SGD per unit, for today's cost. Planner only. */
+  /** SGD per unit on the start date, for the cost of converting it all. Planner only. */
   spot?: number;
+  /** "today", "on 2 Jan 2025"…: when converting it all would happen. */
+  convertWhen?: string;
+  /** No cost to show (the start date is outside the data): a dash, not a placeholder. */
+  noCost?: boolean;
   /**
-   * "panel": the planner's converter, with today's cost.
+   * The page's own date rules (the data's first day, Hedging's look-back).
+   * A date they reject is shown under its field and never committed.
+   */
+  checkDates?: (start: ISODate, deadline: ISODate) => DateIssue | undefined;
+  /** A problem with the committed dates (e.g. from a link), shown under its field. */
+  dateIssue?: DateIssue;
+  /** Earliest and latest start the data allows, for the date picker. */
+  startRange?: { min?: ISODate; max?: ISODate };
+  /** Tells the page whether any field holds a value that isn't valid yet. */
+  onValidity?: (invalid: boolean) => void;
+  /**
+   * "panel": the planner's converter, with the cost of converting it all.
    * "chips": the compact sentence under the Hedging title.
    */
   variant?: "panel" | "chips";
-  /** Lets the planner watch the sentence for the phone summary bar. */
-  sentenceRef?: React.Ref<HTMLParagraphElement>;
 };
 
-type Draft = Record<
-  "amount" | "startDate" | "deadline" | "tranches" | "spread" | "target",
-  string
->;
+type Name =
+  "amount" | "startDate" | "deadline" | "tranches" | "spread" | "target";
+type Draft = Record<Name, string>;
+
+/** How long typing must pause before a valid number is used. */
+const COMMIT_DELAY_MS = 400;
 
 function toDraft(s: PlannerState): Draft {
   return {
-    amount: String(s.scenario.amount),
+    amount: formatNumberText(s.scenario.amount),
     startDate: s.scenario.startDate,
     deadline: s.scenario.deadline,
     tranches: String(s.scenario.tranches),
@@ -45,40 +72,72 @@ function toDraft(s: PlannerState): Draft {
 const pctText = (fraction: number) =>
   String(Number((fraction * 100).toFixed(4)));
 
-const inRange = (v: number, r: { min: number; max: number }) =>
-  Number.isFinite(v) && v >= r.min && v <= r.max;
+const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * "I need [amount] [currency] by [date]", plus the less common settings in a
- * disclosure. Inputs keep their own text while you type; the URL (and the
- * results) only update when a value is valid, so half-typed numbers never
- * reset the field.
+ * disclosure. Fields keep their own text while you type. A number is used
+ * only once the whole entry is valid and typing has paused (or the field
+ * loses focus), so typing "15" never passes through 1; until then the
+ * results stay on the last valid entry and the page marks them not current.
  */
 export function ScenarioForm({
   state,
   onChange,
   spot,
+  convertWhen = "today",
+  noCost = false,
+  checkDates,
+  dateIssue,
+  startRange,
+  onValidity,
   variant = "panel",
-  sentenceRef,
 }: Props) {
   const id = useId();
   const [draft, setDraft] = useState<Draft>(() => toDraft(state));
-  const [errors, setErrors] = useState<Partial<Record<keyof Draft, string>>>(
-    {},
-  );
+  const [errors, setErrors] = useState<Partial<Record<Name, string>>>({});
+  const [note, setNote] = useState<string | undefined>();
+  const [focused, setFocused] = useState<Name | null>(null);
   // The currency picked while its rates load (usually instant: cached).
   const [pendingCurrency, setPendingCurrency] = useState<string | null>(null);
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(
+    () => dateIssue?.field === "startDate",
+  );
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // A new currency (picked here, or from the URL via back/forward) brings a
-  // new amount, so the fields start again from the state. Adjusting state
-  // while rendering is React's documented pattern for this.
-  const [draftCurrency, setDraftCurrency] = useState(state.scenario.currency);
-  if (draftCurrency !== state.scenario.currency) {
-    setDraftCurrency(state.scenario.currency);
+  // The state this form last showed or committed. Anything else (a link,
+  // back/forward, a new currency, a "start on…" button) brings new values,
+  // so the fields start again from the state. Adjusting state while
+  // rendering is React's documented pattern for this.
+  const key = serializeState(state).toString();
+  const [synced, setSynced] = useState(key);
+  if (synced !== key) {
+    setSynced(key);
     setDraft(toDraft(state));
     setErrors({});
+    setNote(undefined);
     setPendingCurrency(null);
+  }
+
+  // A date problem arriving from the page (a shared link) opens its field.
+  const [seenIssue, setSeenIssue] = useState(dateIssue?.message);
+  if (seenIssue !== dateIssue?.message) {
+    setSeenIssue(dateIssue?.message);
+    if (dateIssue?.field === "startDate") setMoreOpen(true);
+  }
+
+  const invalid = Object.values(errors).some(Boolean);
+  useEffect(() => onValidity?.(invalid), [invalid, onValidity]);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
+
+  function commit(next: PlannerState) {
+    setSynced(serializeState(next).toString());
+    onChange(next);
   }
 
   /**
@@ -99,49 +158,202 @@ export function ScenarioForm({
         rateAsOf(b, startDate).value,
       );
     } catch {
-      // Rates unavailable: keep the number as typed rather than block the switch.
+      // Rates unavailable (or the start is before this currency's data):
+      // keep the number as typed rather than block the switch.
     }
+    // Not commit(): the new amount has to replace the field's text.
     onChange({
       ...state,
       scenario: { ...state.scenario, currency: code, amount: next },
     });
   }
 
-  function update(field: keyof Draft, value: string) {
-    const next = { ...draft, [field]: value };
-    setDraft(next);
-    const error = validate(field, next);
-    setErrors((e) => ({ ...e, [field]: error }));
-    // Changing one date can fix the other's error.
-    if (field === "startDate" || field === "deadline") {
-      setErrors((e) => ({ ...e, startDate: undefined, deadline: error }));
+  /** The state with this field's value, or the error to show under it. */
+  function read(
+    name: Name,
+    d: Draft,
+  ):
+    | { ok: true; next: PlannerState; note?: string }
+    | { ok: false; message: string; field?: Name } {
+    const s = state.scenario;
+    switch (name) {
+      case "amount": {
+        const r = readNumberField(d.amount, {
+          ...LIMITS.amount,
+          range: `Enter an amount from ${formatNumberText(LIMITS.amount.min)} to ${formatNumberText(LIMITS.amount.max)}.`,
+        });
+        return r.ok
+          ? {
+              ok: true,
+              next: { ...state, scenario: { ...s, amount: r.value } },
+            }
+          : r;
+      }
+      case "tranches": {
+        const max = maxTranches(s.startDate, s.deadline);
+        const r = readNumberField(d.tranches, {
+          min: 1,
+          max,
+          integer: true,
+          range: tranchesRange(s.startDate, s.deadline),
+        });
+        return r.ok
+          ? {
+              ok: true,
+              next: { ...state, scenario: { ...s, tranches: r.value } },
+            }
+          : r;
+      }
+      case "spread": {
+        const r = readNumberField(d.spread, {
+          min: LIMITS.spreadPct.min,
+          max: LIMITS.spreadPct.max,
+          range: `Enter ${LIMITS.spreadPct.min}–${LIMITS.spreadPct.max}%.`,
+        });
+        return r.ok
+          ? {
+              ok: true,
+              next: { ...state, scenario: { ...s, spread: r.value / 100 } },
+            }
+          : r;
+      }
+      case "target": {
+        const r = readNumberField(d.target, {
+          min: LIMITS.targetPct.min,
+          max: LIMITS.targetPct.max,
+          range: `Enter ${LIMITS.targetPct.min}–${LIMITS.targetPct.max}%.`,
+        });
+        return r.ok
+          ? { ok: true, next: { ...state, targetBelowSpot: r.value / 100 } }
+          : r;
+      }
+      case "startDate":
+      case "deadline": {
+        if (!ISO.test(d[name])) return { ok: false, message: "Pick a date." };
+        const start = d.startDate;
+        const deadline = d.deadline;
+        // A rule about one date goes under that date; a rule about the pair
+        // goes under the one being edited.
+        const pair = windowError(start, deadline);
+        if (pair) return { ok: false, message: pair };
+        const page = checkDates?.(start, deadline);
+        if (page)
+          return { ok: false, message: page.message, field: page.field };
+        // A shorter plan has room for fewer conversions (3 days apart).
+        const room = maxTranches(start, deadline);
+        const tranches = Math.min(s.tranches, room);
+        return {
+          ok: true,
+          next: {
+            ...state,
+            scenario: { ...s, startDate: start, deadline, tranches },
+          },
+          note:
+            tranches < s.tranches
+              ? `Lowered to ${tranches}: conversions are at least 3 days apart.`
+              : undefined,
+        };
+      }
     }
-    if (!error) onChange(apply(state, field, next));
   }
 
-  const field = (name: keyof Draft) => ({
-    id: `${id}-${name}`,
-    value: draft[name],
-    "aria-invalid": errors[name] ? true : undefined,
-    "aria-describedby": errors[name]
-      ? `${id}-${name}-error`
-      : `${id}-${name}-help`,
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-      update(name, e.target.value),
-  });
+  function update(name: Name, value: string) {
+    const d = { ...draft, [name]: value };
+    setDraft(d);
+    if (timer.current) clearTimeout(timer.current);
+    const r = read(name, d);
+    const dates = name === "startDate" || name === "deadline";
+    if (!r.ok) {
+      const field = r.field ?? name;
+      // Fixing one date can clear the other's error.
+      setErrors((e) => ({
+        ...e,
+        ...(dates ? { startDate: undefined, deadline: undefined } : {}),
+        [field]: r.message,
+      }));
+      return;
+    }
+    setErrors((e) => ({
+      ...e,
+      [name]: undefined,
+      ...(dates ? { startDate: undefined, deadline: undefined } : {}),
+    }));
+    if (dates) {
+      // A picked date is complete: use it at once.
+      if (r.note) {
+        setNote(r.note);
+        setDraft({ ...d, tranches: String(r.next.scenario.tranches) });
+      }
+      commit(r.next);
+      return;
+    }
+    timer.current = setTimeout(() => commit(r.next), COMMIT_DELAY_MS);
+  }
 
-  const errorText = (name: keyof Draft) =>
-    errors[name] ? (
-      <p id={`${id}-${name}-error`} className="text-sm text-destructive">
-        {errors[name]}
+  /** Leaving a field uses its value at once and tidies its text. */
+  function blur(name: Name) {
+    setFocused(null);
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+      const r = read(name, draft);
+      if (r.ok) commit(r.next);
+    }
+    if (name === "amount" && !errors.amount) {
+      const r = readNumberField(draft.amount, { ...LIMITS.amount, range: "" });
+      if (r.ok) setDraft((d) => ({ ...d, amount: formatNumberText(r.value) }));
+    }
+  }
+
+  const shownError = (name: Name) =>
+    errors[name] ??
+    (dateIssue && dateIssue.field === name ? dateIssue.message : undefined);
+
+  const field = (name: Name) => {
+    const error = shownError(name);
+    return {
+      id: `${id}-${name}`,
+      value: draft[name],
+      "aria-invalid": error ? true : undefined,
+      "aria-describedby": error ? `${id}-${name}-error` : `${id}-${name}-help`,
+    };
+  };
+
+  const errorText = (name: Name) => {
+    const error = shownError(name);
+    return error ? (
+      <p
+        id={`${id}-${name}-error`}
+        className="text-sm text-destructive"
+        data-testid={`error-${name}`}
+      >
+        {error}
       </p>
     ) : null;
+  };
 
   const s = state.scenario;
   const currency = pendingCurrency ?? s.currency;
   const chips = variant === "chips";
   const cost = spot === undefined ? undefined : todayCost(s, spot);
   const conversions = `${s.tranches} conversion${s.tranches === 1 ? "" : "s"}`;
+  // The amount as read, while the text is written another way ("15000").
+  const amountRead = readNumberField(draft.amount, {
+    ...LIMITS.amount,
+    range: "",
+  });
+  const echo =
+    focused === "amount" &&
+    amountRead.ok &&
+    formatNumberText(amountRead.value) !== draft.amount.trim()
+      ? `= ${currency} ${formatNumberText(amountRead.value)}`
+      : undefined;
+  const deadlineMin = ISO.test(draft.startDate)
+    ? addDays(draft.startDate, MIN_WINDOW_DAYS)
+    : undefined;
+  const deadlineMax = ISO.test(draft.startDate)
+    ? latestDeadline(draft.startDate)
+    : undefined;
 
   return (
     <form
@@ -152,7 +364,6 @@ export function ScenarioForm({
       {/* Two groups so a phone wraps "by [date]" onto its own line, never
           mid-group; wider screens keep the sentence on one line. */}
       <p
-        ref={sentenceRef}
         className={`flex flex-wrap items-center gap-x-2.5 gap-y-2 text-ink ${
           chips ? "text-[18px] font-medium" : "t-data-m"
         }`}
@@ -161,13 +372,22 @@ export function ScenarioForm({
           I need
           <input
             {...field("amount")}
-            aria-describedby={errors.amount ? `${id}-amount-error` : undefined}
+            onChange={(e) => update("amount", e.target.value)}
+            onFocus={() => setFocused("amount")}
+            onBlur={() => blur("amount")}
+            aria-describedby={
+              shownError("amount")
+                ? `${id}-amount-error`
+                : echo
+                  ? `${id}-amount-echo`
+                  : undefined
+            }
             aria-label={`Amount needed (${s.currency})`}
             inputMode="decimal"
-            type="number"
-            min={LIMITS.amount.min}
-            step="any"
-            className="field-chip no-spin text-right tabular-nums"
+            type="text"
+            autoComplete="off"
+            spellCheck={false}
+            className="field-chip text-right tabular-nums"
             // Grows with the number so the sentence stays tidy.
             style={{
               width: `calc(${Math.max(4, draft.amount.length) + 0.5}ch + 1.75rem)`,
@@ -183,26 +403,47 @@ export function ScenarioForm({
           by
           <input
             {...field("deadline")}
+            onChange={(e) => update("deadline", e.target.value)}
+            onFocus={() => setFocused("deadline")}
+            onBlur={() => blur("deadline")}
             aria-describedby={
-              errors.deadline ? `${id}-deadline-error` : undefined
+              shownError("deadline") ? `${id}-deadline-error` : undefined
             }
             aria-label="Needed by"
             type="date"
+            min={deadlineMin}
+            max={deadlineMax}
             // Sized to the date it shows, so the sentence fits on one line.
             className="field-chip w-[calc(9.2em+1.75rem)] tabular-nums"
           />
         </span>
       </p>
       {errorText("amount")}
+      {echo && !shownError("amount") && (
+        <p
+          id={`${id}-amount-echo`}
+          className="text-sm text-muted-foreground tabular-nums"
+          data-testid="amount-echo"
+        >
+          {echo}
+        </p>
+      )}
       {errorText("deadline")}
 
       {!chips && (
         // The baseline every strategy is measured against: converting it all
-        // today (equal to the All at once result). Same height loaded or not.
+        // on the start date (equal to the All at once result). Same height
+        // loaded or not.
         <div className="border-t pt-4">
           <div className="flex items-baseline justify-between gap-4">
-            <p className="t-label">Converting it all today</p>
-            {cost ? (
+            <p className="t-label" data-testid="convert-when">
+              {noCost
+                ? "Converting it all"
+                : `Converting it all ${convertWhen}`}
+            </p>
+            {noCost ? (
+              <p className="t-data-m text-muted-foreground">–</p>
+            ) : cost ? (
               <p className="t-data-m tabular-nums" data-testid="today-cost">
                 {formatSgdAt(cost.withSpread, cost.withSpread)}
               </p>
@@ -249,16 +490,17 @@ export function ScenarioForm({
             <Field
               id={`${id}-tranches`}
               label="Most conversions you'd make"
-              help="Used by the equal-tranches strategy."
+              help={note ?? "Used by the equal-tranches strategy."}
               error={errorText("tranches")}
             >
               <input
                 {...field("tranches")}
+                onChange={(e) => update("tranches", e.target.value)}
+                onFocus={() => setFocused("tranches")}
+                onBlur={() => blur("tranches")}
                 inputMode="numeric"
-                type="number"
-                min={1}
-                max={LIMITS.tranches.max}
-                step={1}
+                type="text"
+                autoComplete="off"
                 className="field-input"
               />
             </Field>
@@ -271,7 +513,12 @@ export function ScenarioForm({
           >
             <input
               {...field("startDate")}
+              onChange={(e) => update("startDate", e.target.value)}
+              onFocus={() => setFocused("startDate")}
+              onBlur={() => blur("startDate")}
               type="date"
+              min={startRange?.min}
+              max={startRange?.max}
               className="field-input"
             />
           </Field>
@@ -283,11 +530,12 @@ export function ScenarioForm({
           >
             <input
               {...field("spread")}
+              onChange={(e) => update("spread", e.target.value)}
+              onFocus={() => setFocused("spread")}
+              onBlur={() => blur("spread")}
               inputMode="decimal"
-              type="number"
-              min={0}
-              max={LIMITS.spreadPct.max}
-              step={0.05}
+              type="text"
+              autoComplete="off"
               className="field-input"
             />
           </Field>
@@ -300,11 +548,12 @@ export function ScenarioForm({
             >
               <input
                 {...field("target")}
+                onChange={(e) => update("target", e.target.value)}
+                onFocus={() => setFocused("target")}
+                onBlur={() => blur("target")}
                 inputMode="decimal"
-                type="number"
-                min={0}
-                max={LIMITS.targetPct.max}
-                step={0.5}
+                type="text"
+                autoComplete="off"
                 className="field-input"
               />
             </Field>
@@ -341,66 +590,4 @@ function Field({
       )}
     </div>
   );
-}
-
-function validate(field: keyof Draft, d: Draft): string | undefined {
-  const n = (s: string) => (s.trim() === "" ? Number.NaN : Number(s));
-  switch (field) {
-    case "amount":
-      return inRange(n(d.amount), LIMITS.amount)
-        ? undefined
-        : "Enter an amount above 0.";
-    case "tranches":
-      return Number.isInteger(n(d.tranches)) &&
-        inRange(n(d.tranches), LIMITS.tranches)
-        ? undefined
-        : `Enter a whole number from 1 to ${LIMITS.tranches.max}.`;
-    case "spread":
-      return inRange(n(d.spread), LIMITS.spreadPct)
-        ? undefined
-        : `Enter 0 to ${LIMITS.spreadPct.max}%.`;
-    case "target":
-      return inRange(n(d.target), LIMITS.targetPct)
-        ? undefined
-        : `Enter 0 to ${LIMITS.targetPct.max}%.`;
-    case "startDate":
-    case "deadline": {
-      if (
-        !/^\d{4}-\d{2}-\d{2}$/.test(d.startDate) ||
-        !/^\d{4}-\d{2}-\d{2}$/.test(d.deadline)
-      ) {
-        return "Pick a date.";
-      }
-      const days = daysBetween(d.startDate, d.deadline);
-      if (days < LIMITS.minWindowDays)
-        return "The deadline must be at least a week after the start.";
-      if (days > LIMITS.maxWindowDays)
-        return "Keep the deadline within 3 years of the start.";
-      return undefined;
-    }
-  }
-}
-
-function apply(
-  state: PlannerState,
-  field: keyof Draft,
-  d: Draft,
-): PlannerState {
-  const s = state.scenario;
-  switch (field) {
-    case "amount":
-      return { ...state, scenario: { ...s, amount: Number(d.amount) } };
-    case "tranches":
-      return { ...state, scenario: { ...s, tranches: Number(d.tranches) } };
-    case "spread":
-      return { ...state, scenario: { ...s, spread: Number(d.spread) / 100 } };
-    case "target":
-      return { ...state, targetBelowSpot: Number(d.target) / 100 };
-    case "startDate":
-    case "deadline":
-      return {
-        ...state,
-        scenario: { ...s, startDate: d.startDate, deadline: d.deadline },
-      };
-  }
 }

@@ -2,16 +2,24 @@
 
 import { Check, Link as LinkIcon } from "lucide-react";
 import { useState } from "react";
+import { serializeState, type PlannerState } from "@/lib/url-state.ts";
 
-export function CopyLinkButton() {
+/**
+ * Copies a link to exactly this scenario. It is built from the state on
+ * screen, not from the address bar (which follows typing 300 ms later), and
+ * names every setting, start date included, so the recipient's "today"
+ * never changes what they see.
+ */
+export function CopyLinkButton({ state }: { state: PlannerState }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
+    const url = `${window.location.origin}${window.location.pathname}?${serializeState(state, { complete: true })}`;
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      window.prompt("Copy this link:", window.location.href);
+      window.prompt("Copy this link:", url);
     }
   }
   return (

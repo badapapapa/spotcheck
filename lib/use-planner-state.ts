@@ -3,6 +3,7 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { todayInSingapore } from "./dates.ts";
+import { publishScenario } from "./scenario-link.ts";
 import { parseState, serializeState, type PlannerState } from "./url-state.ts";
 
 /** How long typing must pause before the URL is updated. */
@@ -64,6 +65,11 @@ export function usePlannerState(): [
     },
     [pathname],
   );
+
+  // Links to the other pages follow every change at once, not the URL's
+  // 300 ms pause (scenario-link.ts), and always carry the full scenario,
+  // even on a bare "/".
+  useEffect(() => publishScenario(serializeState(state).toString()), [state]);
 
   useEffect(
     () => () => {

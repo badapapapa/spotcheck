@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { ScenarioLink } from "../components/ScenarioLink";
 import meta from "@/data/meta.json";
 import { CURRENCIES } from "@/engine/currencies.ts";
 import { formatDate } from "@/lib/dates.ts";
@@ -179,9 +179,7 @@ export default function HowItWorks() {
             </p>
             <p className="font-medium">{DISCLAIMER}</p>
             <p>
-              <Link href="/" prefetch={false} className="link">
-                Back to the planner
-              </Link>
+              <ScenarioLink href="/">Back to the planner</ScenarioLink>
             </p>
           </Part>
         </div>
