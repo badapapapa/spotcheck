@@ -25,6 +25,10 @@ const serif = Newsreader({
 const body = IBM_Plex_Sans({
   variable: "--font-body",
   subsets: ["latin"],
+  // "optional": if the font isn't ready within a moment of the first paint
+  // (a slow first visit), the size-matched fallback stays for that page view
+  // instead of swapping in later and re-flowing the text (layout shift).
+  display: "optional",
 });
 
 export const metadata: Metadata = {
@@ -51,14 +55,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         <header className="border-b">
-          <div className="page flex h-14 items-center justify-between gap-6 lg:h-16">
+          <div className="page flex h-14 items-center justify-between gap-3 lg:h-16 lg:gap-6">
             <div className="flex h-full items-center gap-10">
               <Wordmark />
               <Suspense fallback={<SiteNavFallback variant="top" />}>
                 <SiteNav variant="top" />
               </Suspense>
             </div>
-            <p className="t-small hidden text-muted-foreground lg:block">
+            {/* Visible at every width (CLAUDE.md rule 3); compact on phones. */}
+            <p
+              className="text-right text-[13px] leading-4 text-muted-foreground lg:text-sm"
+              data-testid="header-disclaimer"
+            >
               Historical data, not advice
             </p>
           </div>

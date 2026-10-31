@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo } from "react";
+import { useId, useMemo, useState } from "react";
 import {
   CartesianGrid,
   Legend,
@@ -21,6 +21,7 @@ import {
 import { formatDate } from "@/lib/dates.ts";
 import { formatPercent, formatRate, formatSgd } from "@/lib/format.ts";
 import { HEDGE_STYLE } from "@/lib/hedge-style.ts";
+import { useCoarsePointer } from "@/lib/use-coarse-pointer.ts";
 import { niceTicks, sgdTickDecimals, type Ticks } from "@/lib/ticks.ts";
 import { LIMITS, VOL_LOOKBACKS, type VolLookback } from "@/lib/url-state.ts";
 import { HelpTip } from "../HelpTip";
@@ -59,7 +60,7 @@ const HELP = {
     "How quickly delta itself changes as the spot rate moves. It is largest when the rate is near the strike.",
   vega: "How much the option's value changes if volatility rises by one percentage point.",
   theta:
-    "How much value the option loses each day as the deadline gets closer, with everything else unchanged.",
+    "How much the option's value changes each day as the deadline gets closer, with everything else unchanged. It can be positive: when the foreign currency's interest rate is above the SGD rate, the forward sits below spot and moves up toward it as the deadline nears, which adds value to the call.",
 };
 
 /** Panel 2: price a call on the foreign currency, its payoff and its Greeks. */
@@ -101,6 +102,14 @@ export function OptionPanel(props: Props) {
     payoff.flatMap((p) => [p.unhedged, p.forward, p.option]),
     4,
   );
+  // Round rate ticks (1.10, 1.20, …), kept inside the plotted range.
+  const rateAxis = insideTicks(grid[0]!, grid.at(-1)!, 4);
+  const greekRateAxis = insideTicks(grid[0]!, grid.at(-1)!, 3);
+  const coarse = useCoarsePointer();
+  const [payoffAt, setPayoffAt] = useState<number | undefined>();
+  const [greekAt, setGreekAt] = useState<
+    Partial<Record<keyof Greeks, number | undefined>>
+  >({});
 
   return (
     <>
@@ -223,7 +232,7 @@ export function OptionPanel(props: Props) {
             ends up
           </figcaption>
           <div
-            className="h-64 w-full"
+            className="h-72 w-full sm:h-64"
             role="img"
             aria-label={`Total SGD cost against the ${currency} rate on the deadline: unhedged rises with the rate, the forward is flat at ${formatSgd(amount * forward * (1 + spread))}, and the option is capped at ${formatSgd(amount * (premium + K * (1 + spread)))}.`}
           >
@@ -232,16 +241,20 @@ export function OptionPanel(props: Props) {
                 data={payoff}
                 // Room above the plot for the "today" label on the dashed line.
                 margin={{ top: 24, right: 8, bottom: 0, left: 8 }}
+                onClick={(st) => coarse && setPayoffAt(indexOf(st))}
+                onMouseMove={(st) => coarse && setPayoffAt(indexOf(st))}
               >
                 <CartesianGrid stroke="var(--rule)" vertical={false} />
                 <XAxis
                   dataKey="ST"
                   type="number"
                   domain={["dataMin", "dataMax"]}
-                  tickFormatter={(v: number) => formatRate(v)}
+                  tickFormatter={(v: number) =>
+                    v.toFixed(Math.max(2, rateAxis.decimals))
+                  }
                   tick={axisTick}
                   stroke="var(--rule)"
-                  ticks={[0.85, 0.925, 1, 1.075, 1.15].map((f) => base.S * f)}
+                  ticks={rateAxis.ticks}
                 />
                 <YAxis
                   domain={payoffAxis.domain}
@@ -255,6 +268,10 @@ export function OptionPanel(props: Props) {
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
+                  separator=": "
+                  // Touch: no floating box (it stays open and covers the
+                  // chart); the readout under the chart shows the values.
+                  content={coarse ? () => null : undefined}
                   labelFormatter={(v) =>
                     `Rate on deadline ${formatRate(Number(v))}`
                   }
@@ -292,6 +309,31 @@ export function OptionPanel(props: Props) {
               </LineChart>
             </ResponsiveContainer>
           </div>
+          {coarse && (
+            <p
+              className="t-small min-h-10 tabular-nums"
+              aria-live="polite"
+              data-testid="payoff-readout"
+            >
+              {payoffAt === undefined ? (
+                <span className="text-muted-foreground">
+                  Tap the chart to read the values.
+                </span>
+              ) : (
+                <>
+                  <span className="font-medium">
+                    Rate on deadline {formatRate(payoff[payoffAt]!.ST)}:
+                  </span>{" "}
+                  {(["unhedged", "forward", "option"] as const)
+                    .map(
+                      (h) =>
+                        `${HEDGE_STYLE[h].short} ${formatSgd(payoff[payoffAt]![h])}`,
+                    )
+                    .join(", ")}
+                </>
+              )}
+            </p>
+          )}
         </figure>
 
         <p className="text-xs text-muted-foreground">
@@ -393,16 +435,26 @@ export function OptionPanel(props: Props) {
                     <LineChart
                       data={greekCurves}
                       margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+                      onClick={(st) =>
+                        coarse &&
+                        setGreekAt((a) => ({ ...a, [g.key]: indexOf(st) }))
+                      }
+                      onMouseMove={(st) =>
+                        coarse &&
+                        setGreekAt((a) => ({ ...a, [g.key]: indexOf(st) }))
+                      }
                     >
                       <CartesianGrid stroke="var(--rule)" vertical={false} />
                       <XAxis
                         dataKey="S"
                         type="number"
                         domain={["dataMin", "dataMax"]}
-                        tickFormatter={(v: number) => formatRate(v)}
+                        tickFormatter={(v: number) =>
+                          v.toFixed(Math.max(2, greekRateAxis.decimals))
+                        }
                         tick={axisTick}
                         stroke="var(--rule)"
-                        ticks={[0.85, 1, 1.15].map((f) => base.S * f)}
+                        ticks={greekRateAxis.ticks}
                       />
                       <YAxis
                         domain={g.axis.domain}
@@ -420,6 +472,8 @@ export function OptionPanel(props: Props) {
                       />
                       <Tooltip
                         contentStyle={tooltipStyle}
+                        separator=": "
+                        content={coarse ? () => null : undefined}
                         labelFormatter={(v) => `Spot ${formatRate(Number(v))}`}
                         formatter={(v) => [g.format(Number(v)), g.title]}
                       />
@@ -431,7 +485,7 @@ export function OptionPanel(props: Props) {
                       <Line
                         dataKey={(d: Greeks) => g.scale(d[g.key])}
                         name={g.title}
-                        stroke="var(--series-2)"
+                        stroke={HEDGE_STYLE.option.color}
                         strokeWidth={2}
                         dot={false}
                         isAnimationActive={false}
@@ -439,6 +493,16 @@ export function OptionPanel(props: Props) {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
+                {coarse && (
+                  <p
+                    className="t-small min-h-5 text-muted-foreground tabular-nums"
+                    aria-live="polite"
+                  >
+                    {greekAt[g.key] === undefined
+                      ? "Tap to read a value."
+                      : `Spot ${formatRate(greekCurves[greekAt[g.key]!]!.S)}: ${g.format(g.scale(greekCurves[greekAt[g.key]!]![g.key]))}`}
+                  </p>
+                )}
               </figure>
             ))}
         </div>
@@ -486,6 +550,20 @@ function greekCharts(amount: number): {
       sgd: true,
     },
   ];
+}
+
+/** The chart's active point from a Recharts event, if any. */
+function indexOf(
+  st: { activeTooltipIndex?: number | string | null } | null | undefined,
+) {
+  const i = st?.activeTooltipIndex;
+  return i === null || i === undefined ? undefined : Number(i);
+}
+
+/** Tidy ticks for a range, dropping any that fall outside it. */
+function insideTicks(lo: number, hi: number, target: number): Ticks {
+  const t = niceTicks(lo, hi, target);
+  return { ...t, ticks: t.ticks.filter((v) => v >= lo && v <= hi) };
 }
 
 /** Tidy, never-repeating ticks for a set of plotted values. */

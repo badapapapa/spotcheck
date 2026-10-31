@@ -63,6 +63,8 @@
   --series-2: #c9581f;
   --series-3: #00897a;
   --series-4: #9150a8;
+  /* The call option's own colour (DESIGN.md §2): no planner strategy uses it. */
+  --series-option: #9a6b00;
   /* §4 shape and space */
   --shadow-pop: 0 1px 2px rgb(22 24 26 / 6%), 0 8px 24px rgb(22 24 26 / 10%);
   --content: 75rem;
@@ -91,6 +93,7 @@
     --series-2: #e0662a;
     --series-3: #12a388;
     --series-4: #9a72da;
+    --series-option: #b88520;
     --shadow-pop: 0 1px 2px rgb(0 0 0 / 40%), 0 12px 28px rgb(0 0 0 / 45%);
   }
 }
@@ -121,6 +124,12 @@
   ):focus-visible {
     outline: 3px solid var(--accent);
     outline-offset: 2px;
+  }
+  /* Recharts makes its charts focusable for keyboard users; a tap or click
+     shouldn't leave a box around the chart, but keyboard focus still does. */
+  .recharts-wrapper :focus:not(:focus-visible),
+  .recharts-surface:focus:not(:focus-visible) {
+    outline: none;
   }
   ::selection {
     background: var(--accent-soft);
@@ -393,14 +402,16 @@
     }
   }
   @media (width < 380px) {
-    .converter-min-h {
-      min-height: 301px;
-    }
     .result-min-h {
       min-height: 611px;
     }
   }
+  /* Only the narrowest phones wrap the converter's sentence onto a third
+     line; at 375px it fits in 281px, so no empty space under More options. */
   @media (width < 370px) {
+    .converter-min-h {
+      min-height: 301px;
+    }
     .result-min-h {
       min-height: 635px;
     }

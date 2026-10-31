@@ -6,10 +6,11 @@ import { toEpochDay } from "@/engine/calendar.ts";
 import type { ReplayResult } from "@/engine/replay.ts";
 import { STRATEGY_IDS, type StrategyId } from "@/engine/types.ts";
 import { formatDate, formatMonth } from "@/lib/dates.ts";
-import { formatSgd } from "@/lib/format.ts";
+import { formatSgd, formatSgdAt } from "@/lib/format.ts";
 import { signedSgd } from "@/lib/signed.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { niceTicks, sgdTickDecimals } from "@/lib/ticks.ts";
+import { stepMonth } from "@/lib/periods.ts";
 import { useWidth } from "@/lib/use-width.ts";
 
 const PAD = { top: 12, right: 8, bottom: 28 };
@@ -71,7 +72,7 @@ export function OutcomeTimeline({
   const [ref, measured] = useWidth<HTMLDivElement>();
   const W = Math.max(280, measured);
   const monthly = W < MONTHLY_BELOW;
-  const H = monthly ? 220 : 280;
+  const H = monthly ? 280 : 300;
   const [hover, setHover] = useState<number | null>(null);
   const dragging = useRef(false);
 
@@ -96,8 +97,17 @@ export function OutcomeTimeline({
         if (c < lo) lo = c;
         if (c > hi) hi = c;
       }
-    return niceTicks(lo * scale, hi * scale, monthly ? 3 : 4);
-  }, [result.relativeCosts, scale, monthly]);
+    // Fitted to the data with a 5% margin, not stretched to whole tick
+    // steps, so the lines fill the chart; round ticks inside that range.
+    const pad = (hi - lo) * scale * 0.05;
+    const domain: [number, number] = [lo * scale - pad, hi * scale + pad];
+    const nice = niceTicks(lo * scale, hi * scale, 6);
+    return {
+      ...nice,
+      domain,
+      ticks: nice.ticks.filter((t) => t >= domain[0] && t <= domain[1]),
+    };
+  }, [result.relativeCosts, scale]);
   const decimals = sgdTickDecimals(axis);
   const yLabelW = Math.max(
     44,
@@ -210,11 +220,6 @@ export function OutcomeTimeline({
   /** Selecting a month selects the period in its middle. */
   const periodOf = (i: number) =>
     monthly ? (months[i]!.from + months[i]!.to) >> 1 : i;
-  const monthOf = (period: number) =>
-    Math.max(
-      0,
-      months.findIndex((m) => period >= m.from && period <= m.to),
-    );
 
   const label = (id: StrategyId) => STRATEGY_STYLE[id].label;
   const shown = hover;
@@ -223,7 +228,6 @@ export function OutcomeTimeline({
   const value = (id: StrategyId, i: number) =>
     monthly ? months[i]!.median[id] : cost(id, i);
   const tipLeft = shown !== null && x(shownDay) > W * 0.55;
-  const selectedMonth = monthOf(selected);
 
   return (
     <div>
@@ -257,7 +261,10 @@ export function OutcomeTimeline({
           viewBox={`0 0 ${W} ${H}`}
           width={W}
           height={H}
-          className="block max-w-full touch-pan-y select-none"
+          // Drawn at the measured width, so it never scales down (Safari
+          // shrank it to about 170px tall when it did).
+          style={{ width: "100%", height: H }}
+          className="block touch-pan-y select-none"
           role="img"
           aria-label={`Cost of each strategy at today's rate, for every period starting ${formatDate(result.firstStart)} to ${formatDate(result.lastStart)}${monthly ? ", grouped by month" : ""}. The selected period starts ${formatDate(result.startDates[selected]!)}. Use the period slider below to pick another.`}
           onPointerMove={(e) => {
@@ -427,12 +434,15 @@ export function OutcomeTimeline({
                       {label(id)}
                     </td>
                     <td className="pl-2 text-right">
-                      {formatSgd(value(id, shown))}
+                      {formatSgdAt(value(id, shown), scale)}
                     </td>
                     <td className="pl-2 text-right text-muted-foreground">
                       {id === "lumpSum"
                         ? "–"
-                        : signedSgd(value(id, shown) - value("lumpSum", shown))}
+                        : signedSgd(
+                            value(id, shown) - value("lumpSum", shown),
+                            scale,
+                          )}
                     </td>
                   </tr>
                 ))}
@@ -454,19 +464,23 @@ export function OutcomeTimeline({
             <button
               type="button"
               className="btn-secondary"
-              disabled={selectedMonth <= 0}
-              onClick={() => onSelect(periodOf(selectedMonth - 1))}
+              disabled={stepMonth(result.startDates, selected, -1) === selected}
+              onClick={() =>
+                onSelect(stepMonth(result.startDates, selected, -1))
+              }
             >
               <ChevronLeft aria-hidden className="size-4" />
-              Earlier month
+              One month earlier
             </button>
             <button
               type="button"
               className="btn-secondary"
-              disabled={selectedMonth >= months.length - 1}
-              onClick={() => onSelect(periodOf(selectedMonth + 1))}
+              disabled={stepMonth(result.startDates, selected, 1) === selected}
+              onClick={() =>
+                onSelect(stepMonth(result.startDates, selected, 1))
+              }
             >
-              Later month
+              One month later
               <ChevronRight aria-hidden className="size-4" />
             </button>
           </div>

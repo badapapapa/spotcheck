@@ -1,5 +1,7 @@
-// Colours for the hedging views. "Unhedged" is the same thing as the
-// planner's "wait until deadline", so it keeps that colour.
+// Colours for the hedging views (DESIGN.md §2). "Unhedged" is the same thing
+// as the planner's "Wait until deadline", so it keeps that colour; a forward,
+// like "All at once", fixes the cost on day one, so it shares that colour;
+// the call option has a colour of its own.
 
 import type { HedgeId } from "@/engine/hedge-replay.ts";
 
@@ -27,7 +29,7 @@ export const HEDGE_STYLE: Record<
   option: {
     label: "Call option bought on day one",
     short: "Call option",
-    color: "var(--series-2)",
+    color: "var(--series-option)",
     shape: "diamond",
   },
 };
