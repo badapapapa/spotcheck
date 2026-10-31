@@ -1,8 +1,5 @@
-"use client";
-
 import { Info } from "lucide-react";
 import { DATA_NOTES } from "@/lib/data-notes.ts";
-import { useScenarioQuery } from "@/lib/scenario-link.ts";
 
 /** A caution note about a currency's data (DESIGN.md: amber, with an icon). */
 export function DataNote({
@@ -20,10 +17,4 @@ export function DataNote({
       <span>{note}</span>
     </p>
   );
-}
-
-/** How it works: the note for the scenario's currency, if it has one. */
-export function ScenarioDataNote() {
-  const code = new URLSearchParams(useScenarioQuery()).get("c") ?? "";
-  return <DataNote code={code.toUpperCase()} className="mt-4" />;
 }
