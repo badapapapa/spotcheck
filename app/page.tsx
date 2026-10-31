@@ -7,10 +7,12 @@ export default function Home() {
       {/* The question is static, outside the planner's Suspense boundary, so
           it paints before any script runs and is never re-rendered. */}
       <div className="col-main lg:row-start-1">
-        <h1 className="t-display">When should you exchange your money?</h1>
+        <h1 className="t-display">
+          What difference does your exchange strategy make?
+        </h1>
         <p className="t-lede mt-5">
-          SpotCheck tests four ways of converting Singapore dollars against
-          every comparable period since 1999.
+          Explore how four ways of converting currency played out across
+          historical exchange-rate movements.
         </p>
       </div>
       {/* useSearchParams needs a Suspense boundary in a static export. The

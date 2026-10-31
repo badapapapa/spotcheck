@@ -31,16 +31,19 @@ export function DistributionChart({
   result,
   active,
   onActive,
+  onToggle,
 }: {
   result: ReplayResult;
   active?: string | null;
   onActive?: (id: string | null) => void;
+  onToggle?: (id: string) => void;
 }) {
   return (
     <RangeChart
       label="Range of SGD cost for each strategy across all comparable past periods. The same numbers are in the table below."
       active={active}
       onActive={onActive}
+      onToggle={onToggle}
       rows={STRATEGY_IDS.map((id) => ({
         id,
         label: STRATEGY_STYLE[id].label,
@@ -66,12 +69,15 @@ export function RangeChart({
   label,
   active: activeProp,
   onActive,
+  onToggle,
 }: {
   rows: RangeRow[];
   label: string;
   /** Lets a parent (e.g. the table) share the highlighted row. */
   active?: string | null;
   onActive?: (id: string | null) => void;
+  /** Click or Enter/Space on a row: pin (or unpin) its highlight. */
+  onToggle?: (id: string) => void;
 }) {
   const [localActive, setLocalActive] = useState<string | null>(null);
   const active = activeProp ?? localActive;
@@ -153,7 +159,14 @@ export function RangeChart({
               onMouseLeave={() => setActive(null)}
               onFocus={() => setActive(id)}
               onBlur={() => setActive(null)}
-              className="cursor-default outline-none [&:focus-visible>rect:first-child]:stroke-[var(--accent)]"
+              onClick={() => onToggle?.(id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onToggle?.(id);
+                }
+              }}
+              className={`${onToggle ? "cursor-pointer" : "cursor-default"} outline-none [&:focus-visible>rect:first-child]:stroke-[var(--accent)]`}
               style={{
                 opacity: dim ? 0.3 : 1,
                 transition: "opacity var(--fast) var(--ease)",

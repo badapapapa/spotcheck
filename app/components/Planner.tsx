@@ -2,13 +2,13 @@
 
 import { Download, Pencil } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { rateAsOf } from "@/engine/calendar.ts";
 import { findCurrency, fxSourceLabel } from "@/engine/currencies.ts";
 import type { ReplayResult } from "@/engine/replay.ts";
 import { sampleWindow } from "@/engine/replay.ts";
 import { STRATEGY_IDS } from "@/engine/types.ts";
-import { historicalAnswer, windowCount } from "@/lib/answer.ts";
+import { windowCount } from "@/lib/periods.ts";
 import { computeReplay } from "@/lib/compute.ts";
 import { loadFx } from "@/lib/data.ts";
 import { formatDate } from "@/lib/dates.ts";
@@ -20,11 +20,19 @@ import { usePlannerState } from "@/lib/use-planner-state.ts";
 import type { PlannerState } from "@/lib/url-state.ts";
 import { ComparisonTable } from "./ComparisonTable";
 import { DistributionChart } from "./DistributionChart";
-import { OutcomeTimeline } from "./OutcomeTimeline";
-import { Result, ResultProgress } from "./Result";
-import { SamplePath } from "./SamplePath";
+import { Glance, GlanceProgress, HISTORICAL_CONTEXT } from "./Glance";
 import { ScenarioForm } from "./ScenarioForm";
 import { StrategyGuide } from "./StrategyGuide";
+
+// Both sit well below the first screen, and SamplePath brings in the chart
+// library. Loading them just after the page keeps the first paint light;
+// their space is held by placeholders of the same size meanwhile.
+const OutcomeTimeline = lazy(() =>
+  import("./OutcomeTimeline").then((m) => ({ default: m.OutcomeTimeline })),
+);
+const SamplePath = lazy(() =>
+  import("./SamplePath").then((m) => ({ default: m.SamplePath })),
+);
 
 /**
  * The planner, after the static question (app/page.tsx). It returns its
@@ -110,12 +118,15 @@ export function Planner() {
     }
   }
 
-  // One highlighted strategy, shared by the chart, the table and the timeline.
-  const [active, setActive] = useState<string | null>(null);
+  // One highlighted strategy, shared by every chart and table. Only ever set
+  // by the user: hovering or focusing previews it, clicking pins it.
+  const [hovered, setActive] = useState<string | null>(null);
+  const [pinned, setPinned] = useState<string | null>(null);
+  const active = hovered ?? pinned;
+  const toggle = (id: string) => setPinned((p) => (p === id ? null : id));
 
   const converterRef = useRef<HTMLElement>(null);
   const showBar = useScrolledPast(converterRef);
-  const answer = result ? historicalAnswer(result) : undefined;
   const months = result ? Math.round(result.windowDays / 30.44) : undefined;
 
   return (
@@ -136,8 +147,8 @@ export function Planner() {
 
       {/* The answer, beside the question on laptops and under it on phones. */}
       <section
-        aria-label="Your historical result"
-        className="col-side result-min-h mt-12 self-start lg:row-span-2 lg:row-start-1 lg:mt-2 lg:border-l lg:pl-10"
+        aria-label="Comparison at a glance"
+        className="col-side result-min-h mt-8 self-start rounded-lg border bg-surface p-4 sm:p-6 lg:row-span-2 lg:row-start-1 lg:mt-2"
       >
         {outcome.status === "error" ? (
           <p role="alert" className="text-negative">
@@ -145,14 +156,18 @@ export function Planner() {
           </p>
         ) : result ? (
           <div className="fade-in">
-            <Result
+            <Glance
               result={result}
               pegged={currency.peggedToSgd === true}
               stale={stale}
+              active={active}
+              pinned={pinned}
+              onHover={setActive}
+              onToggle={toggle}
             />
           </div>
         ) : (
-          <ResultProgress periods={periodsToCheck} />
+          <GlanceProgress periods={periodsToCheck} />
         )}
       </section>
 
@@ -160,37 +175,41 @@ export function Planner() {
       <section
         id="evidence"
         aria-labelledby="evidence-title"
-        className="section scroll-mt-6 lg:grid lg:grid-cols-12 lg:gap-6"
+        className="section scroll-mt-6"
       >
-        <div className="lg:col-span-4">
-          <h2 id="evidence-title" className="t-h2">
+        {/* Heading row: title on the left, how to read it on the right. */}
+        <div className="lg:grid lg:grid-cols-12 lg:gap-6">
+          <h2 id="evidence-title" className="t-h2 lg:col-span-5">
             How the four strategies compared
           </h2>
-          <p className="mt-3 text-muted-foreground">
-            {result && months
-              ? `Every ${months}-month period since ${formatDate(result.firstStart)}, each cost rescaled to today's rate.`
-              : "Every past period of the same length as yours, each cost rescaled to today's rate."}
-          </p>
-          {spot && (
-            <p className="t-small mt-3 text-muted-foreground">
-              Today&apos;s mid rate: {formatRate(spot.value)} SGD per{" "}
-              {scenario.currency} ({formatDate(spot.date)}).
+          <div className="mt-3 lg:col-span-6 lg:col-start-7 lg:mt-0">
+            <p className="text-muted-foreground">
+              {result && months
+                ? `Every ${months}-month period since ${formatDate(result.firstStart)}, each cost rescaled to today's rate.`
+                : "Every past period of the same length as yours, each cost rescaled to today's rate."}
             </p>
-          )}
-          <p
-            className="t-small mt-1 text-muted-foreground"
-            data-testid="fx-source"
-          >
-            {fxSourceLabel(currency)}
-          </p>
+            {spot && (
+              <p className="t-small mt-3 text-muted-foreground">
+                Today&apos;s mid rate: {formatRate(spot.value)} SGD per{" "}
+                {scenario.currency} ({formatDate(spot.date)}).
+              </p>
+            )}
+            <p
+              className="t-small mt-1 text-muted-foreground"
+              data-testid="fx-source"
+            >
+              {fxSourceLabel(currency)}
+            </p>
+          </div>
         </div>
-        <div className="mt-8 lg:col-span-8 lg:mt-0">
+        <div className="mt-10">
           {result ? (
             <div className="space-y-8">
               <DistributionChart
                 result={result}
                 active={active}
                 onActive={setActive}
+                onToggle={toggle}
               />
               <div>
                 <ComparisonTable
@@ -198,17 +217,31 @@ export function Planner() {
                   rowHeader="Strategy"
                   active={active}
                   onActive={setActive}
+                  reference="all at once"
                   rows={STRATEGY_IDS.map((id) => ({
                     id,
+                    vsReference:
+                      id === "lumpSum"
+                        ? undefined
+                        : result.stats[id].summary.median -
+                          result.stats.lumpSum.summary.median,
+                    cheaperShare:
+                      id === "lumpSum"
+                        ? undefined
+                        : result.stats[id].beatLumpSum,
                     label: STRATEGY_STYLE[id].label,
                     color: STRATEGY_STYLE[id].color,
                     summary: result.stats[id].summary,
                   }))}
                 />
                 <p className="t-small mt-3 text-muted-foreground">
-                  Middle 90%: from low to high, the range 90% of past periods
-                  fell in. Worst case: the most expensive period.
+                  Median vs all at once: the difference from converting it all
+                  today. Middle 90%: from low to high, the range 90% of past
+                  periods fell in. Worst case: the most expensive period.
+                  Cheaper: the share of periods that cost less than converting
+                  all at once.
                 </p>
+                <p className="t-small mt-2 font-medium">{HISTORICAL_CONTEXT}</p>
               </div>
               <div data-testid="summary" className="prose-measure space-y-3">
                 <h3 className="t-h3">In plain words</h3>
@@ -250,16 +283,26 @@ export function Planner() {
           </div>
           {/* Legend plus chart: 2 legend rows on phones, 1 on laptops. */}
           <div className="mt-8 min-h-[320px] sm:min-h-[336px]">
-            {result && answer ? (
-              <OutcomeTimeline
-                result={result}
-                amount={deferred.scenario.amount}
-                selected={index}
-                onSelect={select}
-                active={active}
-                onActive={setActive}
-                compare={{ a: answer.lowest, b: answer.reference }}
-              />
+            {result ? (
+              <Suspense
+                fallback={
+                  <div
+                    aria-hidden
+                    className="skeleton h-[320px] bg-paper sm:h-[336px]"
+                  />
+                }
+              >
+                <OutcomeTimeline
+                  result={result}
+                  amount={deferred.scenario.amount}
+                  selected={index}
+                  onSelect={select}
+                  active={active}
+                  pinned={pinned}
+                  onActive={setActive}
+                  onToggle={toggle}
+                />
+              </Suspense>
             ) : (
               <div
                 aria-hidden
@@ -287,15 +330,24 @@ export function Planner() {
                   </button>
                 </div>
                 <div className="mt-6">
-                  <SamplePath
-                    fx={series}
-                    scenario={deferred.scenario}
-                    targetBelowSpot={deferred.targetBelowSpot}
-                    startDates={result.startDates}
-                    index={index}
-                    onIndex={select}
-                    window={sample}
-                  />
+                  <Suspense
+                    fallback={
+                      <div
+                        aria-hidden
+                        className="skeleton h-[34rem] bg-paper"
+                      />
+                    }
+                  >
+                    <SamplePath
+                      fx={series}
+                      scenario={deferred.scenario}
+                      targetBelowSpot={deferred.targetBelowSpot}
+                      startDates={result.startDates}
+                      index={index}
+                      onIndex={select}
+                      window={sample}
+                    />
+                  </Suspense>
                 </div>
               </>
             ) : (
@@ -400,7 +452,7 @@ function EvidenceStrip({
         <p>
           {source} These are mid-market reference rates; your bank&apos;s spread
           is added to every conversion. Past periods show what happened, not
-          what will: future rates can move in ways this history never did.
+          what comes next: future rates can move in ways this history never did.
         </p>
         <p>
           <Link href="/how-it-works" prefetch={false} className="link">
@@ -453,8 +505,8 @@ export function PlannerFallback() {
         aria-hidden
         className="col-main converter-min-h mt-8 rounded-lg border bg-surface lg:row-start-2"
       />
-      <div className="col-side result-min-h mt-12 lg:row-span-2 lg:row-start-1 lg:mt-2 lg:border-l lg:pl-10">
-        <ResultProgress />
+      <div className="col-side result-min-h mt-8 rounded-lg border bg-surface p-4 sm:p-6 lg:row-span-2 lg:row-start-1 lg:mt-2">
+        <GlanceProgress />
       </div>
     </>
   );

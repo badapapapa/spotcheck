@@ -28,7 +28,7 @@ const body = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  title: `${SITE_NAME}: when should you exchange your money?`,
+  title: `${SITE_NAME}: what difference does your exchange strategy make?`,
   description: TAGLINE,
   // iPhone/iPad home-screen icon (also served at the conventional path).
   icons: { apple: "/apple-touch-icon.png" },
