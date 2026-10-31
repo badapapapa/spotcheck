@@ -9,7 +9,7 @@ const HelpTipPopover = lazy(() =>
 );
 
 /**
- * A small "i" next to a term that opens a plain-English "What is this?"
+ * A small "i" next to a term that opens a plain-English "About …"
  * note. The visible circle is 24px; the button around it is 44px so it is
  * easy to tap.
  */

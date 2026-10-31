@@ -1,18 +1,33 @@
 "use client";
 
 import { Download, Pencil } from "lucide-react";
-import Link from "next/link";
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { rateAsOf } from "@/engine/calendar.ts";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { addDays, daysBetween, rateAsOf } from "@/engine/calendar.ts";
 import { findCurrency, fxSourceLabel } from "@/engine/currencies.ts";
 import type { ReplayResult } from "@/engine/replay.ts";
 import { sampleWindow } from "@/engine/replay.ts";
 import { STRATEGY_IDS } from "@/engine/types.ts";
 import { windowCount } from "@/lib/periods.ts";
 import { computeReplay } from "@/lib/compute.ts";
+import { latestStart, startDateIssue } from "@/lib/coverage.ts";
 import { loadFx } from "@/lib/data.ts";
-import { formatDate } from "@/lib/dates.ts";
+import { formatDate, planLength } from "@/lib/dates.ts";
 import { formatRate } from "@/lib/format.ts";
+import {
+  convertWhen,
+  pastDeadlineNote,
+  rateLine,
+  rescaledTo,
+  startContext,
+} from "@/lib/start-context.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { describeReplay } from "@/lib/summary.ts";
 import { useLoad } from "@/lib/use-data.ts";
@@ -21,7 +36,9 @@ import type { PlannerState } from "@/lib/url-state.ts";
 import { ComparisonTable } from "./ComparisonTable";
 import { DistributionChart } from "./DistributionChart";
 import { Glance, GlanceProgress, HISTORICAL_CONTEXT } from "./Glance";
-import { ScenarioForm } from "./ScenarioForm";
+import { LoadError } from "./LoadError";
+import { ScenarioForm, type DateIssue } from "./ScenarioForm";
+import { ScenarioLink } from "./ScenarioLink";
 import { StrategyGuide } from "./StrategyGuide";
 
 // Both sit well below the first screen, and SamplePath brings in the chart
@@ -41,19 +58,40 @@ const SamplePath = lazy(() =>
  * strategies and the evidence strip (DESIGN.md §4).
  */
 export function Planner() {
-  const [state, setState] = usePlannerState();
+  const [state, setState, today] = usePlannerState();
   const { scenario } = state;
   const currency = findCurrency(scenario.currency)!;
   const fx = useLoad(`fx:${scenario.currency}`, () =>
     loadFx(scenario.currency),
   );
   const series = fx.status === "ready" ? fx.data : undefined;
-  const spot = series ? rateAsOf(series, scenario.startDate) : undefined;
+  // A start the data can't answer (before it begins, or years ahead) is
+  // explained under the start field instead of priced: the engine has no
+  // rate for it, and used to take the whole page down.
+  const issue = series
+    ? startDateIssue(scenario.startDate, series, scenario.currency, today)
+    : undefined;
+  const spot =
+    series && !issue ? rateAsOf(series, scenario.startDate) : undefined;
+  const ctx =
+    series && spot
+      ? startContext(scenario.startDate, spot.date, series.dates.at(-1)!, today)
+      : undefined;
+  const checkDates = useCallback(
+    (start: string): DateIssue | undefined => {
+      const i = series
+        ? startDateIssue(start, series, scenario.currency, today)
+        : undefined;
+      return i && { field: "startDate", message: i.message };
+    },
+    [series, scenario.currency, today],
+  );
+  const [formInvalid, setFormInvalid] = useState(false);
 
   // Replaying ~7,000 windows runs in a Web Worker. The previous result
   // stays on screen (dimmed) until the new one arrives.
   const outcome = useLoad(
-    series ? `replay:${JSON.stringify(state)}` : null,
+    series && !issue ? `replay:${JSON.stringify(state)}` : null,
     async (): Promise<{ result: ReplayResult; for: PlannerState }> => ({
       result: await computeReplay(series!, state.scenario, {
         targetBelowSpot: state.targetBelowSpot,
@@ -73,8 +111,8 @@ export function Planner() {
   const stale = outcome.status === "ready" && outcome.stale === true;
   const deferred = ready?.for ?? state;
   const periodsToCheck = useMemo(
-    () => (series ? windowCount(series, scenario) : undefined),
-    [series, scenario],
+    () => (series && !issue ? windowCount(series, scenario) : undefined),
+    [series, scenario, issue],
   );
 
   // The period picked on the timeline or slider (latest by default). It
@@ -127,7 +165,22 @@ export function Planner() {
 
   const converterRef = useRef<HTMLElement>(null);
   const showBar = useScrolledPast(converterRef);
-  const months = result ? Math.round(result.windowDays / 30.44) : undefined;
+  const length = result ? planLength(result.windowDays) : undefined;
+  const rescaled = ctx ? rescaledTo(ctx) : "today's rate";
+  const pastDeadline = pastDeadlineNote(scenario.deadline, today);
+  /** Moves the plan to the suggested start, keeping its length. */
+  const startOn = (start: string) =>
+    setState({
+      ...state,
+      scenario: {
+        ...scenario,
+        startDate: start,
+        deadline: addDays(
+          start,
+          daysBetween(scenario.startDate, scenario.deadline),
+        ),
+      },
+    });
 
   return (
     <>
@@ -137,10 +190,20 @@ export function Planner() {
         aria-label="Your plan"
         className="col-main converter-min-h mt-8 self-start rounded-lg border bg-surface p-4 sm:p-6 lg:row-start-2"
       >
-        <ScenarioForm state={state} onChange={setState} spot={spot?.value} />
-        {fx.status === "error" && (
-          <p role="alert" className="t-small mt-4 text-negative">
-            Couldn&apos;t load the rate history: {fx.error}
+        <ScenarioForm
+          state={state}
+          onChange={setState}
+          spot={spot?.value}
+          convertWhen={ctx ? convertWhen(ctx) : "today"}
+          noCost={issue !== undefined || fx.status === "error"}
+          checkDates={checkDates}
+          dateIssue={issue && { field: "startDate", message: issue.message }}
+          startRange={{ min: series?.dates[0], max: latestStart(today) }}
+          onValidity={setFormInvalid}
+        />
+        {pastDeadline && (
+          <p className="t-small mt-4" data-testid="past-deadline">
+            {pastDeadline}
           </p>
         )}
       </section>
@@ -150,7 +213,23 @@ export function Planner() {
         aria-label="Comparison at a glance"
         className="col-side result-min-h mt-8 self-start rounded-lg border bg-surface p-4 sm:p-6 lg:row-span-2 lg:row-start-1 lg:mt-2"
       >
-        {outcome.status === "error" ? (
+        {fx.status === "error" ? (
+          <LoadError message={fx.error} retry={fx.retry} />
+        ) : issue ? (
+          <div role="alert" data-testid="start-issue">
+            <p className="t-h3">No results for this start date</p>
+            <p className="mt-2">{issue.message}</p>
+            <button
+              type="button"
+              className="btn-secondary mt-4"
+              onClick={() => startOn(issue.suggestedStart)}
+            >
+              {issue.suggestedStart === today
+                ? "Start today instead"
+                : `Start on ${formatDate(issue.suggestedStart)} instead`}
+            </button>
+          </div>
+        ) : outcome.status === "error" ? (
           <p role="alert" className="text-negative">
             {outcome.error}. Try a shorter period.
           </p>
@@ -158,8 +237,10 @@ export function Planner() {
           <div className="fade-in">
             <Glance
               result={result}
+              state={state}
               pegged={currency.peggedToSgd === true}
               stale={stale}
+              outdated={formInvalid}
               active={active}
               pinned={pinned}
               onHover={setActive}
@@ -184,14 +265,16 @@ export function Planner() {
           </h2>
           <div className="mt-3 lg:col-span-6 lg:col-start-7 lg:mt-0">
             <p className="text-muted-foreground">
-              {result && months
-                ? `Every ${months}-month period since ${formatDate(result.firstStart)}, each cost rescaled to today's rate.`
-                : "Every past period of the same length as yours, each cost rescaled to today's rate."}
+              {result && length
+                ? `Every ${length} period since ${formatDate(result.firstStart)}, each cost rescaled to ${rescaled}.`
+                : `Every past period of the same length as yours, each cost rescaled to ${rescaled}.`}
             </p>
-            {spot && (
-              <p className="t-small mt-3 text-muted-foreground">
-                Latest mid rate: {formatRate(spot.value)} SGD per{" "}
-                {scenario.currency} ({formatDate(spot.date)}).
+            {spot && ctx && (
+              <p
+                className="t-small mt-3 text-muted-foreground"
+                data-testid="rate-line"
+              >
+                {rateLine(ctx, formatRate(spot.value), scenario.currency)}
               </p>
             )}
             <p
@@ -235,11 +318,11 @@ export function Planner() {
                   }))}
                 />
                 <p className="t-small mt-3 text-muted-foreground">
-                  Median vs all at once: the difference from converting it all
-                  today. Middle 90%: from low to high, the range 90% of past
-                  periods fell in. Worst case: the most expensive period.
-                  Cheaper: the share of periods that cost less than converting
-                  all at once.
+                  Median vs all at once: the difference from converting it all{" "}
+                  {ctx ? convertWhen(ctx) : "today"}. Middle 90%: from low to
+                  high, the range 90% of past periods fell in. Worst case: the
+                  most expensive period. Cheaper: the share of periods that cost
+                  less than converting all at once.
                 </p>
                 <p className="t-small mt-2 font-medium">{HISTORICAL_CONTEXT}</p>
               </div>
@@ -249,11 +332,20 @@ export function Planner() {
                   result,
                   deferred.scenario,
                   deferred.targetBelowSpot,
+                  ctx,
                 ).map((line) => (
                   <p key={line}>{line}</p>
                 ))}
               </div>
             </div>
+          ) : fx.status === "error" || issue ? (
+            <p className="text-muted-foreground">
+              The comparison appears here once{" "}
+              {issue
+                ? "the plan has a start date the data covers"
+                : "the rate history loads"}
+              .
+            </p>
           ) : (
             <div aria-hidden className="space-y-8">
               <div className="skeleton h-[244px]" />
@@ -275,9 +367,9 @@ export function Planner() {
                 What if you had converted in another period?
               </h2>
               <p className="mt-3 text-muted-foreground">
-                Each line is what a strategy would have cost, at today&apos;s
-                rate, if your plan had started on that day. Pick a day to see
-                exactly what happened.
+                Each line is what a strategy would have cost, at {rescaled}, if
+                your plan had started on that day. Pick a day to see exactly
+                what happened.
               </p>
             </div>
           </div>
@@ -301,6 +393,7 @@ export function Planner() {
                   pinned={pinned}
                   onActive={setActive}
                   onToggle={toggle}
+                  rescaled={rescaled}
                 />
               </Suspense>
             ) : (
@@ -455,9 +548,9 @@ function EvidenceStrip({
           what comes next: future rates can move in ways this history never did.
         </p>
         <p>
-          <Link href="/how-it-works" prefetch={false} className="link">
+          <ScenarioLink href="/how-it-works">
             How SpotCheck works: the method, the data and its limits
-          </Link>
+          </ScenarioLink>
         </p>
       </div>
     </section>

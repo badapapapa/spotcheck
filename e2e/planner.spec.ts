@@ -51,7 +51,7 @@ test("planner loads with defaults and shows the outcome chart", async ({
 test("the scenario round-trips through the URL", async ({ page }) => {
   await page.goto("/?c=EUR&a=8000&s=2026-10-17&d=2027-06-01&k=4&sp=0.75&t=3");
   await expect(page.getByLabel("Currency you need")).toHaveText(/\bEUR\b/);
-  await expect(page.getByLabel("Amount needed (EUR)")).toHaveValue("8000");
+  await expect(page.getByLabel("Amount needed (EUR)")).toHaveValue("8,000");
   await expect(page.getByTestId("summary")).toContainText(
     "Equal tranches (4 conversions):",
   );
@@ -121,7 +121,7 @@ test("back/forward and links still drive the state from the URL", async ({
   page,
 }) => {
   await page.goto("/?c=USD&a=9000&s=2026-10-17&d=2027-06-01&k=3&sp=0.5&t=2");
-  await expect(page.getByLabel("Amount needed (USD)")).toHaveValue("9000");
+  await expect(page.getByLabel("Amount needed (USD)")).toHaveValue("9,000");
   await page.goto("/?c=EUR&a=7000&s=2026-10-17&d=2027-06-01&k=3&sp=0.5&t=2");
   await expect(page.getByLabel("Currency you need")).toHaveText(/\bEUR\b/);
   await page.goBack();
@@ -243,17 +243,20 @@ test("switching currency keeps the SGD value of the amount", async ({
   // Found by country name, not just by code.
   await pickCurrency(page, "Vietnam", "VND");
   const vnd = page.getByLabel("Amount needed (VND)");
-  await expect(vnd).toHaveValue(/^\d{3}0+$/); // 3 significant figures
+  await expect(vnd).toHaveValue(/^\d{3}(,000)+$/); // 3 significant figures
   await expect(amountHint).toBeVisible();
   expect(Math.abs((await sgd()) / before - 1)).toBeLessThan(0.01);
   // The URL carries the converted amount (whatever today's VND rate is).
   await expect(page).toHaveURL(
-    new RegExp(`c=VND&a=${await vnd.inputValue()}&`),
+    new RegExp(`c=VND&a=${(await vnd.inputValue()).replace(/,/g, "")}&`),
   );
 
   await pickCurrency(page, "USD", "USD");
   const back = Number(
-    await page.getByLabel("Amount needed (USD)").inputValue(),
+    (await page.getByLabel("Amount needed (USD)").inputValue()).replace(
+      /,/g,
+      "",
+    ),
   );
   expect(Math.abs(back / 15_000 - 1)).toBeLessThan(0.01);
 });
@@ -264,7 +267,7 @@ test("a shared link's amount is taken as written, never converted", async ({
   await page.goto("/?c=VND&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2");
   await expect(page.getByTestId("summary")).toBeVisible();
   await page.waitForTimeout(500);
-  await expect(page.getByLabel("Amount needed (VND)")).toHaveValue("15000");
+  await expect(page.getByLabel("Amount needed (VND)")).toHaveValue("15,000");
   await expect(page).toHaveURL(/a=15000/);
 });
 

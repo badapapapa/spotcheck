@@ -2,23 +2,19 @@
 
 import { BookOpen, ChartLine, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useScenarioQuery, withScenario } from "@/lib/scenario-link.ts";
 
 type Variant = "top" | "bottom";
 
 /**
- * Planner and Hedging carry the scenario across in the URL; How it works is
- * a plain page and doesn't need it.
+ * Every tab carries the scenario, so moving between pages (How it works
+ * included) and back never loses it.
  */
 const TABS = [
-  { href: "/", label: "Planner", Icon: ChartLine, carries: true },
-  { href: "/advanced", label: "Hedging", Icon: ShieldCheck, carries: true },
-  {
-    href: "/how-it-works",
-    label: "How it works",
-    Icon: BookOpen,
-    carries: false,
-  },
+  { href: "/", label: "Planner", Icon: ChartLine },
+  { href: "/advanced", label: "Hedging", Icon: ShieldCheck },
+  { href: "/how-it-works", label: "How it works", Icon: BookOpen },
 ] as const;
 
 /**
@@ -31,7 +27,7 @@ export function SiteNav({ variant }: { variant: Variant }) {
     <Tabs
       variant={variant}
       pathname={usePathname()}
-      query={useSearchParams().toString()}
+      query={useScenarioQuery()}
     />
   );
 }
@@ -62,7 +58,7 @@ function Tabs({
           : "fixed inset-x-0 bottom-0 z-30 grid h-14 grid-cols-3 border-t bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden"
       }
     >
-      {TABS.map(({ href, label, Icon, carries }) => {
+      {TABS.map(({ href, label, Icon }) => {
         const active =
           href === "/" ? pathname === "/" : pathname.startsWith(href);
         return (
@@ -71,7 +67,7 @@ function Tabs({
             // The href changes as the scenario changes; prefetching each new
             // URL would cause a request every time someone edits a field.
             prefetch={false}
-            href={carries && query ? `${href}?${query}` : href}
+            href={withScenario(href, query)}
             aria-current={active ? "page" : undefined}
             className={
               variant === "top"

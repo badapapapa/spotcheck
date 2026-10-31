@@ -40,3 +40,12 @@ export function formatMonth(date: ISODate): string {
   const [y, m] = date.split("-").map(Number) as [number, number];
   return `${MONTHS[m - 1]} ${y}`;
 }
+
+/**
+ * A plan's length for a sentence: "14-day" under four weeks, else whole
+ * months ("10-month"), so a two-week plan never reads "0-month".
+ */
+export function planLength(days: number): string {
+  if (days < 28) return `${days}-day`;
+  return `${Math.round(days / 30.44)}-month`;
+}

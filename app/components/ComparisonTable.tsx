@@ -1,6 +1,6 @@
 import type { Summary } from "@/engine/stats.ts";
 import { formatPercent, formatSgdAt } from "@/lib/format.ts";
-import { signedSgd } from "@/lib/signed.ts";
+import { signedDiff } from "@/lib/signed.ts";
 
 export type ComparisonRow = {
   id: string;
@@ -50,7 +50,14 @@ export function ComparisonTable({
       ? ([
           [
             `Median vs ${reference}`,
-            r.vsReference === undefined ? "–" : signedSgd(r.vsReference, scale),
+            // From the rounded medians, so it agrees with the figures shown.
+            r.vsReference === undefined
+              ? "–"
+              : signedDiff(
+                  r.summary.median,
+                  r.summary.median - r.vsReference,
+                  scale,
+                ),
           ],
         ] as [string, string][])
       : []),
@@ -60,7 +67,8 @@ export function ComparisonTable({
       // says so, rather than showing the same figure twice.
       (() => {
         // Same markup either way, so styling never depends on the results.
-        const fixed = r.summary.p95 - r.summary.p5 < 1e-9 * scale;
+        // Fixed when the range rounds to one figure (as in the summary).
+        const fixed = sgd(r.summary.p5) === sgd(r.summary.p95);
         return (
           <>
             <span className="whitespace-nowrap">

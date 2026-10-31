@@ -13,6 +13,7 @@ import { toContinuous } from "@/engine/rates.ts";
 import { realisedVol } from "@/engine/stats.ts";
 import type { Series } from "@/engine/types.ts";
 import { computeHedges } from "@/lib/compute.ts";
+import { hedgeIssue, latestStart, startDateIssue } from "@/lib/coverage.ts";
 import { loadFx, loadRate, loadSora } from "@/lib/data.ts";
 import { formatDate } from "@/lib/dates.ts";
 import {
@@ -22,21 +23,31 @@ import {
   formatSgdAt,
 } from "@/lib/format.ts";
 import { HEDGE_STYLE } from "@/lib/hedge-style.ts";
+import {
+  fixingLabel,
+  pastDeadlineNote,
+  rescaledTo,
+  spotWhen,
+  startContext,
+  type StartContext,
+} from "@/lib/start-context.ts";
 import { useLoad } from "@/lib/use-data.ts";
 import { usePlannerState } from "@/lib/use-planner-state.ts";
 import type { PlannerState } from "@/lib/url-state.ts";
 import { Info } from "lucide-react";
+import { useCallback } from "react";
 import { ComparisonTable } from "../ComparisonTable";
 import { HISTORICAL_CONTEXT } from "../Glance";
 import { RangeChart } from "../DistributionChart";
-import { ScenarioForm } from "../ScenarioForm";
+import { LoadError } from "../LoadError";
+import { ScenarioForm, type DateIssue } from "../ScenarioForm";
 import { ForwardPanel } from "./ForwardPanel";
 import { OptionPanel } from "./OptionPanel";
 
 type Loaded = { fx: Series; sora: Series; foreign: Series };
 
 export function Advanced() {
-  const [state, setState] = usePlannerState();
+  const [state, setState, today] = usePlannerState();
   const { scenario } = state;
   const currency = findCurrency(scenario.currency)!;
   const rateSeries = currency.rateSeries;
@@ -54,33 +65,97 @@ export function Advanced() {
     },
   );
 
+  const loaded = data.status === "ready" ? data.data : null;
+  // The dates Hedging can price: the planner's rules, plus the interest
+  // rates compounded over the plan's length before the start (SORA from
+  // July 2005), and no forward of more than 3 years from the latest rates.
+  const checkDates = useCallback(
+    (start: string, deadline: string): DateIssue | undefined => {
+      if (!loaded) return undefined;
+      const basic = startDateIssue(start, loaded.fx, scenario.currency, today);
+      if (basic) return { field: "startDate", message: basic.message };
+      const hedge = hedgeIssue(
+        loaded.fx,
+        ratesFirst(loaded),
+        start,
+        deadline,
+        state.volLookback,
+      );
+      if (!hedge) return undefined;
+      return {
+        field: hedge.earliestStart ? "startDate" : "deadline",
+        message: hedge.message,
+      };
+    },
+    [loaded, scenario.currency, today, state.volLookback],
+  );
+  const issue = checkDates(scenario.startDate, scenario.deadline);
+  const pastDeadline = pastDeadlineNote(scenario.deadline, today);
+
   return (
     <>
       {/* The scenario as compact, editable chips directly under the title. */}
       <div className="mt-8">
-        <ScenarioForm state={state} onChange={setState} variant="chips" />
+        <ScenarioForm
+          state={state}
+          onChange={setState}
+          variant="chips"
+          checkDates={checkDates}
+          dateIssue={issue}
+          startRange={{ min: loaded?.fx.dates[0], max: latestStart(today) }}
+        />
+        {pastDeadline && (
+          <p className="t-small mt-3" data-testid="past-deadline">
+            {pastDeadline}
+          </p>
+        )}
       </div>
 
-      {!rateSeries && (
-        <p className="prose-measure mt-10 flex gap-2 border-t pt-6">
-          <Info aria-hidden className="mt-1 size-4 shrink-0 text-caution" />
-          <span>
+      {currency.peggedToSgd ? (
+        <Notice>
+          The {currency.name} is pegged 1:1 to the Singapore dollar, so there is
+          no exchange rate to hedge: every conversion costs the same, plus your
+          spread. The planner shows it for every strategy.
+        </Notice>
+      ) : (
+        !rateSeries && (
+          <Notice>
             Forward and option pricing needs {scenario.currency} interest-rate
             history, which SpotCheck only has for USD so far. Pick USD above to
             see this page; the planner works for all 40 currencies.
-          </span>
-        </p>
+          </Notice>
+        )
       )}
       {data.status === "loading" && rateSeries && <HedgingSkeleton />}
       {data.status === "error" && (
-        <p role="alert" className="mt-10 text-negative">
-          Couldn&apos;t load the data: {data.error}
-        </p>
+        <div className="mt-10">
+          <LoadError message={data.error} retry={data.retry} />
+        </div>
       )}
-      {data.status === "ready" && data.data && (
-        <Panels data={data.data} state={state} setState={setState} />
+      {loaded && issue && (
+        <div role="alert" className="mt-10" data-testid="start-issue">
+          <p className="t-h3">Hedging can&apos;t price this plan</p>
+          <p className="prose-measure mt-2">{issue.message}</p>
+        </div>
+      )}
+      {loaded && !issue && (
+        <Panels data={loaded} state={state} setState={setState} today={today} />
       )}
     </>
+  );
+}
+
+/** The later first date of the two interest-rate histories. */
+function ratesFirst(d: Loaded): string {
+  return [d.sora.dates[0]!, d.foreign.dates[0]!].sort().at(-1)!;
+}
+
+function Notice({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="prose-measure mt-10 flex gap-2 border-t pt-6">
+      <Info aria-hidden className="mt-1 size-4 shrink-0 text-caution" />
+      <span>{children}</span>
+    </p>
   );
 }
 
@@ -88,10 +163,12 @@ function Panels({
   data: d,
   state,
   setState,
+  today,
 }: {
   data: Loaded;
   state: PlannerState;
   setState: (next: PlannerState) => void;
+  today: string;
 }) {
   const s = state.scenario;
   const inputs: RateInputs = {
@@ -102,6 +179,12 @@ function Panels({
   };
   // Price "today": the scenario start, but no later than the last FX date.
   const pricingDate = rateAsOf(d.fx, s.startDate).date;
+  const ctx: StartContext = startContext(
+    s.startDate,
+    pricingDate,
+    d.fx.dates.at(-1)!,
+    today,
+  );
   const deadline = s.deadline;
   const quote = priceForward(inputs, pricingDate, deadline);
   const vol = realisedVol(d.fx, pricingDate, state.volLookback);
@@ -146,16 +229,16 @@ function Panels({
     <>
       {/* The answer: what fixing the rate would cost today, as prices. */}
       <section
-        aria-label="Fixing the rate today"
+        aria-label={fixingLabel(ctx)}
         className="mt-12 lg:grid lg:grid-cols-12 lg:gap-6"
       >
         <div className="lg:col-span-8">
-          <p className="t-label">Fixing the rate today</p>
+          <p className="t-label">{fixingLabel(ctx)}</p>
           <p className="t-h2 mt-3 max-w-3xl font-medium" data-testid="answer">
             A forward would fix {formatRate(quote.forward)} SGD per {s.currency}{" "}
             for {formatDate(deadline)}:{" "}
             {formatSgdAt(Math.abs(carry), quote.spot * s.amount)}{" "}
-            {carry < 0 ? "below" : "above"} today&apos;s spot for your{" "}
+            {carry < 0 ? "below" : "above"} {spotWhen(ctx)} for your{" "}
             {amountText}.
           </p>
           {/* The reason, at the same weight as the figure it explains. */}
@@ -201,6 +284,7 @@ function Panels({
 
       <div className="section grid grid-cols-[minmax(0,1fr)] gap-x-12 gap-y-16 lg:grid-cols-2">
         <ForwardPanel
+          ctx={ctx}
           quote={quote}
           currency={s.currency}
           amount={s.amount}
@@ -208,6 +292,13 @@ function Panels({
           foreignRateDate={rateAsOf(d.foreign, pricingDate).date}
         />
         <OptionPanel
+          spotLabel={
+            ctx.kind === "latest"
+              ? "today"
+              : ctx.kind === "past"
+                ? formatDate(ctx.rateDate)
+                : "latest"
+          }
           currency={s.currency}
           amount={s.amount}
           spread={s.spread}
@@ -240,7 +331,7 @@ function Panels({
         <p className="prose-measure mt-3 text-muted-foreground">
           Every past window of the same length since interest-rate data begins
           (SORA from July 2005), each priced with only the rates and volatility
-          known on its first day, rescaled to today&apos;s rate like the
+          known on its first day, rescaled to {rescaledTo(ctx)} like the
           planner. Each window&apos;s forward uses SORA compounded over the same
           length of time before it starts, so the first window begins one
           window-length after SORA does.
@@ -253,9 +344,7 @@ function Panels({
             </div>
           )}
           {history.status === "error" && (
-            <p role="alert" className="text-negative">
-              {history.error}
-            </p>
+            <LoadError message={history.error} retry={history.retry} />
           )}
           {history.status === "ready" && (
             <HedgeHistory

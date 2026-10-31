@@ -77,4 +77,23 @@ describe("dates", () => {
   it("formats without time zones", () => {
     expect(formatDate("2027-08-01")).toBe("1 Aug 2027");
   });
+
+  it("falls back, like the form, for values the form would reject", () => {
+    const p = (q: string) => parseState(new URLSearchParams(q), TODAY);
+    // Not rounded to a value nobody typed.
+    expect(p("k=1.5").scenario.tranches).toBe(6);
+    expect(p("ks=95.5").strikePct).toBe(1);
+    expect(p("ks=95").strikePct).toBe(0.95);
+    // More conversions than a two-week plan has room for.
+    expect(p("s=2026-10-31&d=2026-11-14&k=24").scenario.tranches).toBe(5);
+    expect(p("s=2026-10-31&d=2026-11-14&k=4").scenario.tranches).toBe(4);
+  });
+
+  it("keeps an exact three-year deadline across a leap year", () => {
+    const s = parseState(
+      new URLSearchParams("s=2026-10-31&d=2029-10-31"),
+      TODAY,
+    );
+    expect(s.scenario.deadline).toBe("2029-10-31");
+  });
 });

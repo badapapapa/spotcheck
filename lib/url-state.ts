@@ -2,9 +2,9 @@
 // exactly and nothing is stored anywhere else.
 
 import { z } from "zod";
-import { daysBetween } from "@/engine/calendar.ts";
 import { findCurrency } from "@/engine/currencies.ts";
 import type { Scenario } from "@/engine/types.ts";
+import { MAX_TRANCHES, maxTranches, windowError } from "./coverage.ts";
 import { defaultDeadline } from "./dates.ts";
 
 export type PlannerState = {
@@ -25,13 +25,11 @@ export type VolLookback = (typeof VOL_LOOKBACKS)[number];
 
 export const LIMITS = {
   amount: { min: 1, max: 1e12 },
-  tranches: { min: 1, max: 24 },
+  tranches: { min: 1, max: MAX_TRANCHES },
   spreadPct: { min: 0, max: 5 },
   targetPct: { min: 0, max: 20 },
   strikePct: { min: 80, max: 120 },
   volPct: { min: 1, max: 100 },
-  minWindowDays: 7,
-  maxWindowDays: 3 * 365,
 } as const;
 
 export const DEFAULTS = {
@@ -49,6 +47,9 @@ export const DEFAULTS = {
 const isoDate = z.iso.date();
 const num = (min: number, max: number) =>
   z.coerce.number().finite().min(min).max(max);
+// Whole numbers only, as the form accepts: "k=1.5" falls back to the
+// default instead of being rounded to 2.
+const whole = (min: number, max: number) => num(min, max).int();
 
 /** Parses each field on its own, so one bad value falls back to its default. */
 function field<T>(schema: z.ZodType<T>, raw: string | null, fallback: T): T {
@@ -68,10 +69,15 @@ export function parseState(
   ).toUpperCase();
   const startDate = field(isoDate, params.get("s"), today);
   let deadline = field(isoDate, params.get("d"), defaultDeadline(startDate));
-  const window = daysBetween(startDate, deadline);
-  if (window < LIMITS.minWindowDays || window > LIMITS.maxWindowDays) {
-    deadline = defaultDeadline(startDate);
-  }
+  if (windowError(startDate, deadline)) deadline = defaultDeadline(startDate);
+  // More conversions than the plan has room for (see maxTranches) falls
+  // back like any other value the form would reject.
+  const roomFor = maxTranches(startDate, deadline);
+  const k = field(
+    whole(LIMITS.tranches.min, LIMITS.tranches.max),
+    params.get("k"),
+    DEFAULTS.tranches,
+  );
   const vol = field(
     num(LIMITS.volPct.min, LIMITS.volPct.max),
     params.get("v"),
@@ -87,13 +93,7 @@ export function parseState(
       ),
       startDate,
       deadline,
-      tranches: Math.round(
-        field(
-          num(LIMITS.tranches.min, LIMITS.tranches.max),
-          params.get("k"),
-          DEFAULTS.tranches,
-        ),
-      ),
+      tranches: k <= roomFor ? k : Math.min(DEFAULTS.tranches, roomFor),
       spread:
         field(
           num(LIMITS.spreadPct.min, LIMITS.spreadPct.max),
@@ -107,9 +107,10 @@ export function parseState(
         params.get("t"),
         DEFAULTS.targetPct,
       ) / 100,
+    // The strike slider moves in whole percent, so "ks=95.5" falls back.
     strikePct:
       field(
-        num(LIMITS.strikePct.min, LIMITS.strikePct.max),
+        whole(LIMITS.strikePct.min, LIMITS.strikePct.max),
         params.get("ks"),
         DEFAULTS.strikePct,
       ) / 100,
@@ -123,7 +124,16 @@ export function parseState(
 /** Rounds away float noise from percentage conversions (0.5 not 0.49999…). */
 const pct = (fraction: number) => String(Number((fraction * 100).toFixed(4)));
 
-export function serializeState(state: PlannerState): URLSearchParams {
+/**
+ * The query string for a state. The page's own URL leaves out the Hedging
+ * settings while they are at their defaults; `complete` (for Copy link)
+ * writes every one, so the recipient sees exactly the same scenario even if
+ * the defaults change.
+ */
+export function serializeState(
+  state: PlannerState,
+  { complete = false }: { complete?: boolean } = {},
+): URLSearchParams {
   const { scenario: s } = state;
   const p = new URLSearchParams({
     c: s.currency,
@@ -134,10 +144,10 @@ export function serializeState(state: PlannerState): URLSearchParams {
     sp: pct(s.spread),
     t: pct(state.targetBelowSpot),
   });
-  if (state.strikePct !== DEFAULTS.strikePct / 100)
+  if (complete || state.strikePct !== DEFAULTS.strikePct / 100)
     p.set("ks", pct(state.strikePct));
   if (state.volOverride !== undefined) p.set("v", pct(state.volOverride));
-  if (state.volLookback !== DEFAULTS.volLookback)
+  if (complete || state.volLookback !== DEFAULTS.volLookback)
     p.set("vl", String(state.volLookback));
   return p;
 }

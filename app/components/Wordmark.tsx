@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ScenarioLink } from "./ScenarioLink";
 import { SITE_NAME } from "@/lib/site";
 
 /**
@@ -22,14 +22,13 @@ export function LogoMark({ className }: { className?: string }) {
 
 export function Wordmark() {
   return (
-    <Link
+    // Home keeps the scenario too, like the nav tabs.
+    <ScenarioLink
       href="/"
-      // No prefetch: it would fetch the page payload on every load.
-      prefetch={false}
       className="-ml-1 flex min-h-11 items-center gap-2 px-1 font-display text-[23px] leading-none font-normal tracking-[-0.01em] text-ink"
     >
       <LogoMark className="size-6 text-ink" />
       {SITE_NAME}
-    </Link>
+    </ScenarioLink>
   );
 }

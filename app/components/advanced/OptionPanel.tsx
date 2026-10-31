@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   CartesianGrid,
   Legend,
@@ -19,7 +19,13 @@ import {
   type Greeks,
 } from "@/engine/options.ts";
 import { formatDate } from "@/lib/dates.ts";
-import { formatPercent, formatRate, formatSgd } from "@/lib/format.ts";
+import {
+  formatPercent,
+  formatPremiumPerUnit,
+  formatRate,
+  formatSgd,
+} from "@/lib/format.ts";
+import { readNumberField } from "@/lib/number-input.ts";
 import { HEDGE_STYLE } from "@/lib/hedge-style.ts";
 import { useCoarsePointer } from "@/lib/use-coarse-pointer.ts";
 import { niceTicks, sgdTickDecimals, type Ticks } from "@/lib/ticks.ts";
@@ -28,6 +34,8 @@ import { HelpTip } from "../HelpTip";
 import { ValueRows } from "../ValueRows";
 
 type Props = {
+  /** Label of the dashed spot line: "today", "2 Jan 2025" or "latest". */
+  spotLabel: string;
   currency: string;
   amount: number;
   spread: number;
@@ -50,7 +58,7 @@ const tooltipStyle = {
   fontSize: 13,
 };
 
-/** Plain-English notes for the "What is this?" tips. */
+/** Plain-English notes for the "About …" help tips. */
 const HELP = {
   premium:
     "What the option costs up front, per unit of foreign currency. You pay it whether or not you end up using the option.",
@@ -76,6 +84,60 @@ export function OptionPanel(props: Props) {
     volOverride,
   } = props;
   const id = useId();
+  // The volatility field keeps its own text: a value is used once the whole
+  // entry is 1–100, and anything else says so instead of vanishing.
+  const volText = (v?: number) =>
+    v === undefined ? "" : String(Number((v * 100).toFixed(2)));
+  const [vol, setVol] = useState(() => ({
+    text: volText(volOverride),
+    error: undefined as string | undefined,
+    for: volOverride,
+  }));
+  // An override set from outside (a link, back/forward) replaces the text,
+  // unless the text already says the same value.
+  const [seenOverride, setSeenOverride] = useState(volOverride);
+  if (seenOverride !== volOverride) {
+    setSeenOverride(volOverride);
+    if (vol.for !== volOverride)
+      setVol({
+        text: volText(volOverride),
+        error: undefined,
+        for: volOverride,
+      });
+  }
+  // Like the scenario fields: a valid value is used once typing pauses, so
+  // "101" never passes through 10 on its way to an error.
+  const volTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (volTimer.current) clearTimeout(volTimer.current);
+    },
+    [],
+  );
+  function typeVol(text: string) {
+    if (volTimer.current) clearTimeout(volTimer.current);
+    if (text.trim() === "") {
+      setVol({ text, error: undefined, for: undefined });
+      volTimer.current = setTimeout(
+        () => props.onVol(undefined, realised.lookback),
+        400,
+      );
+      return;
+    }
+    const r = readNumberField(text, {
+      ...LIMITS.volPct,
+      range: `Enter ${LIMITS.volPct.min}–${LIMITS.volPct.max}%, or leave it empty for realised volatility.`,
+    });
+    if (!r.ok) {
+      setVol((v) => ({ ...v, text, error: r.message }));
+      return;
+    }
+    setVol({ text, error: undefined, for: r.value / 100 });
+    volTimer.current = setTimeout(
+      () => props.onVol(r.value / 100, realised.lookback),
+      400,
+    );
+  }
   const sigma = volOverride ?? realised.sigma;
   const K = base.S * strikePct;
   const inputs: GkInputs = { ...base, K, sigma: Math.max(sigma, 1e-4) };
@@ -123,9 +185,9 @@ export function OptionPanel(props: Props) {
           </h2>
           <p className="mt-3 text-muted-foreground">
             A call option gives the right, not the obligation, to buy {currency}{" "}
-            at the strike on your deadline. You pay a premium today; if the rate
-            ends up above the strike you convert at the strike, otherwise at the
-            market rate.
+            at the strike on your deadline. You pay a premium up front; if the
+            rate ends up above the strike you convert at the strike, otherwise
+            at the market rate.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -152,24 +214,14 @@ export function OptionPanel(props: Props) {
             <div className="flex gap-2">
               <input
                 id={`${id}-vol`}
-                type="number"
+                type="text"
                 inputMode="decimal"
-                min={LIMITS.volPct.min}
-                max={LIMITS.volPct.max}
-                step={0.5}
+                autoComplete="off"
                 placeholder={(realised.sigma * 100).toFixed(1)}
-                value={
-                  volOverride === undefined
-                    ? ""
-                    : String(Number((volOverride * 100).toFixed(2)))
-                }
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  if (e.target.value === "")
-                    props.onVol(undefined, realised.lookback);
-                  else if (v >= LIMITS.volPct.min && v <= LIMITS.volPct.max)
-                    props.onVol(v / 100, realised.lookback);
-                }}
+                value={vol.text}
+                aria-invalid={vol.error ? true : undefined}
+                aria-describedby={`${id}-vol-note`}
+                onChange={(e) => typeVol(e.target.value)}
                 className="field-input min-w-0 flex-1"
               />
               <select
@@ -191,10 +243,15 @@ export function OptionPanel(props: Props) {
                 ))}
               </select>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {volOverride === undefined
-                ? `Realised volatility (proxy for implied): ${(realised.sigma * 100).toFixed(1)}%, from ${realised.lookback} trading days ${formatDate(realised.from)}–${formatDate(realised.to)}. Type a number to override.`
-                : `Your override. Leave it empty to use realised volatility (${(realised.sigma * 100).toFixed(1)}%).`}
+            <p
+              id={`${id}-vol-note`}
+              className={`text-sm ${vol.error ? "text-destructive" : "text-muted-foreground"}`}
+              data-testid="vol-note"
+            >
+              {vol.error ??
+                (volOverride === undefined
+                  ? `Realised volatility (proxy for implied): ${(realised.sigma * 100).toFixed(1)}%, from ${realised.lookback} daily changes, ${formatDate(realised.from)}–${formatDate(realised.to)}. Type 1–100 to override.`
+                  : `Your override (1–100%). Leave it empty to use realised volatility (${(realised.sigma * 100).toFixed(1)}%).`)}
             </p>
           </div>
         </div>
@@ -209,7 +266,7 @@ export function OptionPanel(props: Props) {
                   <HelpTip term="the premium">{HELP.premium}</HelpTip>
                 </>
               ),
-              value: `${formatRate(premium)} SGD`,
+              value: `${formatPremiumPerUnit(premium)} SGD`,
             },
             {
               label: `Premium for ${amount.toLocaleString("en-SG")} ${currency}`,
@@ -289,7 +346,7 @@ export function OptionPanel(props: Props) {
                   stroke="var(--muted)"
                   strokeDasharray="4 4"
                   label={{
-                    value: "today",
+                    value: props.spotLabel,
                     fill: "var(--muted)",
                     fontSize: 12,
                     position: "top",

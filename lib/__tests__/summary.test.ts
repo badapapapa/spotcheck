@@ -128,4 +128,61 @@ describe("describeReplay", () => {
       ),
     ).toBeUndefined();
   });
+
+  it("separates thousands in every count", () => {
+    expect(text).toMatch(/closer to [\d,]+ separate histories/);
+    const hist = /closer to ([\d,]+) separate/.exec(text)![1]!;
+    if (Number(hist.replace(/,/g, "")) >= 1000) expect(hist).toMatch(/,/);
+    // A one-week plan has over a thousand separate histories.
+    const short = {
+      ...scenario,
+      startDate: "2026-10-31",
+      deadline: "2026-11-07",
+      tranches: 3,
+    };
+    const s = describeReplay(
+      replay(loadUsd(), short, { targetBelowSpot: 0.02 }),
+      short,
+      0.02,
+    ).join(" ");
+    expect(s).toMatch(/closer to \d{1,3}(,\d{3})+ separate histories/);
+    expect(s).toMatch(/your 7-day plan/);
+    expect(s).not.toMatch(/0-month/);
+  });
+
+  it("reads '(fixed)' for a range that is one figure (BND peg)", () => {
+    const bnd = { ...scenario, currency: "BND" };
+    const lines = describeReplay(
+      replay(loadFx("BND"), bnd, { targetBelowSpot: 0.02 }),
+      bnd,
+      0.02,
+    );
+    for (const l of lines.slice(2, 5)) {
+      expect(l).toMatch(/middle 90% S\$[\d,]+ \(fixed\)/);
+      expect(l).toMatch(STRATEGY_SENTENCE);
+    }
+    expect(lines.join(" ")).not.toMatch(/S\$([\d,]+)–S\$\1\b/);
+  });
+
+  it("names the start's own rate for a past start", () => {
+    const past = {
+      ...scenario,
+      startDate: "2025-01-02",
+      deadline: "2025-08-01",
+    };
+    const lines = describeReplay(
+      replay(loadUsd(), past, { targetBelowSpot: 0.02 }),
+      past,
+      0.02,
+      {
+        kind: "past",
+        start: "2025-01-02",
+        rateDate: "2025-01-02",
+      },
+    );
+    expect(lines[1]).toMatch(
+      /mid rate on 2 Jan 2025 plus your spread, known on that day/,
+    );
+    expect(lines.join(" ")).not.toMatch(/known today|latest/);
+  });
 });
