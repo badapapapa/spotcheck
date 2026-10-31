@@ -145,12 +145,13 @@ One chart language across both pages:
 - **Axes:** hairline axes in `--rule`, tick labels in `--muted` at 12–13px tabular figures.
 - **Gridlines:** no vertical gridlines; horizontal gridlines in `--rule`.
 - **Lines and bars:** lines 2px. The middle-90% bars are 10px tall with 2px corners, the median dot is 9px with a 2px `--surface` ring, and the full-range whisker is a 1.5px `--muted` line.
-- **Highlight:** hovering or focusing a strategy (a chart row, a legend item, a glance row, a table row) previews it; clicking pins it (`aria-pressed`); clicking again unpins. The others dim over 150ms: chart rows to 30% opacity, table rows to 40–45%, and the timeline lines to 15%. Nothing is ever highlighted automatically.
+- **Highlight:** hovering or focusing a strategy (a chart row, a legend item, a glance row, a table row) previews it; clicking pins it (`aria-pressed`); clicking again unpins. The others dim over 150ms: their marks (bars, swatches, markers) fade to 30% and the timeline lines to 15%, while their text only turns `--muted`, so it keeps at least 4.5:1. Nothing is ever highlighted automatically.
 - **Tooltips:** `--surface`, 1px `--rule` border, 8px radius and `--shadow-pop`. They show the period in bold, then one row per strategy in the fixed order: swatch, name, cost and its difference from all at once. No row is singled out.
 - **Touch:** on touch screens, dragging horizontally across the timeline scrubs it and lifting selects the period. Vertical drags still scroll the page. The Recharts charts (period detail, payoff, Greeks) show no floating tooltip on touch, because it stays open and covers the chart. A fixed readout row under each chart shows the tapped values instead.
 - **Axes:** rate axes use round ticks (1.10, 1.20, …), kept inside the plotted range. The timeline's cost axis fits the data with a 5% margin rather than stretching to whole tick steps.
 - **States:** a chart's space is held by a `--sunken` block of the same height while it loads. An error replaces it with a one-line message in `--negative`.
-- **Accessibility:** every chart has a text equivalent: the comparison table, the conversions table, a slider with a spoken value, or a summary label.
+- **Accessibility:** every chart has a text equivalent: the comparison table, the conversions table, a slider with a spoken value, or a summary label. Recharts charts are drawn with `accessibilityLayer={false}`: no unnamed focus stop and no assertive live region; the text equivalent and our own controls carry the values. Only rows that do something (pinning on the planner) are buttons. New results are announced politely ("Results updated for USD 15,000.").
+- **Legends** follow the fixed strategy order, never the library's own order.
 
 ## 7. Components
 

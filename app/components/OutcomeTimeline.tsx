@@ -469,7 +469,9 @@ export function OutcomeTimeline({
             export.
           </p>
           {/* Large targets for stepping a month at a time on a phone. */}
-          <div className="mt-3 flex items-center justify-between gap-3">
+          {/* They sit side by side where they fit and stack on narrow
+              phones or with large text, never pushing the page sideways. */}
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 [&>button]:grow">
             <button
               type="button"
               className="btn-secondary"

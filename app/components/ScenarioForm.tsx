@@ -368,7 +368,7 @@ export function ScenarioForm({
           chips ? "text-[18px] font-medium" : "t-data-m"
         }`}
       >
-        <span className="flex items-center gap-2 whitespace-nowrap">
+        <span className="flex flex-wrap items-center gap-2 whitespace-nowrap">
           I need
           <input
             {...field("amount")}

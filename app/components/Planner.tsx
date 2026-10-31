@@ -185,6 +185,23 @@ export function Planner() {
 
   return (
     <>
+      {/* First in the page order (after the question), so Tab reaches the
+          phone's Edit bar at the top of the screen before the content. */}
+      {showBar && (
+        <SummaryBar
+          text={`${scenario.currency} ${scenario.amount.toLocaleString("en-SG")} by ${formatDate(scenario.deadline)}`}
+          onEdit={() => {
+            converterRef.current?.scrollIntoView({ block: "center" });
+            converterRef.current?.querySelector("input")?.focus();
+          }}
+        />
+      )}
+      {/* Screen readers hear when new results arrive, without interruption. */}
+      <p className="sr-only" aria-live="polite" data-testid="results-status">
+        {result && !stale
+          ? `Results updated for ${scenario.currency} ${scenario.amount.toLocaleString("en-SG")}.`
+          : ""}
+      </p>
       {/* The converter, directly under the question. */}
       <section
         ref={converterRef}
@@ -479,16 +496,6 @@ export function Planner() {
         series={series}
         source={fxSourceLabel(currency)}
       />
-
-      {showBar && (
-        <SummaryBar
-          text={`${scenario.currency} ${scenario.amount.toLocaleString("en-SG")} by ${formatDate(scenario.deadline)}`}
-          onEdit={() => {
-            converterRef.current?.scrollIntoView({ block: "center" });
-            converterRef.current?.querySelector("input")?.focus();
-          }}
-        />
-      )}
     </>
   );
 }
@@ -580,7 +587,7 @@ function useScrolledPast(ref: React.RefObject<HTMLElement | null>) {
  */
 function SummaryBar({ text, onEdit }: { text: string; onEdit: () => void }) {
   return (
-    <div className="fixed inset-x-0 top-0 z-30 border-b bg-paper lg:hidden">
+    <div className="summary-bar fixed inset-x-0 top-0 z-30 border-b bg-paper lg:hidden">
       <div className="page flex h-14 items-center justify-between gap-3">
         <p className="truncate font-medium tabular-nums">{text}</p>
         <button type="button" className="btn-secondary px-3" onClick={onEdit}>
