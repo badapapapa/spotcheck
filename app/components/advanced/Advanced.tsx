@@ -35,14 +35,19 @@ import { useLoad } from "@/lib/use-data.ts";
 import { usePlannerState } from "@/lib/use-planner-state.ts";
 import type { PlannerState } from "@/lib/url-state.ts";
 import { Info } from "lucide-react";
-import { useCallback } from "react";
+import { lazy, Suspense, useCallback } from "react";
 import { ComparisonTable } from "../ComparisonTable";
 import { HISTORICAL_CONTEXT } from "../Glance";
 import { RangeChart } from "../DistributionChart";
 import { LoadError } from "../LoadError";
 import { ScenarioForm, type DateIssue } from "../ScenarioForm";
 import { ForwardPanel } from "./ForwardPanel";
-import { OptionPanel } from "./OptionPanel";
+// The option panel is the only part of this page that draws with Recharts
+// (110 KB gzipped). Loading it just after the page keeps that library out
+// of the first load; its space is held meanwhile.
+const OptionPanel = lazy(() =>
+  import("./OptionPanel").then((m) => ({ default: m.OptionPanel })),
+);
 
 type Loaded = { fx: Series; sora: Series; foreign: Series };
 
@@ -291,39 +296,46 @@ function Panels({
           sgdRateDate={rateAsOf(d.sora, pricingDate).date}
           foreignRateDate={rateAsOf(d.foreign, pricingDate).date}
         />
-        <OptionPanel
-          spotLabel={
-            ctx.kind === "latest"
-              ? "today"
-              : ctx.kind === "past"
-                ? formatDate(ctx.rateDate)
-                : "latest"
-          }
-          currency={s.currency}
-          amount={s.amount}
-          spread={s.spread}
-          deadline={deadline}
-          base={{
-            S: quote.spot,
-            rd: toContinuous(quote.rd, T),
-            rf: toContinuous(quote.rf, T),
-            T,
-          }}
-          forward={quote.forward}
-          strikePct={state.strikePct}
-          realised={{
-            sigma: vol.sigma,
-            lookback: state.volLookback,
-            from: vol.from,
-            to: vol.to,
-          }}
-          volOverride={state.volOverride}
-          onStrike={(strikePct) => setState({ ...state, strikePct })}
-          onVol={(volOverride, volLookback) =>
-            setState({ ...state, volOverride, volLookback })
-          }
-        />
+        <Suspense fallback={<OptionPanelPlaceholder />}>
+          <OptionPanel
+            spotLabel={
+              ctx.kind === "latest"
+                ? "today"
+                : ctx.kind === "past"
+                  ? formatDate(ctx.rateDate)
+                  : "latest"
+            }
+            currency={s.currency}
+            amount={s.amount}
+            spread={s.spread}
+            deadline={deadline}
+            base={{
+              S: quote.spot,
+              rd: toContinuous(quote.rd, T),
+              rf: toContinuous(quote.rf, T),
+              T,
+            }}
+            forward={quote.forward}
+            strikePct={state.strikePct}
+            realised={{
+              sigma: vol.sigma,
+              lookback: state.volLookback,
+              from: vol.from,
+              to: vol.to,
+            }}
+            volOverride={state.volOverride}
+            onStrike={(strikePct) => setState({ ...state, strikePct })}
+            onVol={(volOverride, volLookback) =>
+              setState({ ...state, volOverride, volLookback })
+            }
+          />
+        </Suspense>
       </div>
+      <p className="sr-only" aria-live="polite" data-testid="results-status">
+        {history.status === "ready" && !history.stale
+          ? `Hedge results updated for ${amountText}.`
+          : ""}
+      </p>
       <section aria-labelledby="history-title" className="section">
         <h2 id="history-title" className="t-h2">
           How each hedge would have worked out
@@ -355,6 +367,19 @@ function Panels({
         </div>
       </section>
     </>
+  );
+}
+
+/** The option panel's shape while its code loads (no layout shift). */
+function OptionPanelPlaceholder() {
+  return (
+    <div
+      aria-hidden
+      className="option-panel-min-h flex flex-col gap-6 lg:border-l lg:pl-12"
+    >
+      <div className="skeleton h-8 w-3/4" />
+      <div className="skeleton flex-1" />
+    </div>
   );
 }
 
