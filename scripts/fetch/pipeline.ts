@@ -9,6 +9,7 @@
 import { CURRENCIES, fxFileName } from "../../engine/currencies.ts";
 import { type fetchEcbCrosses } from "./ecb.ts";
 import { type fetchFx } from "./frankfurter.ts";
+import { KNOWN_ANOMALIES } from "./known-anomalies.ts";
 import { FX_SOURCES } from "./sources.ts";
 import { FRED_SOURCE, type fetchFredSeries } from "./fred.ts";
 import { stringifyDataFile, type readJson, type writeIfChanged } from "./io.ts";
@@ -21,6 +22,7 @@ import {
   type MetaFile,
   type RateFile,
   type SoraFile,
+  dropUpstreamErrors,
 } from "./schemas.ts";
 import { tradingObservations } from "./trading-days.ts";
 import { checkAll, type DataFiles } from "./validate.ts";
@@ -115,9 +117,14 @@ export async function runPipeline(
         unit: `SGD per 1 ${code}`,
         source: FX_SOURCES[source],
         // Applied to the merged history, so older rows are cleaned too.
-        rows: tradingObservations(
-          merge(old.get(code)?.rows, fresh.get(code) ?? [], from),
-          { dropRepeats: source === "blended" },
+        // Days the source published by mistake are dropped (known-anomalies).
+        rows: dropUpstreamErrors(
+          `SGD-${code}`,
+          tradingObservations(
+            merge(old.get(code)?.rows, fresh.get(code) ?? [], from),
+            { dropRepeats: source === "blended" },
+          ),
+          KNOWN_ANOMALIES,
         ),
       });
     }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DataNote } from "../components/DataNote";
 import { ScenarioLink } from "../components/ScenarioLink";
 import meta from "@/data/meta.json";
 import { CURRENCIES } from "@/engine/currencies.ts";
@@ -114,6 +115,9 @@ export default function HowItWorks() {
               </dt>
               <dd className="t-small border-b pt-1 pb-4 text-muted-foreground sm:pt-4">
                 {blended.map((c) => c.code).join(", ")}
+                {/* Part of the method, so always shown here; the planner
+                    shows it only for ISK. */}
+                <DataNote code="ISK" className="mt-3 text-ink" />
               </dd>
               <dt className="pt-4 font-medium">Fixed peg (1)</dt>
               <dd className="t-small border-b pt-1 pb-4 text-muted-foreground sm:pt-4">

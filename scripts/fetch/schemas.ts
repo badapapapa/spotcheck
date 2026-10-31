@@ -70,13 +70,33 @@ export type MetaFile = z.infer<typeof MetaFileSchema>;
 // ---------------------------------------------------------------------------
 // Sanity checks
 
-/** A reviewed exception to the sanity checks, e.g. a real devaluation. */
+/**
+ * A reviewed exception to the sanity checks. "gap" and "jump" are real
+ * events the checks would otherwise reject (a devaluation, a closure).
+ * "upstream-error" is a rate the source published by mistake: that day is
+ * dropped from the series, as if it were a holiday, and the checks fail if
+ * it ever comes back.
+ */
 export type KnownAnomaly = {
   series: string;
   date: string; // date of the observation that trips the check
-  kind: "gap" | "jump";
+  kind: "gap" | "jump" | "upstream-error";
   note: string;
 };
+
+/** The rows without any day listed as an upstream error for `series`. */
+export function dropUpstreamErrors<R extends readonly [string, ...unknown[]]>(
+  series: string,
+  rows: R[],
+  allow: readonly KnownAnomaly[],
+): R[] {
+  const bad = new Set(
+    allow
+      .filter((a) => a.series === series && a.kind === "upstream-error")
+      .map((a) => a.date),
+  );
+  return bad.size === 0 ? rows : rows.filter((r) => !bad.has(r[0]));
+}
 
 export type CheckResult = { errors: string[]; warnings: string[] };
 
@@ -154,6 +174,11 @@ export function checkFx(
   );
   for (let i = 0; i < file.rows.length; i++) {
     const [date, raw, sgdPerUnit] = file.rows[i]!;
+    if (isAllowed(allow, series, date, "upstream-error")) {
+      result.errors.push(
+        `${series}: ${date} is a known upstream error and should have been dropped`,
+      );
+    }
     // The stored inversion must agree with the raw rate (to rounding).
     if (Math.abs(raw * sgdPerUnit - 1) > 1e-6) {
       result.errors.push(`${series}: ${date} inversion mismatch`);

@@ -6,6 +6,12 @@ import type { KnownAnomaly } from "./schemas.ts";
 
 export const KNOWN_ANOMALIES: readonly KnownAnomaly[] = [
   {
+    series: "SGD-BRL",
+    date: "2000-02-11",
+    kind: "upstream-error",
+    note: "The ECB published EUR/BRL 2.0141 on 11 Feb 2000, between 1.7501 (10 Feb) and 1.7509 (14 Feb): a one-day 15% spike that fully reverses. Banco Central do Brasil's PTAX USD/BRL shows no such move (1.7695, 1.7647, 1.7699 on 10, 11 and 14 Feb). Dropped, so the day is treated like a holiday. Checked 31 Oct 2026.",
+  },
+  {
     series: "SGD-ARS",
     date: "2023-12-14",
     kind: "jump",

@@ -544,3 +544,27 @@ test.describe("A10: figures", () => {
     );
   });
 });
+
+test.describe("A11: data notes", () => {
+  test("the planner shows the ISK note for ISK only", async ({ page }) => {
+    await page.goto("/?c=ISK&a=1000000&s=2026-10-17&d=2027-08-01");
+    await expect(page.getByTestId("data-note")).toContainText(
+      "During Iceland's 2008 financial crisis the króna traded at two rates",
+    );
+    await page.goto("/?c=USD&a=15000&s=2026-10-17&d=2027-08-01");
+    await expect(page.getByTestId("summary")).toBeVisible();
+    await expect(page.getByTestId("data-note")).toHaveCount(0);
+  });
+
+  test("How it works always shows it, with the blended list", async ({
+    page,
+  }) => {
+    for (const path of ["/how-it-works", "/how-it-works?c=USD&a=15000"]) {
+      await page.goto(path);
+      const note = page.getByTestId("data-note");
+      await expect(note).toContainText("two rates");
+      // Inside the Frankfurter blended entry.
+      await expect(page.locator("dd", { has: note })).toContainText("ISK");
+    }
+  });
+});
