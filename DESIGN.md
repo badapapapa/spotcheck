@@ -51,6 +51,14 @@ Validated with the dataviz palette checker (lightness band, chroma, colour-blind
 
 The brand green is deliberately not a strategy colour, so no strategy looks "approved".
 
+Hedging reuses two planner colours on purpose and adds one of its own:
+
+| Hedge       | Colour                                   | Why                                                                        |
+| ----------- | ---------------------------------------- | -------------------------------------------------------------------------- |
+| Unhedged    | slot 3 (Wait until deadline)             | It is the same strategy: convert everything on the deadline                |
+| Forward     | slot 1 (All at once)                     | Both fix the whole cost on day one                                         |
+| Call option | `--series-option`: `#9A6B00` / `#B88520` | Its own colour; no planner strategy uses it (validated with the two above) |
+
 ## 3. Typography
 
 Two families, self-hosted with `next/font` (the CSP keeps `font-src 'self'`), one file each:
@@ -72,6 +80,12 @@ Two families, self-hosted with `next/font` (the CSP keeps `font-src 'self'`), on
 | Data medium | Plex       | 500    | 22 / 28             | 20 / 26 | Secondary figures, the converter field |
 
 Sentence case everywhere. No all-caps eyebrows, no letter-spaced labels.
+
+### Numbers
+
+- **Money:** every S$ figure in one scenario uses the same precision: whole dollars when the scenario costs S$100 or more (differences too: "−S$85"), cents when it costs less (15,000 VND is about S$0.74). The exceptions are per-unit rates, pips, the option premium and the Greeks, which keep their decimals.
+- **Settings as percentages:** shown without trailing zeros ("2%", "0.5%").
+- **A fixed cost:** a strategy with no range reads "S$19,321 (fixed)", not "S$19,321–S$19,321".
 
 ## 4. Space, layout and shape
 
@@ -133,7 +147,8 @@ One chart language across both pages:
 - **Lines and bars:** lines 2px. The middle-90% bars are 10px tall with 2px corners, the median dot is 9px with a 2px `--surface` ring, and the full-range whisker is a 1.5px `--muted` line.
 - **Highlight:** hovering or focusing a strategy (a chart row, a legend item, a glance row, a table row) previews it; clicking pins it (`aria-pressed`); clicking again unpins. The others dim over 150ms: chart rows to 30% opacity, table rows to 40–45%, and the timeline lines to 15%. Nothing is ever highlighted automatically.
 - **Tooltips:** `--surface`, 1px `--rule` border, 8px radius and `--shadow-pop`. They show the period in bold, then one row per strategy in the fixed order: swatch, name, cost and its difference from all at once. No row is singled out.
-- **Touch:** on touch screens, dragging horizontally across the timeline scrubs it and lifting selects the period. Vertical drags still scroll the page.
+- **Touch:** on touch screens, dragging horizontally across the timeline scrubs it and lifting selects the period. Vertical drags still scroll the page. The Recharts charts (period detail, payoff, Greeks) show no floating tooltip on touch, because it stays open and covers the chart. A fixed readout row under each chart shows the tapped values instead.
+- **Axes:** rate axes use round ticks (1.10, 1.20, …), kept inside the plotted range. The timeline's cost axis fits the data with a 5% margin rather than stretching to whole tick steps.
 - **States:** a chart's space is held by a `--sunken` block of the same height while it loads. An error replaces it with a one-line message in `--negative`.
 - **Accessibility:** every chart has a text equivalent: the comparison table, the conversions table, a slider with a spoken value, or a summary label.
 
