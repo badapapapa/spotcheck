@@ -137,11 +137,10 @@
 }
 
 @layer components {
-  /* §3 type scale. Serif roles first, then the interface roles. */
+  /* §3 type scale. The serif is for page titles only; everything else,
+     section headings included, is the interface sans. */
   .t-display,
-  .t-h1,
-  .t-h2,
-  .t-result {
+  .t-h1 {
     font-family: var(--font-serif);
     font-weight: 400;
     color: var(--ink);
@@ -158,13 +157,12 @@
     letter-spacing: -0.01em;
   }
   .t-h2 {
-    font-size: 26px;
-    line-height: 32px;
-    letter-spacing: -0.005em;
-  }
-  .t-result {
-    font-size: 24px;
-    line-height: 31px;
+    font-size: 20px;
+    line-height: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    text-wrap: balance;
   }
   .t-h3 {
     font-size: 17px;
@@ -210,12 +208,8 @@
       line-height: 50px;
     }
     .t-h2 {
-      font-size: 32px;
-      line-height: 38px;
-    }
-    .t-result {
-      font-size: 30px;
-      line-height: 38px;
+      font-size: 24px;
+      line-height: 30px;
     }
     .t-lede {
       font-size: 19px;
@@ -391,11 +385,11 @@
     min-height: 281px;
   }
   .result-min-h {
-    min-height: 433px;
+    min-height: 537px;
   }
   @media (width < 400px) {
     .result-min-h {
-      min-height: 464px;
+      min-height: 553px;
     }
   }
   @media (width < 380px) {
@@ -403,7 +397,12 @@
       min-height: 301px;
     }
     .result-min-h {
-      min-height: 484px;
+      min-height: 611px;
+    }
+  }
+  @media (width < 370px) {
+    .result-min-h {
+      min-height: 635px;
     }
   }
   @media (width >= 40rem) {
@@ -411,7 +410,7 @@
       min-height: 245px;
     }
     .result-min-h {
-      min-height: 376px;
+      min-height: 511px;
     }
   }
   @media (width >= 64rem) {
@@ -419,7 +418,7 @@
       min-height: 299px;
     }
     .result-min-h {
-      min-height: 511px;
+      min-height: 569px;
     }
   }
   @media (width >= 80rem) {
@@ -427,7 +426,7 @@
       min-height: 247px;
     }
     .result-min-h {
-      min-height: 472px;
+      min-height: 511px;
     }
   }
   /* Placeholder blocks that hold a result's space while it loads. */
