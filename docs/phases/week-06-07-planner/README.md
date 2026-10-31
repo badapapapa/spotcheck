@@ -1,6 +1,6 @@
 # Weeks 6–7 · Phase 3: Planner MVP
 
-**Status:** merged into `main` in [`1cc896c`](https://github.com/badapapapa/spotcheck/commit/1cc896c).
+**Status:** merged into `main` in [`82f1f60`](https://github.com/badapapapa/spotcheck/commit/82f1f60).
 
 ## What was built
 

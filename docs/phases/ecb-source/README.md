@@ -1,6 +1,6 @@
 # ECB reference rates as the FX source (post-launch change)
 
-**Status:** merged into `main` in [`973a6c1`](https://github.com/badapapapa/spotcheck/commit/973a6c1) (19 Oct 2026).
+**Status:** merged into `main` in [`e7ea9eb`](https://github.com/badapapapa/spotcheck/commit/e7ea9eb) (19 Oct 2026).
 
 ## Why
 

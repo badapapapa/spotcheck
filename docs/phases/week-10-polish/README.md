@@ -1,6 +1,6 @@
 # Week 10 · Phase 5: Polish and launch
 
-**Status:** merged into `main` in [`768a484`](https://github.com/badapapapa/spotcheck/commit/768a484). Launch itself waits on the [BEN] steps below.
+**Status:** merged into `main` in [`2387e0b`](https://github.com/badapapapa/spotcheck/commit/2387e0b). Launch itself waits on the [BEN] steps below.
 
 ## What was built
 

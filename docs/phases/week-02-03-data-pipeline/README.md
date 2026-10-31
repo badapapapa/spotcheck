@@ -1,6 +1,6 @@
 # Weeks 2–3 · Phase 1: Data pipeline
 
-**Status:** merged into `main` in [`ae4461e`](https://github.com/badapapapa/spotcheck/commit/ae4461e).
+**Status:** merged into `main` in [`d1c2fe0`](https://github.com/badapapapa/spotcheck/commit/d1c2fe0).
 
 ## What was built
 
