@@ -56,8 +56,8 @@ export const METHOD: { id: string; title: string; body: React.ReactNode }[] = [
       <p>
         Windows that start a day apart share almost all their days, so thousands
         of windows contain far fewer truly separate histories. The percentages
-        describe this one history; they are not probabilities of what will
-        happen next.
+        describe this one history; they are not probabilities of what comes
+        next.
       </p>
     ),
   },

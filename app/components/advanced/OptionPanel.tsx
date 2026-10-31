@@ -298,7 +298,7 @@ export function OptionPanel(props: Props) {
           Priced with Garman-Kohlhagen, using continuously compounded
           equivalents of the rates in the forward panel. The premium&apos;s own
           time value (interest you could have earned on it) is ignored. Real
-          option quotes use implied volatility and a dealer margin, so they will
+          option quotes use implied volatility and a dealer margin, so they
           differ.
         </p>
       </section>

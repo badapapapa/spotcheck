@@ -76,14 +76,14 @@ export function ForwardPanel({
         {carry < 0 ? "below" : "above"} converting at today&apos;s spot, because{" "}
         {currency} interest rates are {q.rf > q.rd ? "higher" : "lower"} than
         SGD rates over this period. That gap is the carry; it isn&apos;t a
-        forecast of where the rate will go.
+        forecast of the rate&apos;s direction.
       </p>
       <p className="mt-3 text-xs text-muted-foreground">
         Its price comes from the interest-rate gap between SGD and {currency}{" "}
         (covered interest parity): F = S × (1 + r<sub>SGD</sub> × T) / (1 + r
         <sub>{currency}</sub> × T), T = {q.T.toFixed(3)} years. The rates are
         past compounded overnight rates, a stand-in for the term rates a bank
-        would quote, so a real quote will differ a little.
+        would quote, so a real quote differs a little.
       </p>
     </section>
   );

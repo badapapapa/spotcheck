@@ -5,6 +5,7 @@ import { CURRENCIES } from "@/engine/currencies.ts";
 import { formatDate } from "@/lib/dates.ts";
 import { DISCLAIMER } from "@/lib/site";
 import { METHOD } from "../components/Methodology";
+import { HISTORICAL_CONTEXT } from "../components/Glance";
 import { StrategyGuide } from "../components/StrategyGuide";
 
 export const metadata: Metadata = {
@@ -70,15 +71,15 @@ export default function HowItWorks() {
           <Part id="question" title="The question">
             <p>
               Exchange students usually know two things: how much foreign
-              currency they will need, and when. What they don&apos;t know is
-              whether to convert it all now, spread it out, wait, or hold out
-              for a better rate.
+              currency they need, and when. What they don&apos;t know is whether
+              to convert it all now, spread it out, wait, or hold out for a
+              better rate.
             </p>
             <p>
-              Nobody knows where exchange rates will go. What can be known is
-              how each of those approaches would have worked out, had the same
-              plan started on any day since {first}. SpotCheck replays your plan
-              over every one of those periods and shows the range of costs,
+              Nobody knows which way exchange rates move next. What can be known
+              is how each of those approaches would have worked out, had the
+              same plan started on any day since {first}. SpotCheck replays your
+              plan over every one of those periods and shows the range of costs,
               rescaled to today&apos;s rate. The result is a record of what
               happened, not a forecast.
             </p>
@@ -143,6 +144,18 @@ export default function HowItWorks() {
           </Part>
 
           <Part id="limits" title="What it can't tell you">
+            <p>{HISTORICAL_CONTEXT}</p>
+            <p>
+              How the strategies compare depends on three things: the currency
+              pair, the direction its rate was moving during the periods tested,
+              and the length of the window. A strategy that cost less across one
+              currency&apos;s history may have cost more across another&apos;s,
+              because their trends differed. The US dollar&apos;s history says
+              nothing about the yen&apos;s or the euro&apos;s; each currency is
+              replayed against its own rates only. Changing the currency, the
+              dates or the number of conversions in the planner shows how much
+              the comparison moves.
+            </p>
             {method("limits").body}
             <p>
               The rates are mid-market reference rates. Banks, cards and money
@@ -152,8 +165,8 @@ export default function HowItWorks() {
             <p>
               The Hedging page prices forwards and options from past overnight
               interest rates and past volatility, a stand-in for the quotes a
-              bank would give. A real quote will differ, and it is only
-              available for USD so far.
+              bank would give. A real quote differs, and it is only available
+              for USD so far.
             </p>
           </Part>
 

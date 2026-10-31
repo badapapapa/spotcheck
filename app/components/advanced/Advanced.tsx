@@ -22,6 +22,7 @@ import { usePlannerState } from "@/lib/use-planner-state.ts";
 import type { PlannerState } from "@/lib/url-state.ts";
 import { Info } from "lucide-react";
 import { ComparisonTable } from "../ComparisonTable";
+import { HISTORICAL_CONTEXT } from "../Glance";
 import { RangeChart } from "../DistributionChart";
 import { ScenarioForm } from "../ScenarioForm";
 import { ForwardPanel } from "./ForwardPanel";
@@ -145,7 +146,7 @@ function Panels({
       >
         <div className="lg:col-span-8">
           <p className="t-label">Fixing the rate today</p>
-          <p className="t-result mt-4" data-testid="answer">
+          <p className="t-h2 mt-3 max-w-3xl font-medium" data-testid="answer">
             A forward would fix {formatRate(quote.forward)} SGD per {s.currency}{" "}
             for {formatDate(deadline)}: {formatSgd(Math.abs(carry))}{" "}
             {carry < 0 ? "below" : "above"} today&apos;s spot for your{" "}
@@ -278,6 +279,14 @@ function HedgeHistory({
     shortLabel: HEDGE_STYLE[id].short,
     color: HEDGE_STYLE[id].color,
     summary: h.summaries[id]!,
+    vsReference:
+      id === "unhedged"
+        ? undefined
+        : h.summaries[id]!.median - h.summaries.unhedged!.median,
+    cheaperShare:
+      id === "unhedged"
+        ? undefined
+        : share(h.relativeCosts[id]!, h.relativeCosts.unhedged!),
   }));
   return (
     <>
@@ -288,8 +297,10 @@ function HedgeHistory({
       <ComparisonTable
         caption="SGD cost of each hedge across historical windows"
         rowHeader="Hedge"
+        reference="unhedged"
         rows={rows}
       />
+      <p className="t-small font-medium">{HISTORICAL_CONTEXT}</p>
       <p className="prose-measure">
         {h.windows.toLocaleString("en-SG")} windows starting{" "}
         {formatDate(h.firstStart)} to {formatDate(h.lastStart)}. The forward
