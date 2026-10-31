@@ -21,6 +21,9 @@ SpotCheck is a free, static web app for students going on exchange. It replays h
 - When the plan is ambiguous or a data source doesn't behave as described, report it and propose an option. Don't silently improvise.
 - Explain non-obvious code in short comments. The owner must be able to explain every module in an interview.
 
+## Design
+All UI work must follow DESIGN.md. Read it before changing any component.
+
 ## Conventions
 - FX rates are always stored and passed as **SGD per 1 unit of foreign currency**. Frankfurter returns foreign per SGD, so invert at ingestion, once, in one tested function.
 - Interest rates are decimals (0.0325, not 3.25). Time is in years, ACT/365.

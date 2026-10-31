@@ -11,7 +11,9 @@ test("hedging tab prices a forward and an option for USD", async ({ page }) => {
   await expect(page.getByText(/Forward to 1 Aug 2027/)).toBeVisible();
   await expect(page.getByText("Premium per unit")).toBeVisible();
   await expect(
-    page.getByRole("img", { name: /no hedge, a forward, and a call option/ }),
+    page.getByRole("group", {
+      name: /no hedge, a forward, and a call option/,
+    }),
   ).toBeVisible();
   await expect(page.getByText("Not financial advice")).toBeVisible();
 });
@@ -27,6 +29,41 @@ test("the strike slider updates the URL", async ({ page }) => {
 test("other currencies get a USD-only notice", async ({ page }) => {
   await page.goto("/advanced?c=EUR");
   await expect(page.getByText(/only has for USD so far/)).toBeVisible();
+});
+
+test("the hedging headline states the forward's price", async ({ page }) => {
+  await page.goto(
+    "/advanced?c=USD&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2",
+  );
+  const forward = page
+    .getByText(/^Forward to 1 Aug 2027/)
+    .locator("xpath=..")
+    .locator("dd");
+  const rate = (await forward.textContent())!.split(" ")[0]!;
+  await expect(page.getByTestId("answer")).toContainText(
+    `A forward would fix ${rate} SGD per USD for 1 Aug 2027`,
+  );
+  // The reason sits right under it, and agrees with the rates shown below.
+  const pct = async (label: RegExp) =>
+    Number(
+      (await page
+        .getByText(label)
+        .locator("xpath=..")
+        .locator("dd")
+        .textContent())!.replace("%", ""),
+    );
+  const sgd = await pct(/^SGD rate: SORA/);
+  const usd = await pct(/^USD rate: fed funds/);
+  await expect(page.getByTestId("carry")).toHaveText(
+    `That's because USD interest rates are ${usd > sgd ? "higher" : "lower"} than SGD rates. That gap is carry, not a forecast.`,
+  );
+});
+
+test("the 404 page has its own title", async ({ page }) => {
+  // Cloudflare Pages serves 404.html for unknown paths; the local test
+  // server doesn't, so load the page itself.
+  await page.goto("/404");
+  await expect(page).toHaveTitle("Page not found | SpotCheck");
 });
 
 test("the nav keeps the scenario when switching tabs", async ({ page }) => {

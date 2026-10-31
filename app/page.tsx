@@ -1,24 +1,23 @@
 import { Suspense } from "react";
-import { Planner } from "./components/Planner";
+import { Planner, PlannerFallback } from "./components/Planner";
 
 export default function Home() {
   return (
-    <div className="space-y-6">
-      {/* Static, so it paints before any JavaScript runs. */}
-      <section className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Exchange money planner
+    <div className="layout pt-10 lg:pt-16">
+      {/* The question is static, outside the planner's Suspense boundary, so
+          it paints before any script runs and is never re-rendered. */}
+      <div className="col-main lg:row-start-1">
+        <h1 className="t-display">
+          What difference does your exchange strategy make?
         </h1>
-        <p className="text-muted-foreground">
-          Enter how much foreign currency you need and by when. SpotCheck
-          replays four ways of converting it over every comparable period since
-          1999 and shows the range of SGD costs.
+        <p className="t-lede mt-5">
+          Explore how four ways of converting currency played out across
+          historical exchange-rate movements.
         </p>
-      </section>
-      {/* useSearchParams needs a Suspense boundary in a static export. */}
-      <Suspense
-        fallback={<p className="text-muted-foreground">Loading planner…</p>}
-      >
+      </div>
+      {/* useSearchParams needs a Suspense boundary in a static export. The
+          fallback has the planner's shape, so nothing jumps when it loads. */}
+      <Suspense fallback={<PlannerFallback />}>
         <Planner />
       </Suspense>
     </div>

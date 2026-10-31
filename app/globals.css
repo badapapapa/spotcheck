@@ -2,146 +2,496 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Every value comes from DESIGN.md. Change it there first, then here. */
+
 @custom-variant dark (@media (prefers-color-scheme: dark));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-serif);
+  --color-background: var(--paper);
+  --color-foreground: var(--ink);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-rule: var(--rule);
+  --color-border: var(--rule);
+  --color-input: var(--input);
+  --color-ink: var(--ink);
+  --color-heading: var(--ink);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-fg: var(--accent-fg);
+  --color-link: var(--accent);
+  --color-ring: var(--accent);
+  --color-caution: var(--caution);
+  --color-destructive: var(--negative);
+  --color-negative: var(--negative);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--ink);
   --color-series-1: var(--series-1);
   --color-series-2: var(--series-2);
   --color-series-3: var(--series-3);
   --color-series-4: var(--series-4);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  /* Chart series (validated categorical slots 1-4, light surface) */
-  --series-1: #2a78d6;
-  --series-2: #eb6834;
-  --series-3: #1baf7a;
-  --series-4: #eda100;
-  --chart-grid: oklch(0.922 0 0);
+  /* §2 colour */
+  --paper: #f6f4ee;
+  --surface: #fcfbf8;
+  --sunken: #eeebe3;
+  --rule: #d9d4c8;
+  --input: #8a8578;
+  --ink: #16181a;
+  --muted: #575b5e;
+  --accent: #1d5c45;
+  --accent-strong: #164836;
+  --accent-fg: #ffffff;
+  --accent-soft: #e1ebe4;
+  --caution: #8a5800;
+  --negative: #a3392a;
+  --series-1: #2763b0;
+  --series-2: #c9581f;
+  --series-3: #00897a;
+  --series-4: #9150a8;
+  /* The call option's own colour (DESIGN.md §2): no planner strategy uses it. */
+  --series-option: #9a6b00;
+  /* §4 shape and space */
+  --shadow-pop: 0 1px 2px rgb(22 24 26 / 6%), 0 8px 24px rgb(22 24 26 / 10%);
+  --content: 75rem;
+  --measure: 68ch;
+  /* §8 motion */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --fast: 150ms;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --series-4: #c98500;
-    --chart-grid: oklch(1 0 0 / 10%);
+    --paper: #111311;
+    --surface: #181b19;
+    --sunken: #1f2320;
+    --rule: #2c312d;
+    --input: #6e756f;
+    --ink: #eceae3;
+    --muted: #a6aaa3;
+    --accent: #7cc4a0;
+    --accent-strong: #9ad6b8;
+    --accent-fg: #0d1a13;
+    --accent-soft: #1c2b23;
+    --caution: #e0b15c;
+    --negative: #f0907f;
+    --series-1: #4a86e8;
+    --series-2: #e0662a;
+    --series-3: #12a388;
+    --series-4: #9a72da;
+    --series-option: #b88520;
+    --shadow-pop: 0 1px 2px rgb(0 0 0 / 40%), 0 12px 28px rgb(0 0 0 / 45%);
   }
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
+    @apply border-rule;
   }
   html {
     @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Phones have fixed bars: the summary bar along the top (56px) and the
+     tab bar along the bottom (56px plus the safe area). Scrolling a control
+     into view (focus, find, anchors) keeps it clear of both, so a focused
+     button is never hidden behind a bar (WCAG 2.4.11). */
+  @media (width < 64rem) {
+    html {
+      scroll-padding-top: 64px;
+      scroll-padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    }
+  }
+  body {
+    @apply bg-paper text-ink;
+    font-size: 16px;
+    line-height: 25px;
+  }
+  /* §7 focus: 3px accent ring, 2px offset, on everything focusable. */
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [tabindex]
+  ):focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+  /* Recharts makes its charts focusable for keyboard users; a tap or click
+     shouldn't leave a box around the chart, but keyboard focus still does. */
+  .recharts-wrapper :focus:not(:focus-visible),
+  .recharts-surface:focus:not(:focus-visible) {
+    outline: none;
+  }
+  ::selection {
+    background: var(--accent-soft);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* §3 type scale. The serif is for page titles only; everything else,
+     section headings included, is the interface sans. */
+  .t-display,
+  .t-h1 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .t-display {
+    font-size: 36px;
+    line-height: 40px;
+    letter-spacing: -0.015em;
+  }
+  .t-h1 {
+    font-size: 34px;
+    line-height: 40px;
+    letter-spacing: -0.01em;
+  }
+  .t-h2 {
+    font-size: 20px;
+    line-height: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .t-h3 {
+    font-size: 17px;
+    line-height: 24px;
+    font-weight: 600;
+  }
+  .t-lede {
+    font-size: 17px;
+    line-height: 27px;
+    color: var(--muted);
+    max-width: var(--measure);
+    text-wrap: pretty;
+  }
+  .t-small {
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .t-label {
+    font-size: 13px;
+    line-height: 16px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .t-data-l {
+    font-size: 32px;
+    line-height: 36px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .t-data-m {
+    font-size: 20px;
+    line-height: 26px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  @media (width >= 64rem) {
+    .t-display {
+      font-size: 60px;
+      line-height: 64px;
+    }
+    .t-h1 {
+      font-size: 44px;
+      line-height: 50px;
+    }
+    .t-h2 {
+      font-size: 24px;
+      line-height: 30px;
+    }
+    .t-lede {
+      font-size: 19px;
+      line-height: 30px;
+    }
+    .t-data-l {
+      font-size: 40px;
+      line-height: 44px;
+    }
+    .t-data-m {
+      font-size: 22px;
+      line-height: 28px;
+    }
+  }
+  .prose-measure {
+    max-width: var(--measure);
+  }
+
+  /* §4 layout: one content width with responsive gutters. */
+  .page {
+    width: 100%;
+    max-width: calc(var(--content) + 80px);
+    margin-inline: auto;
+    padding-inline: 16px;
+  }
+  @media (width >= 48rem) {
+    .page {
+      padding-inline: 24px;
+    }
+  }
+  @media (width >= 64rem) {
+    .page {
+      padding-inline: 40px;
+    }
+  }
+  /*
+   * The page grid (§4). Static parts (the question) and the planner's client
+   * parts are siblings in one grid, so the question never re-renders when the
+   * planner loads. One content column on phones and tablets; 12 columns from
+   * 1024px. `.bleed` children span the whole width (the exploration band).
+   */
+  .layout {
+    display: grid;
+    grid-template-columns:
+      [full-start] 16px [content-start] minmax(0, 1fr)
+      [content-end] 16px [full-end];
+  }
+  .layout > * {
+    grid-column: content;
+  }
+  .layout > .bleed {
+    grid-column: full;
+  }
+  @media (width >= 48rem) {
+    .layout {
+      grid-template-columns:
+        [full-start] 24px [content-start] minmax(0, 1fr)
+        [content-end] 24px [full-end];
+    }
+  }
+  @media (width >= 64rem) {
+    .layout {
+      column-gap: 24px;
+      grid-template-columns:
+        [full-start] minmax(16px, 1fr)
+        [content-start] repeat(12, minmax(0, 78px))
+        [content-end] minmax(16px, 1fr) [full-end];
+    }
+    .layout > .col-main {
+      grid-column: content-start / span 7;
+    }
+    .layout > .col-side {
+      grid-column: span 5 / content-end;
+    }
+  }
+  /* Sections: 64px apart on phones, 96px on laptops, each opened by a rule. */
+  .section {
+    margin-top: 64px;
+    padding-top: 32px;
+    border-top: 1px solid var(--rule);
+  }
+  @media (width >= 64rem) {
+    .section {
+      margin-top: 96px;
+      padding-top: 40px;
+    }
+  }
+
+  /* §7 links */
+  .link {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  .link:hover {
+    color: var(--accent-strong);
+    text-decoration-thickness: 2px;
+  }
+
+  /* §7 buttons: exactly two styles. */
+  .btn-primary,
+  .btn-secondary {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-[15px] font-medium whitespace-nowrap select-none disabled:cursor-not-allowed disabled:opacity-50;
+    transition:
+      background-color var(--fast) var(--ease),
+      border-color var(--fast) var(--ease);
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-fg);
+  }
+  .btn-primary:not(:disabled):hover {
+    background: var(--accent-strong);
+  }
+  .btn-primary:not(:disabled):active {
+    transform: translateY(1px);
+  }
+  .btn-secondary {
+    color: var(--ink);
+    border: 1.5px solid var(--input);
+    background: transparent;
+  }
+  .btn-secondary:not(:disabled):hover {
+    border-color: var(--ink);
+  }
+  .btn-secondary:not(:disabled):active {
+    background: var(--sunken);
+  }
+
+  /* §7 fields. Chips sit inside the converter sentence. */
+  .field-chip {
+    @apply inline-flex h-11 min-w-0 items-center rounded-md border-[1.5px] border-input bg-surface px-3 text-ink;
+    font: inherit;
+    transition: border-color var(--fast) var(--ease);
+  }
+  .field-input {
+    @apply h-11 w-full rounded-md border-[1.5px] border-input bg-surface px-3 text-base text-ink;
+    transition: border-color var(--fast) var(--ease);
+  }
+  .field-chip:hover,
+  .field-input:hover {
+    border-color: var(--ink);
+  }
+  .field-chip[aria-invalid="true"],
+  .field-input[aria-invalid="true"] {
+    border-color: var(--negative);
+  }
+  .field-chip:disabled {
+    cursor: progress;
+  }
+  /* Number spinners crowd a short inline field; arrow keys still work. */
+  .no-spin {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  .no-spin::-webkit-inner-spin-button,
+  .no-spin::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.7;
+  }
+  input[type="range"] {
+    accent-color: var(--accent);
+  }
+
+  /* Resting heights of the converter and the result, shared with the
+     loading fallback so the page doesn't move when the planner loads.
+     Measured from the real components at each breakpoint. */
+  .converter-min-h {
+    min-height: 281px;
+  }
+  .result-min-h {
+    min-height: 537px;
+  }
+  @media (width < 400px) {
+    .result-min-h {
+      min-height: 553px;
+    }
+  }
+  @media (width < 380px) {
+    .result-min-h {
+      min-height: 611px;
+    }
+  }
+  /* Only the narrowest phones wrap the converter's sentence onto a third
+     line; at 375px it fits in 281px, so no empty space under More options. */
+  @media (width < 370px) {
+    .converter-min-h {
+      min-height: 301px;
+    }
+    .result-min-h {
+      min-height: 635px;
+    }
+  }
+  @media (width >= 40rem) {
+    .converter-min-h {
+      min-height: 245px;
+    }
+    .result-min-h {
+      min-height: 511px;
+    }
+  }
+  @media (width >= 64rem) {
+    .converter-min-h {
+      min-height: 299px;
+    }
+    .result-min-h {
+      min-height: 569px;
+    }
+  }
+  @media (width >= 80rem) {
+    .converter-min-h {
+      min-height: 247px;
+    }
+    .result-min-h {
+      min-height: 511px;
+    }
+  }
+  /* Placeholder blocks that hold a result's space while it loads. */
+  .skeleton {
+    @apply rounded-sm bg-sunken;
+  }
+
+  /* §5 the spot motif as a progress indicator: a dot travels a hairline. */
+  .spot-track {
+    position: relative;
+    height: 12px;
+    width: 96px;
+  }
+  .spot-track::before {
+    content: "";
+    position: absolute;
+    inset: 50% 0 auto;
+    height: 1px;
+    background: var(--input);
+  }
+  .spot-track::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    /* transform, not left: moving left would count as layout shift. */
+    animation: spot-travel 1.2s var(--ease) infinite alternate;
+  }
+  @keyframes spot-travel {
+    to {
+      transform: translateX(88px);
+    }
+  }
+
+  .fade-in {
+    animation: fade-in var(--fast) var(--ease);
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
   }
 }

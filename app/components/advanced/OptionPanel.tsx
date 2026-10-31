@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo } from "react";
+import { useId, useMemo, useState } from "react";
 import {
   CartesianGrid,
   Legend,
@@ -18,20 +18,14 @@ import {
   type GkInputs,
   type Greeks,
 } from "@/engine/options.ts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { formatDate } from "@/lib/dates.ts";
 import { formatPercent, formatRate, formatSgd } from "@/lib/format.ts";
 import { HEDGE_STYLE } from "@/lib/hedge-style.ts";
+import { useCoarsePointer } from "@/lib/use-coarse-pointer.ts";
 import { niceTicks, sgdTickDecimals, type Ticks } from "@/lib/ticks.ts";
 import { LIMITS, VOL_LOOKBACKS, type VolLookback } from "@/lib/url-state.ts";
+import { HelpTip } from "../HelpTip";
+import { ValueRows } from "../ValueRows";
 
 type Props = {
   currency: string;
@@ -47,12 +41,26 @@ type Props = {
   onVol: (override: number | undefined, lookback: VolLookback) => void;
 };
 
-const axisTick = { fill: "var(--muted-foreground)", fontSize: 12 };
+const axisTick = { fill: "var(--muted)", fontSize: 12 };
 const tooltipStyle = {
-  background: "var(--popover)",
-  border: "1px solid var(--border)",
+  background: "var(--surface)",
+  border: "1px solid var(--rule)",
   borderRadius: 8,
-  color: "var(--popover-foreground)",
+  color: "var(--ink)",
+  fontSize: 13,
+};
+
+/** Plain-English notes for the "What is this?" tips. */
+const HELP = {
+  premium:
+    "What the option costs up front, per unit of foreign currency. You pay it whether or not you end up using the option.",
+  delta:
+    "How much the option's value moves when the spot rate moves by 1 SGD, per unit. Near 0.5 means about half as sensitive as the currency itself.",
+  gamma:
+    "How quickly delta itself changes as the spot rate moves. It is largest when the rate is near the strike.",
+  vega: "How much the option's value changes if volatility rises by one percentage point.",
+  theta:
+    "How much the option's value changes each day as the deadline gets closer, with everything else unchanged. It can be positive: when the foreign currency's interest rate is above the SGD rate, the forward sits below spot and moves up toward it as the deadline nears, which adds value to the call.",
 };
 
 /** Panel 2: price a call on the foreign currency, its payoff and its Greeks. */
@@ -94,24 +102,37 @@ export function OptionPanel(props: Props) {
     payoff.flatMap((p) => [p.unhedged, p.forward, p.option]),
     4,
   );
+  // Round rate ticks (1.10, 1.20, …), kept inside the plotted range.
+  const rateAxis = insideTicks(grid[0]!, grid.at(-1)!, 4);
+  const greekRateAxis = insideTicks(grid[0]!, grid.at(-1)!, 3);
+  const coarse = useCoarsePointer();
+  const [payoffAt, setPayoffAt] = useState<number | undefined>();
+  const [greekAt, setGreekAt] = useState<
+    Partial<Record<keyof Greeks, number | undefined>>
+  >({});
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Option hedge</CardTitle>
-        <CardDescription>
-          A call option gives the right, not the obligation, to buy {currency}{" "}
-          at the strike on your deadline. You pay a premium today; if the rate
-          ends up above the strike you convert at the strike, otherwise at the
-          market rate.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <>
+      <section
+        aria-labelledby="option-title"
+        className="space-y-6 lg:border-l lg:pl-12"
+      >
+        <div>
+          <h2 id="option-title" className="t-h2">
+            What an option would cost
+          </h2>
+          <p className="mt-3 text-muted-foreground">
+            A call option gives the right, not the obligation, to buy {currency}{" "}
+            at the strike on your deadline. You pay a premium today; if the rate
+            ends up above the strike you convert at the strike, otherwise at the
+            market rate.
+          </p>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid content-start gap-1.5">
-            <Label htmlFor={`${id}-strike`}>
+            <label htmlFor={`${id}-strike`} className="t-small font-medium">
               Strike: {formatRate(K)} ({Math.round(strikePct * 100)}% of spot)
-            </Label>
+            </label>
             <input
               id={`${id}-strike`}
               type="range"
@@ -121,13 +142,15 @@ export function OptionPanel(props: Props) {
               value={Math.round(strikePct * 100)}
               onChange={(e) => props.onStrike(Number(e.target.value) / 100)}
               aria-valuetext={`${e2s(strikePct)} of spot, ${formatRate(K)}`}
-              className="w-full accent-primary"
+              className="h-11 w-full accent-primary"
             />
           </div>
           <div className="grid content-start gap-1.5">
-            <Label htmlFor={`${id}-vol`}>Volatility (% a year)</Label>
+            <label htmlFor={`${id}-vol`} className="t-small font-medium">
+              Volatility (% a year)
+            </label>
             <div className="flex gap-2">
-              <Input
+              <input
                 id={`${id}-vol`}
                 type="number"
                 inputMode="decimal"
@@ -147,7 +170,7 @@ export function OptionPanel(props: Props) {
                   else if (v >= LIMITS.volPct.min && v <= LIMITS.volPct.max)
                     props.onVol(v / 100, realised.lookback);
                 }}
-                className="h-10"
+                className="field-input min-w-0 flex-1"
               />
               <select
                 aria-label="Realised volatility lookback"
@@ -159,7 +182,7 @@ export function OptionPanel(props: Props) {
                       250,
                   )
                 }
-                className="h-10 rounded-lg border border-input bg-transparent px-2 text-sm dark:bg-input/30"
+                className="field-input w-auto"
               >
                 {VOL_LOOKBACKS.map((n) => (
                   <option key={n} value={n}>
@@ -168,7 +191,7 @@ export function OptionPanel(props: Props) {
                 ))}
               </select>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {volOverride === undefined
                 ? `Realised volatility (proxy for implied): ${(realised.sigma * 100).toFixed(1)}%, from ${realised.lookback} trading days ${formatDate(realised.from)}–${formatDate(realised.to)}. Type a number to override.`
                 : `Your override. Leave it empty to use realised volatility (${(realised.sigma * 100).toFixed(1)}%).`}
@@ -176,29 +199,40 @@ export function OptionPanel(props: Props) {
           </div>
         </div>
 
-        <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-          <Stat label="Premium per unit" value={`${formatRate(premium)} SGD`} />
-          <Stat
-            label={`Premium for ${amount.toLocaleString("en-SG")} ${currency}`}
-            value={formatSgd(premium * amount)}
-          />
-          <Stat
-            label="Premium, % of notional"
-            value={formatPercent(premium / base.S, 2)}
-          />
-          <Stat
-            label="Worst-case cost"
-            value={formatSgd(amount * (premium + K * (1 + spread)))}
-          />
-        </dl>
+        <ValueRows
+          rows={[
+            {
+              key: "unit",
+              label: (
+                <>
+                  Premium per unit
+                  <HelpTip term="the premium">{HELP.premium}</HelpTip>
+                </>
+              ),
+              value: `${formatRate(premium)} SGD`,
+            },
+            {
+              label: `Premium for ${amount.toLocaleString("en-SG")} ${currency}`,
+              value: formatSgd(premium * amount),
+            },
+            {
+              label: "Premium, % of notional",
+              value: formatPercent(premium / base.S, 2),
+            },
+            {
+              label: "Worst-case cost",
+              value: formatSgd(amount * (premium + K * (1 + spread))),
+            },
+          ]}
+        />
 
-        <section className="space-y-2">
-          <h3 className="text-sm font-medium">
+        <figure className="space-y-2">
+          <figcaption className="t-h3">
             Total SGD cost on {formatDate(props.deadline)}, by where the rate
             ends up
-          </h3>
+          </figcaption>
           <div
-            className="h-64 w-full"
+            className="h-72 w-full sm:h-64"
             role="img"
             aria-label={`Total SGD cost against the ${currency} rate on the deadline: unhedged rises with the rate, the forward is flat at ${formatSgd(amount * forward * (1 + spread))}, and the option is capped at ${formatSgd(amount * (premium + K * (1 + spread)))}.`}
           >
@@ -207,16 +241,20 @@ export function OptionPanel(props: Props) {
                 data={payoff}
                 // Room above the plot for the "today" label on the dashed line.
                 margin={{ top: 24, right: 8, bottom: 0, left: 8 }}
+                onClick={(st) => coarse && setPayoffAt(indexOf(st))}
+                onMouseMove={(st) => coarse && setPayoffAt(indexOf(st))}
               >
-                <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+                <CartesianGrid stroke="var(--rule)" vertical={false} />
                 <XAxis
                   dataKey="ST"
                   type="number"
                   domain={["dataMin", "dataMax"]}
-                  tickFormatter={(v: number) => formatRate(v)}
+                  tickFormatter={(v: number) =>
+                    v.toFixed(Math.max(2, rateAxis.decimals))
+                  }
                   tick={axisTick}
-                  stroke="var(--border)"
-                  ticks={[0.85, 0.925, 1, 1.075, 1.15].map((f) => base.S * f)}
+                  stroke="var(--rule)"
+                  ticks={rateAxis.ticks}
                 />
                 <YAxis
                   domain={payoffAxis.domain}
@@ -225,24 +263,34 @@ export function OptionPanel(props: Props) {
                     formatSgd(v, { decimals: sgdTickDecimals(payoffAxis) })
                   }
                   tick={axisTick}
-                  stroke="var(--border)"
+                  stroke="var(--rule)"
                   width={76}
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
+                  separator=": "
+                  // Touch: no floating box (it stays open and covers the
+                  // chart); the readout under the chart shows the values.
+                  content={coarse ? () => null : undefined}
                   labelFormatter={(v) =>
                     `Rate on deadline ${formatRate(Number(v))}`
                   }
                   formatter={(v, name) => [formatSgd(Number(v)), name]}
                 />
-                <Legend wrapperStyle={{ fontSize: 13 }} />
+                <Legend
+                  wrapperStyle={{ fontSize: 13, paddingTop: 8 }}
+                  // Names in ink; the marker beside each carries the colour.
+                  formatter={(name) => (
+                    <span style={{ color: "var(--muted)" }}>{name}</span>
+                  )}
+                />
                 <ReferenceLine
                   x={base.S}
-                  stroke="var(--muted-foreground)"
+                  stroke="var(--muted)"
                   strokeDasharray="4 4"
                   label={{
                     value: "today",
-                    fill: "var(--muted-foreground)",
+                    fill: "var(--muted)",
                     fontSize: 12,
                     position: "top",
                   }}
@@ -261,122 +309,205 @@ export function OptionPanel(props: Props) {
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </section>
-
-        <section className="space-y-3">
-          <h3 className="text-sm font-medium">
-            Greeks: how the option&apos;s value responds
-          </h3>
-          <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-            <Stat
-              label="Delta"
-              value={greeks.delta.toFixed(3)}
-              hint="Change in option value per SGD move in spot, per unit"
-            />
-            <Stat
-              label="Gamma"
-              value={greeks.gamma.toFixed(2)}
-              hint="Change in delta per SGD move in spot"
-            />
-            <Stat
-              label="Vega"
-              value={formatSgd((greeks.vega / 100) * amount)}
-              hint={`Value change for ${amount.toLocaleString("en-SG")} ${currency} per 1-point rise in volatility`}
-            />
-            <Stat
-              label="Theta"
-              value={formatSgd((greeks.theta / 365) * amount)}
-              hint={`Value change for ${amount.toLocaleString("en-SG")} ${currency} per day that passes`}
-            />
-          </dl>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {greekCharts(amount)
-              .map((g) => ({
-                ...g,
-                axis: axisFor(
-                  greekCurves.map((d) => g.scale(d[g.key])),
-                  3,
-                ),
-              }))
-              .map((g) => (
-                <figure key={g.key} className="space-y-1">
-                  <figcaption className="text-xs text-muted-foreground">
-                    {g.title} vs spot
-                  </figcaption>
-                  <div
-                    className="h-40 w-full"
-                    role="img"
-                    aria-label={`${g.title} against spot; at today's spot it is ${g.format(g.scale(greeks[g.key]))}.`}
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={greekCurves}
-                        margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
-                      >
-                        <CartesianGrid
-                          stroke="var(--chart-grid)"
-                          vertical={false}
-                        />
-                        <XAxis
-                          dataKey="S"
-                          type="number"
-                          domain={["dataMin", "dataMax"]}
-                          tickFormatter={(v: number) => formatRate(v)}
-                          tick={axisTick}
-                          stroke="var(--border)"
-                          ticks={[0.85, 1, 1.15].map((f) => base.S * f)}
-                        />
-                        <YAxis
-                          domain={g.axis.domain}
-                          ticks={g.axis.ticks}
-                          tickFormatter={(v: number) =>
-                            g.sgd
-                              ? formatSgd(v, {
-                                  decimals: sgdTickDecimals(g.axis),
-                                })
-                              : v.toFixed(g.axis.decimals)
-                          }
-                          tick={axisTick}
-                          stroke="var(--border)"
-                          width={64}
-                        />
-                        <Tooltip
-                          contentStyle={tooltipStyle}
-                          labelFormatter={(v) =>
-                            `Spot ${formatRate(Number(v))}`
-                          }
-                          formatter={(v) => [g.format(Number(v)), g.title]}
-                        />
-                        <ReferenceLine
-                          x={base.S}
-                          stroke="var(--muted-foreground)"
-                          strokeDasharray="4 4"
-                        />
-                        <Line
-                          dataKey={(d: Greeks) => g.scale(d[g.key])}
-                          name={g.title}
-                          stroke="var(--series-2)"
-                          strokeWidth={2}
-                          dot={false}
-                          isAnimationActive={false}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </figure>
-              ))}
-          </div>
-        </section>
+          {coarse && (
+            <p
+              className="t-small min-h-10 tabular-nums"
+              aria-live="polite"
+              data-testid="payoff-readout"
+            >
+              {payoffAt === undefined ? (
+                <span className="text-muted-foreground">
+                  Tap the chart to read the values.
+                </span>
+              ) : (
+                <>
+                  <span className="font-medium">
+                    Rate on deadline {formatRate(payoff[payoffAt]!.ST)}:
+                  </span>{" "}
+                  {(["unhedged", "forward", "option"] as const)
+                    .map(
+                      (h) =>
+                        `${HEDGE_STYLE[h].short} ${formatSgd(payoff[payoffAt]![h])}`,
+                    )
+                    .join(", ")}
+                </>
+              )}
+            </p>
+          )}
+        </figure>
 
         <p className="text-xs text-muted-foreground">
           Priced with Garman-Kohlhagen, using continuously compounded
           equivalents of the rates in the forward panel. The premium&apos;s own
           time value (interest you could have earned on it) is ignored. Real
-          option quotes use implied volatility and a dealer margin, so they will
+          option quotes use implied volatility and a dealer margin, so they
           differ.
         </p>
-      </CardContent>
-    </Card>
+      </section>
+
+      <section
+        aria-labelledby="greeks-title"
+        className="space-y-6 border-t pt-10 lg:col-span-2"
+      >
+        <div>
+          <h2 id="greeks-title" className="t-h2">
+            How the option responds
+          </h2>
+          <p className="mt-3 text-muted-foreground">
+            The Greeks: how the option&apos;s value changes as the rate,
+            volatility and time move.
+          </p>
+        </div>
+        <div className="grid gap-x-8 xl:grid-cols-2">
+          <ValueRows
+            rows={[
+              {
+                key: "delta",
+                label: (
+                  <>
+                    Delta, per unit
+                    <HelpTip term="delta">{HELP.delta}</HelpTip>
+                  </>
+                ),
+                value: greeks.delta.toFixed(3),
+              },
+              {
+                key: "gamma",
+                label: (
+                  <>
+                    Gamma, per unit
+                    <HelpTip term="gamma">{HELP.gamma}</HelpTip>
+                  </>
+                ),
+                value: greeks.gamma.toFixed(2),
+              },
+            ]}
+          />
+          <ValueRows
+            rows={[
+              {
+                key: "vega",
+                label: (
+                  <>
+                    Vega, per volatility point
+                    <HelpTip term="vega">{HELP.vega}</HelpTip>
+                  </>
+                ),
+                value: formatSgd((greeks.vega / 100) * amount),
+              },
+              {
+                key: "theta",
+                label: (
+                  <>
+                    Theta, per day
+                    <HelpTip term="theta">{HELP.theta}</HelpTip>
+                  </>
+                ),
+                value: formatSgd((greeks.theta / 365) * amount),
+              },
+            ]}
+          />
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Vega and theta are for your {amount.toLocaleString("en-SG")}{" "}
+          {currency}, in SGD.
+        </p>
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          {greekCharts(amount)
+            .map((g) => ({
+              ...g,
+              axis: axisFor(
+                greekCurves.map((d) => g.scale(d[g.key])),
+                3,
+              ),
+            }))
+            .map((g) => (
+              <figure key={g.key} className="space-y-1">
+                <figcaption className="text-sm text-muted-foreground">
+                  {g.title} vs spot
+                </figcaption>
+                <div
+                  className="h-40 w-full"
+                  role="img"
+                  aria-label={`${g.title} against spot; at today's spot it is ${g.format(g.scale(greeks[g.key]))}.`}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={greekCurves}
+                      margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+                      onClick={(st) =>
+                        coarse &&
+                        setGreekAt((a) => ({ ...a, [g.key]: indexOf(st) }))
+                      }
+                      onMouseMove={(st) =>
+                        coarse &&
+                        setGreekAt((a) => ({ ...a, [g.key]: indexOf(st) }))
+                      }
+                    >
+                      <CartesianGrid stroke="var(--rule)" vertical={false} />
+                      <XAxis
+                        dataKey="S"
+                        type="number"
+                        domain={["dataMin", "dataMax"]}
+                        tickFormatter={(v: number) =>
+                          v.toFixed(Math.max(2, greekRateAxis.decimals))
+                        }
+                        tick={axisTick}
+                        stroke="var(--rule)"
+                        ticks={greekRateAxis.ticks}
+                      />
+                      <YAxis
+                        domain={g.axis.domain}
+                        ticks={g.axis.ticks}
+                        tickFormatter={(v: number) =>
+                          g.sgd
+                            ? formatSgd(v, {
+                                decimals: sgdTickDecimals(g.axis),
+                              })
+                            : v.toFixed(g.axis.decimals)
+                        }
+                        tick={axisTick}
+                        stroke="var(--rule)"
+                        width={64}
+                      />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        separator=": "
+                        content={coarse ? () => null : undefined}
+                        labelFormatter={(v) => `Spot ${formatRate(Number(v))}`}
+                        formatter={(v) => [g.format(Number(v)), g.title]}
+                      />
+                      <ReferenceLine
+                        x={base.S}
+                        stroke="var(--muted)"
+                        strokeDasharray="4 4"
+                      />
+                      <Line
+                        dataKey={(d: Greeks) => g.scale(d[g.key])}
+                        name={g.title}
+                        stroke={HEDGE_STYLE.option.color}
+                        strokeWidth={2}
+                        dot={false}
+                        isAnimationActive={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                {coarse && (
+                  <p
+                    className="t-small min-h-5 text-muted-foreground tabular-nums"
+                    aria-live="polite"
+                  >
+                    {greekAt[g.key] === undefined
+                      ? "Tap to read a value."
+                      : `Spot ${formatRate(greekCurves[greekAt[g.key]!]!.S)}: ${g.format(g.scale(greekCurves[greekAt[g.key]!]![g.key]))}`}
+                  </p>
+                )}
+              </figure>
+            ))}
+        </div>
+      </section>
+    </>
   );
 }
 
@@ -421,25 +552,21 @@ function greekCharts(amount: number): {
   ];
 }
 
+/** The chart's active point from a Recharts event, if any. */
+function indexOf(
+  st: { activeTooltipIndex?: number | string | null } | null | undefined,
+) {
+  const i = st?.activeTooltipIndex;
+  return i === null || i === undefined ? undefined : Number(i);
+}
+
+/** Tidy ticks for a range, dropping any that fall outside it. */
+function insideTicks(lo: number, hi: number, target: number): Ticks {
+  const t = niceTicks(lo, hi, target);
+  return { ...t, ticks: t.ticks.filter((v) => v >= lo && v <= hi) };
+}
+
 /** Tidy, never-repeating ticks for a set of plotted values. */
 function axisFor(values: number[], target: number): Ticks {
   return niceTicks(Math.min(...values), Math.max(...values), target);
-}
-
-function Stat({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-border p-3">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="text-base font-semibold tabular-nums">{value}</dd>
-      {hint && <dd className="text-xs text-muted-foreground">{hint}</dd>}
-    </div>
-  );
 }

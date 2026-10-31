@@ -1,14 +1,18 @@
 // Plain-English description of a replay. It reports what happened in the
-// history and never says what anyone should do.
+// history and never says what anyone should do. Every strategy gets the same
+// sentence, in the fixed order, with the same measures, each compared only
+// with converting all at once: no sentence compares two other strategies or
+// ranks them (DESIGN.md §1, tested in summary.test.ts).
 
 import type { ReplayResult } from "@/engine/replay.ts";
-import type { Scenario } from "@/engine/types.ts";
+import type { Scenario, StrategyId } from "@/engine/types.ts";
 import { formatDate } from "./dates.ts";
-import { formatPercent, formatSgd } from "./format.ts";
+import { formatPct, formatPercent, formatSgdAt } from "./format.ts";
+import { signedSgd } from "./signed.ts";
+import { STRATEGY_STYLE } from "./strategy-style.ts";
 
-function compare(diff: number, lower: string, higher: string): string {
-  return `${formatSgd(Math.abs(diff))} ${diff < 0 ? lower : higher}`;
-}
+/** The strategies described against all at once, in the fixed order. */
+const COMPARED: StrategyId[] = ["tranches", "wait", "target"];
 
 export function describeReplay(
   r: ReplayResult,
@@ -18,9 +22,7 @@ export function describeReplay(
   const { stats } = r;
   const months = Math.round(r.windowDays / 30.44);
   const lump = stats.lumpSum.summary.median;
-  const tr = stats.tranches.summary;
-  const wait = stats.wait.summary;
-  const target = stats.target.summary;
+  const sgd = (v: number) => formatSgdAt(v, lump);
   const lines: string[] = [];
 
   lines.push(
@@ -28,22 +30,24 @@ export function describeReplay(
       `Because neighbouring windows share most of their days, that is closer to ${r.independentWindows} separate histories than ${r.windows.toLocaleString("en-SG")}.`,
   );
   lines.push(
-    `Converting everything at once costs ${formatSgd(lump)} at today's mid rate plus your spread. That cost is known today, so it has no range.`,
+    `All at once: ${sgd(lump)} at the latest mid rate plus your spread, known today, so it has no range.`,
   );
-  lines.push(
-    `Waiting until the deadline ranged from ${formatSgd(wait.p5)} to ${formatSgd(wait.p95)} in 90% of windows, with a most expensive case of ${formatSgd(wait.max)}. ` +
-      `It cost less than converting at once in ${formatPercent(stats.wait.beatLumpSum)} of windows.`,
-  );
-  if (scenario.tranches > 1) {
+  for (const id of COMPARED) {
+    const s = stats[id].summary;
+    // The only per-strategy extra is what the strategy is set to (and, for
+    // the target, how often it was reached): the measures never change.
+    const setting =
+      id === "tranches"
+        ? ` (${scenario.tranches} conversion${scenario.tranches === 1 ? "" : "s"})`
+        : id === "target"
+          ? ` (${formatPct(targetBelowSpot)} below the starting rate, reached in ${formatPercent(r.targetHitShare)} of windows)`
+          : "";
     lines.push(
-      `In this history, spreading over ${scenario.tranches} conversions had a most expensive case ${compare(tr.max - wait.max, "lower", "higher")} than waiting, ` +
-        `and a median within ${formatSgd(Math.abs(tr.median - lump))} of converting at once.`,
+      `${STRATEGY_STYLE[id].label}${setting}: median ${signedSgd(s.median - lump, lump)} vs all at once, ` +
+        `middle 90% ${sgd(s.p5)}–${sgd(s.p95)}, worst case ${sgd(s.max)}; ` +
+        `cheaper than all at once in ${formatPercent(stats[id].beatLumpSum)} of windows.`,
     );
   }
-  lines.push(
-    `A target ${formatPercent(targetBelowSpot, 1)} below the starting rate was reached before the deadline in ${formatPercent(r.targetHitShare)} of windows; ` +
-      `when it wasn't, the plan fell back to converting on the deadline. Its median cost was ${compare(target.median - lump, "below", "above")} converting at once.`,
-  );
   lines.push(
     "These are past outcomes, not forecasts: future rates can move in ways this history never did.",
   );

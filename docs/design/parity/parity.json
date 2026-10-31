@@ -1,0 +1,23 @@
+[
+  {
+    "scenario": "c=USD&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2",
+    "identical": true,
+    "figuresCompared": 42,
+    "hedgingValuesCompared": 13,
+    "diffs": []
+  },
+  {
+    "scenario": "c=JPY&a=500000&s=2026-10-17&d=2027-03-01&k=4&sp=1&t=3",
+    "identical": true,
+    "figuresCompared": 42,
+    "hedgingValuesCompared": 0,
+    "diffs": []
+  },
+  {
+    "scenario": "c=EUR&a=8000&s=2026-10-17&d=2027-06-01&k=3&sp=0.75&t=2&ks=105",
+    "identical": true,
+    "figuresCompared": 42,
+    "hedgingValuesCompared": 0,
+    "diffs": []
+  }
+]

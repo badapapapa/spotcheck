@@ -1,0 +1,4 @@
+# Cloudflare Pages redirects. The Hedging tab lives at /advanced (the route
+# shared links already use); /hedging is the name people guess.
+/hedging   /advanced   301
+/hedging/  /advanced   301

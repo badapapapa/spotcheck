@@ -1,26 +1,38 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { IBM_Plex_Sans, Newsreader } from "next/font/google";
 import meta from "@/data/meta.json";
 import { formatDate } from "@/lib/dates.ts";
 import { DISCLAIMER, SITE_NAME, TAGLINE } from "@/lib/site";
 import { Suspense } from "react";
 import { SiteNav, SiteNavFallback } from "./components/SiteNav";
+import { Wordmark } from "./components/Wordmark";
 import "./globals.css";
 
-// next/font downloads the font at build time and serves it from our own
-// origin, so the page makes no third-party requests at runtime.
-const geistSans = Geist({
-  variable: "--font-sans",
+// next/font downloads the fonts at build time and serves them from our own
+// origin, so the page makes no third-party requests at runtime (CSP keeps
+// font-src 'self'). One file per family (DESIGN.md §3): Newsreader at its
+// single display weight (the variable font with optical sizes is 129 KB;
+// this is a fraction of that) for questions and headings, and IBM Plex Sans,
+// variable, for everything else, chosen for its clear tabular figures.
+const serif = Newsreader({
+  variable: "--font-serif",
   subsets: ["latin"],
+  weight: "400",
+  // Preloaded: at one weight it is small, and arriving with the first paint
+  // means the question never re-flows when the font swaps in.
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const body = IBM_Plex_Sans({
+  variable: "--font-body",
   subsets: ["latin"],
+  // "optional": if the font isn't ready within a moment of the first paint
+  // (a slow first visit), the size-matched fallback stays for that page view
+  // instead of swapping in later and re-flowing the text (layout shift).
+  display: "optional",
 });
 
 export const metadata: Metadata = {
-  title: `${SITE_NAME}: historical FX scenarios for exchange students`,
+  title: `${SITE_NAME}: what difference does your exchange strategy make?`,
   description: TAGLINE,
   // iPhone/iPad home-screen icon (also served at the conventional path).
   icons: { apple: "/apple-touch-icon.png" },
@@ -28,53 +40,70 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   colorScheme: "light dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f4ee" },
+    { media: "(prefers-color-scheme: dark)", color: "#111311" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  const ratesTo = formatDate(meta.series["SGD-USD"]?.last ?? "");
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${serif.variable} ${body.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <header className="border-b border-border">
-          <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-4">
-            <div>
-              <p className="text-xl font-semibold tracking-tight">
-                {SITE_NAME}
-              </p>
-              <p className="text-sm text-muted-foreground">{TAGLINE}</p>
+        <header className="border-b">
+          <div className="page flex h-14 items-center justify-between gap-3 lg:h-16 lg:gap-6">
+            <div className="flex h-full items-center gap-10">
+              <Wordmark />
+              <Suspense fallback={<SiteNavFallback variant="top" />}>
+                <SiteNav variant="top" />
+              </Suspense>
             </div>
-            <Suspense fallback={<SiteNavFallback pathname="" />}>
-              <SiteNav />
-            </Suspense>
+            {/* Visible at every width (CLAUDE.md rule 3); compact on phones. */}
+            <p
+              className="text-right text-[13px] leading-4 text-muted-foreground lg:text-sm"
+              data-testid="header-disclaimer"
+            >
+              Historical data, not advice
+            </p>
           </div>
         </header>
 
-        <main className="mx-auto min-h-svh w-full max-w-3xl flex-1 px-4 py-8">
-          {children}
-        </main>
+        {/* Bottom padding keeps content clear of the phone tab bar. */}
+        <main className="flex-1 pb-24 lg:pb-0">{children}</main>
 
-        <footer className="border-t border-border">
-          <div className="mx-auto w-full max-w-3xl space-y-2 px-4 py-6 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">{DISCLAIMER}</p>
-            <p>
-              Data:{" "}
-              {meta.attribution.map((source, i) => (
-                <span key={source.name}>
-                  {i > 0 && " · "}
-                  <a
-                    href={source.url}
-                    className="underline underline-offset-2 hover:text-foreground"
-                  >
-                    {source.name}
-                  </a>
-                </span>
-              ))}
-              . Rates up to {formatDate(meta.series["SGD-USD"]?.last ?? "")}.
-            </p>
+        <footer className="mt-16 border-t pb-[calc(72px+env(safe-area-inset-bottom))] lg:mt-24 lg:pb-0">
+          <div className="page grid gap-8 py-10 lg:grid-cols-12 lg:gap-6">
+            <div className="lg:col-span-5">
+              <p className="t-small font-medium">{DISCLAIMER}</p>
+              <p className="t-small mt-3 text-muted-foreground">
+                Rates up to {ratesTo}. Updated each working day.
+              </p>
+            </div>
+            <div className="lg:col-span-6 lg:col-start-7">
+              <p className="t-label">Data</p>
+              <ul className="t-small mt-1">
+                {meta.attribution.map((source) => (
+                  <li key={source.name}>
+                    <a
+                      href={source.url}
+                      className="inline-flex min-h-11 items-center text-muted-foreground underline decoration-rule underline-offset-[3px] hover:text-ink hover:decoration-ink"
+                    >
+                      {source.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </footer>
+
+        <Suspense fallback={<SiteNavFallback variant="bottom" />}>
+          <SiteNav variant="bottom" />
+        </Suspense>
       </body>
     </html>
   );
