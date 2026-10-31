@@ -1,9 +1,9 @@
 # Numbers parity: main vs the redesign
 
 Neither redesign changes a calculation, so every figure must match the live
-site exactly. For the editorial redesign (this version of the file), the live
-site, https://spotcheck-7qb.pages.dev (built from `main`), was compared with
-a local build of the branch, on the same data: both show "Rates up to
+site exactly. For the neutral revision of the editorial redesign (this
+version of the file), the live site, https://spotcheck-7qb.pages.dev (built
+from `main`), was compared with a local build of the branch, on the same data: both show "Rates up to
 29 Oct 2026". Direction A was checked the same way earlier, against a local
 build of `main` and against its Cloudflare preview.
 

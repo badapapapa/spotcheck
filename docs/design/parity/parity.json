@@ -10,7 +10,7 @@
         "Wait until deadline: median S$19,132, 5th to 95th percentile S$17,865 to S$20,416",
         "Target rate: median S$18,888, 5th to 95th percentile S$18,805 to S$20,340"
       ],
-      "summaryParagraphs": [
+      "summary": [
         "SpotCheck replayed your 9-month plan over 6,922 overlapping windows starting between 4 Jan 1999 and 14 Jan 2026. Because neighbouring windows share most of their days, that is closer to 35 separate histories than 6,922.",
         "Converting everything at once costs S$19,284 at today's mid rate plus your spread. That cost is known today, so it has no range.",
         "Waiting until the deadline ranged from S$17,865 to S$20,416 in 90% of windows, with a most expensive case of S$22,094. It cost less than converting at once in 57% of windows.",
@@ -34,7 +34,12 @@
         "Delta, per uniti": "0.255",
         "Gamma, per uniti": "7.90",
         "Vega, per volatility pointi": "S$54.06",
-        "Theta, per dayi": "S$0.02"
+        "Theta, per dayi": "S$0.02",
+        "Median": "S$19,418",
+        "Median vs unhedged": "+S$246",
+        "Middle 90%": "S$18,110–S$19,697",
+        "Worst case": "S$19,824",
+        "Cheaper than unhedged": "27% of periods"
       },
       "liveHedgingRows": {
         "Spot (16 Oct 2026)": "1.2792 SGD per USD",
@@ -64,7 +69,7 @@
         "Wait until deadline: median S$4,046, 5th to 95th percentile S$3,747 to S$4,410",
         "Target rate: median S$3,965, 5th to 95th percentile S$3,937 to S$4,404"
       ],
-      "summaryParagraphs": [
+      "summary": [
         "SpotCheck replayed your 4-month plan over 7,028 overlapping windows starting between 4 Jan 1999 and 16 Jun 2026. Because neighbouring windows share most of their days, that is closer to 75 separate histories than 7,028.",
         "Converting everything at once costs S$4,088 at today's mid rate plus your spread. That cost is known today, so it has no range.",
         "Waiting until the deadline ranged from S$3,747 to S$4,410 in 90% of windows, with a most expensive case of S$5,338. It cost less than converting at once in 60% of windows.",
@@ -85,7 +90,7 @@
         "Wait until deadline: median S$11,584, 5th to 95th percentile S$10,528 to S$12,477",
         "Target rate: median S$11,364, 5th to 95th percentile S$11,289 to S$12,449"
       ],
-      "summaryParagraphs": [
+      "summary": [
         "SpotCheck replayed your 7-month plan over 6,965 overlapping windows starting between 4 Jan 1999 and 16 Mar 2026. Because neighbouring windows share most of their days, that is closer to 44 separate histories than 6,965.",
         "Converting everything at once costs S$11,602 at today's mid rate plus your spread. That cost is known today, so it has no range.",
         "Waiting until the deadline ranged from S$10,528 to S$12,477 in 90% of windows, with a most expensive case of S$13,668. It cost less than converting at once in 51% of windows.",
