@@ -165,8 +165,8 @@ export default function HowItWorks() {
             <p>
               The Hedging page prices forwards and options from past overnight
               interest rates and past volatility, a stand-in for the quotes a
-              bank would give. A real quote differs, and it is only available
-              for USD so far.
+              bank would give. A real quote differs. The Hedging page covers USD
+              only for now.
             </p>
           </Part>
 

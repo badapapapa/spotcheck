@@ -19,6 +19,26 @@ export function formatSgd(
   return `${rounded < 0 ? "−" : ""}S$${s}`;
 }
 
+/**
+ * Decimal places for every S$ figure in one scenario: whole dollars when the
+ * scenario costs S$100 or more, cents when it costs less (15,000 VND is about
+ * S$0.74). One rule per scenario, so a difference of S$85 never shows as
+ * S$84.95 next to whole-dollar costs.
+ */
+export function sgdDigits(scale: number): 0 | 2 {
+  return Math.abs(scale) >= 100 ? 0 : 2;
+}
+
+/** formatSgd with the scenario's decimal places (see sgdDigits). */
+export function formatSgdAt(value: number, scale: number): string {
+  return formatSgd(value, { decimals: sgdDigits(scale) });
+}
+
+/** A fraction as a percentage without trailing zeros: 0.02 → "2%", 0.025 → "2.5%". */
+export function formatPct(fraction: number): string {
+  return `${Number((fraction * 100).toFixed(2))}%`;
+}
+
 export function formatAmount(value: number, currency: string): string {
   return `${currency} ${value.toLocaleString("en-SG", { maximumFractionDigits: 2 })}`;
 }

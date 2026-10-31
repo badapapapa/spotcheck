@@ -15,7 +15,12 @@ import type { Series } from "@/engine/types.ts";
 import { computeHedges } from "@/lib/compute.ts";
 import { loadFx, loadRate, loadSora } from "@/lib/data.ts";
 import { formatDate } from "@/lib/dates.ts";
-import { formatPercent, formatRate, formatSgd } from "@/lib/format.ts";
+import {
+  formatPercent,
+  formatRate,
+  formatSgd,
+  formatSgdAt,
+} from "@/lib/format.ts";
 import { HEDGE_STYLE } from "@/lib/hedge-style.ts";
 import { useLoad } from "@/lib/use-data.ts";
 import { usePlannerState } from "@/lib/use-planner-state.ts";
@@ -148,9 +153,16 @@ function Panels({
           <p className="t-label">Fixing the rate today</p>
           <p className="t-h2 mt-3 max-w-3xl font-medium" data-testid="answer">
             A forward would fix {formatRate(quote.forward)} SGD per {s.currency}{" "}
-            for {formatDate(deadline)}: {formatSgd(Math.abs(carry))}{" "}
+            for {formatDate(deadline)}:{" "}
+            {formatSgdAt(Math.abs(carry), quote.spot * s.amount)}{" "}
             {carry < 0 ? "below" : "above"} today&apos;s spot for your{" "}
             {amountText}.
+          </p>
+          {/* The reason, at the same weight as the figure it explains. */}
+          <p className="t-h2 mt-2 max-w-3xl font-medium" data-testid="carry">
+            That&apos;s because {s.currency} interest rates are{" "}
+            {quote.rf > quote.rd ? "higher" : "lower"} than SGD rates. That gap
+            is carry, not a forecast.
           </p>
           <dl className="mt-6 grid border-t sm:grid-cols-3">
             <HeadlineFigure
@@ -229,7 +241,9 @@ function Panels({
           Every past window of the same length since interest-rate data begins
           (SORA from July 2005), each priced with only the rates and volatility
           known on its first day, rescaled to today&apos;s rate like the
-          planner.
+          planner. Each window&apos;s forward uses SORA compounded over the same
+          length of time before it starts, so the first window begins one
+          window-length after SORA does.
         </p>
         <div className="mt-8 min-h-[36rem] space-y-8 lg:max-w-4xl">
           {history.status === "loading" && (
@@ -312,8 +326,9 @@ function HedgeHistory({
         {formatPercent(
           share(h.relativeCosts.option!, h.relativeCosts.unhedged!),
         )}
-        . A hedge narrows the range of outcomes; it doesn&apos;t make the
-        average cheaper.
+        . A forward fixes your rate today; an option caps it for an upfront
+        premium. The figures above show how each changed the range of outcomes
+        in this history.
       </p>
     </>
   );

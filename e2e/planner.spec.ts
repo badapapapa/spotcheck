@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   BANNED_IN_UI_TEXT as ADVISORY,
   STRATEGY_NAMES,
+  comparesStrategies,
   namesRanking,
 } from "../tests/advisory-patterns.ts";
 
@@ -52,14 +53,14 @@ test("the scenario round-trips through the URL", async ({ page }) => {
   await expect(page.getByLabel("Currency you need")).toHaveText(/\bEUR\b/);
   await expect(page.getByLabel("Amount needed (EUR)")).toHaveValue("8000");
   await expect(page.getByTestId("summary")).toContainText(
-    "spreading over 4 conversions",
+    "Equal tranches (4 conversions):",
   );
 
   await page.locator("summary", { hasText: "More options" }).click();
   await page.getByLabel("Most conversions you'd make").fill("3");
   await expect(page).toHaveURL(/k=3/);
   await expect(page.getByTestId("summary")).toContainText(
-    "spreading over 3 conversions",
+    "Equal tranches (3 conversions):",
   );
 });
 
@@ -357,9 +358,12 @@ for (const q of SCENARIOS) {
     await expect(legend).toHaveCount(STRATEGY_NAMES.length);
     expect(await legend.allTextContents()).toEqual(STRATEGY_NAMES);
 
-    // No sentence names a strategy as coming top or bottom.
+    // No sentence names a strategy as coming top or bottom, and the
+    // plain-words summary never compares two strategies with each other.
     const text = await page.locator("main").innerText();
     expect(namesRanking(text)).toBeUndefined();
+    const summary = await page.getByTestId("summary").innerText();
+    expect(comparesStrategies(summary)).toBeUndefined();
 
     // No good/bad colouring anywhere in the results.
     const coloured = await page

@@ -43,6 +43,27 @@ test("the hedging headline states the forward's price", async ({ page }) => {
   await expect(page.getByTestId("answer")).toContainText(
     `A forward would fix ${rate} SGD per USD for 1 Aug 2027`,
   );
+  // The reason sits right under it, and agrees with the rates shown below.
+  const pct = async (label: RegExp) =>
+    Number(
+      (await page
+        .getByText(label)
+        .locator("xpath=..")
+        .locator("dd")
+        .textContent())!.replace("%", ""),
+    );
+  const sgd = await pct(/^SGD rate: SORA/);
+  const usd = await pct(/^USD rate: fed funds/);
+  await expect(page.getByTestId("carry")).toHaveText(
+    `That's because USD interest rates are ${usd > sgd ? "higher" : "lower"} than SGD rates. That gap is carry, not a forecast.`,
+  );
+});
+
+test("the 404 page has its own title", async ({ page }) => {
+  // Cloudflare Pages serves 404.html for unknown paths; the local test
+  // server doesn't, so load the page itself.
+  await page.goto("/404");
+  await expect(page).toHaveTitle("Page not found | SpotCheck");
 });
 
 test("the nav keeps the scenario when switching tabs", async ({ page }) => {

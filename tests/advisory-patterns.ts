@@ -70,3 +70,35 @@ export function namesRanking(text: string): string | undefined {
   }
   return undefined;
 }
+
+/**
+ * The ways a non-reference strategy can be referred to in a sentence. All at
+ * once is the reference every strategy is measured against, so it may appear
+ * alongside one of these; two of these in one sentence is a comparison
+ * between strategies, which the generated text must never make.
+ */
+const NON_REFERENCE: RegExp[] = [
+  /\b(equal tranches|spreading over|spread over)\b/i,
+  /\b(wait until deadline|waiting|wait until the deadline)\b/i,
+  /\b(target rate|a target)\b/i,
+];
+
+/**
+ * Sentences that compare two non-reference strategies with each other
+ * (e.g. "spreading over 6 conversions had a most expensive case S$1,152
+ * lower than waiting"). Returns the offending sentence, if any.
+ */
+export function comparesStrategies(text: string): string | undefined {
+  for (const sentence of text.split(/(?<=[.!?])\s+|\n+/)) {
+    const named = NON_REFERENCE.filter((r) => r.test(sentence)).length;
+    if (named >= 2) return sentence;
+  }
+  return undefined;
+}
+
+/**
+ * The one template every non-reference strategy's summary sentence follows:
+ * the same measures, in the same order, against all at once only.
+ */
+export const STRATEGY_SENTENCE =
+  /^(Equal tranches|Wait until deadline|Target rate)( \([^)]*\))?: median ([−+]S\$[\d,.]+|S\$0(\.00)?) vs all at once, middle 90% S\$[\d,.]+–S\$[\d,.]+, worst case S\$[\d,.]+; cheaper than all at once in \d+% of windows\.$/;
