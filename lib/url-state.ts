@@ -2,6 +2,9 @@
 // exactly and nothing is stored anywhere else.
 
 import { z } from "zod";
+
+// See scripts/fetch/schemas.ts: no eval probe under the site's CSP.
+z.config({ jitless: true });
 import { findCurrency } from "@/engine/currencies.ts";
 import type { Scenario } from "@/engine/types.ts";
 import { MAX_TRANCHES, maxTranches, windowError } from "./coverage.ts";

@@ -15,17 +15,22 @@ on:
 permissions:
   contents: read
 
+# Actions are pinned to a commit SHA (a tag can be moved; a SHA can't), with
+# the version alongside. Dependabot's github-actions updates keep the pins
+# current. `npm ci --ignore-scripts`: no install script in the tree is needed
+# (the only one, unrs-resolver's, is a fallback for a missing native binary).
+
 jobs:
   check:
     name: Type-check, lint, test, build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: lts/*
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npm run check
       - run: npm run build
 
@@ -33,12 +38,12 @@ jobs:
     name: Playwright smoke tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: lts/*
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
@@ -49,7 +54,7 @@ jobs:
     env:
       GITLEAKS_VERSION: 8.30.1
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # full history, so every past commit is scanned
       # The CLI is used directly rather than gitleaks-action: the action only

@@ -5,7 +5,9 @@
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { createGzip } from "node:zlib";
+import { readFileSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
+import { headersFor, parseHeaders } from "./headers.ts";
 
 const ROOT = join(import.meta.dirname, "..", "out");
 const PORT = Number(process.env.PORT ?? 4173);
@@ -20,6 +22,11 @@ const TYPES: Record<string, string> = {
   ".png": "image/png",
   ".woff2": "font/woff2",
 };
+
+// The production headers (CSP included), so tests see what Cloudflare sends.
+const RULES = existsSync(join(ROOT, "_headers"))
+  ? parseHeaders(readFileSync(join(ROOT, "_headers"), "utf8"))
+  : [];
 
 createServer((req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
@@ -41,6 +48,7 @@ createServer((req, res) => {
     /text|javascript|json|svg/.test(type) &&
     /\bgzip\b/.test(String(req.headers["accept-encoding"]));
   res.writeHead(200, {
+    ...headersFor(RULES, url.pathname),
     "Content-Type": type,
     ...(compress
       ? { "Content-Encoding": "gzip", Vary: "Accept-Encoding" }

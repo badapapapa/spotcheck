@@ -7,6 +7,11 @@
 
 import { z } from "zod";
 
+// Zod v4 probes for eval support (new Function) the first time it parses an
+// object, which the site's CSP blocks and reports. Jitless mode skips the
+// probe and the eval-compiled fast path; parsing is unchanged.
+z.config({ jitless: true });
+
 const isoDate = z.iso.date(); // 'YYYY-MM-DD'
 const positive = z.number().finite().positive();
 const decimalRate = z.number().finite();
