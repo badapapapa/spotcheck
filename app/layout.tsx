@@ -75,7 +75,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Bottom padding keeps content clear of the phone tab bar. */}
         <main className="flex-1 pb-24 lg:pb-0">{children}</main>
 
-        <footer className="mt-16 border-t pb-20 lg:mt-24 lg:pb-0">
+        <footer className="mt-16 border-t pb-[calc(72px+env(safe-area-inset-bottom))] lg:mt-24 lg:pb-0">
           <div className="page grid gap-8 py-10 lg:grid-cols-12 lg:gap-6">
             <div className="lg:col-span-5">
               <p className="t-small font-medium">{DISCLAIMER}</p>

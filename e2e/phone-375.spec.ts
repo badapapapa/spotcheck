@@ -98,3 +98,39 @@ test("375px: each conversion sits on its own line", async ({ page }) => {
     /^\d{1,2} \w{3} \d{4} · [\d.]+$/,
   );
 });
+
+test("375px: controls scrolled to an edge stay clear of the fixed bars", async ({
+  page,
+}) => {
+  await page.goto(`/?c=USD&a=15000&s=2026-10-17&d=2026-11-17&k=2&sp=0.5&t=2`);
+  await page.getByRole("button", { name: "One month earlier" }).waitFor();
+  // Scroll each control to the bottom edge, then to the top edge (where the
+  // summary bar appears once the converter is off screen), the way focus
+  // and Playwright do, and check nothing else sits on its centre.
+  const clear = (name: string, block: "start" | "end") =>
+    page.evaluate(
+      ({ name, block }) => {
+        const btn = [...document.querySelectorAll("button")].find((b) =>
+          b.textContent?.includes(name),
+        )!;
+        btn.scrollIntoView({ block });
+        const r = btn.getBoundingClientRect();
+        const hit = document.elementFromPoint(
+          r.left + r.width / 2,
+          r.top + r.height / 2,
+        );
+        return btn.contains(hit);
+      },
+      { name, block },
+    );
+  for (const name of ["One month earlier", "One month later", "Download Excel"])
+    for (const block of ["end", "start"] as const)
+      expect(await clear(name, block), `${name} at the ${block}`).toBe(true);
+
+  // The footer's last line clears the tab bar at the bottom of the page.
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  const last = page.getByRole("contentinfo").getByRole("link").last();
+  const nav = page.getByRole("navigation", { name: "Sections" });
+  const [l, n] = [(await last.boundingBox())!, (await nav.boundingBox())!];
+  expect(l.y + l.height).toBeLessThanOrEqual(n.y);
+});

@@ -4,13 +4,13 @@ Lighthouse 12.8.2, mobile form factor, simulated throttling (the default), headl
 
 | Page         | Run | Performance | Accessibility | Best practices | SEO | FCP   | LCP   | TBT    | CLS |
 | ------------ | --- | ----------- | ------------- | -------------- | --- | ----- | ----- | ------ | --- |
-| Planner      | 1   | 96          | 100           | 100            | 100 | 0.8 s | 2.6 s | 150 ms | 0   |
-| Planner      | 2   | 96          | 100           | 100            | 100 | 0.8 s | 2.6 s | 80 ms  | 0   |
-| Planner      | 3   | 96          | 100           | 100            | 100 | 0.8 s | 2.6 s | 90 ms  | 0   |
-| Hedging      | 1   | 91          | 100           | 100            | 100 | 0.8 s | 3.2 s | 190 ms | 0   |
-| Hedging      | 2   | 91          | 100           | 100            | 100 | 0.8 s | 3.2 s | 190 ms | 0   |
-| Hedging      | 3   | 91          | 100           | 100            | 100 | 0.8 s | 3.2 s | 190 ms | 0   |
-| How it works | 1   | 98          | 100           | 100            | 100 | 0.8 s | 2.5 s | 30 ms  | 0   |
+| Planner      | 1   | 97          | 100           | 100            | 100 | 0.8 s | 2.5 s | 90 ms  | 0   |
+| Planner      | 2   | 97          | 100           | 100            | 100 | 0.8 s | 2.6 s | 60 ms  | 0   |
+| Planner      | 3   | 97          | 100           | 100            | 100 | 0.8 s | 2.6 s | 60 ms  | 0   |
+| Hedging      | 1   | 91          | 100           | 100            | 100 | 0.8 s | 3.2 s | 170 ms | 0   |
+| Hedging      | 2   | 92          | 100           | 100            | 100 | 0.8 s | 3.2 s | 150 ms | 0   |
+| Hedging      | 3   | 92          | 100           | 100            | 100 | 0.8 s | 3.2 s | 150 ms | 0   |
+| How it works | 1   | 98          | 100           | 100            | 100 | 0.8 s | 2.5 s | 20 ms  | 0   |
 | How it works | 2   | 98          | 100           | 100            | 100 | 0.8 s | 2.5 s | 20 ms  | 0   |
 | How it works | 3   | 98          | 100           | 100            | 100 | 0.8 s | 2.5 s | 20 ms  | 0   |
 

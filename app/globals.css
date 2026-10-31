@@ -107,6 +107,16 @@
     -webkit-text-size-adjust: 100%;
     font-variant-numeric: tabular-nums;
   }
+  /* Phones have fixed bars: the summary bar along the top (56px) and the
+     tab bar along the bottom (56px plus the safe area). Scrolling a control
+     into view (focus, find, anchors) keeps it clear of both, so a focused
+     button is never hidden behind a bar (WCAG 2.4.11). */
+  @media (width < 64rem) {
+    html {
+      scroll-padding-top: 64px;
+      scroll-padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    }
+  }
   body {
     @apply bg-paper text-ink;
     font-size: 16px;

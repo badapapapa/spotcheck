@@ -38,8 +38,20 @@ Nineteen fixes from a review on desktop, at 375px and on a real iPhone. `before-
 ## Checks on the final build
 
 - `npm run check`: 356 unit tests; data valid.
-- Playwright: 78 passed. That covers desktop, the Pixel 7 project and a new 375px touch suite (disclaimer, touch readouts, month step, timeline height, conversions per line).
+- Playwright: 79 passed. That covers desktop, the Pixel 7 project and a new 375px touch suite (disclaimer, touch readouts, month step, timeline height, conversions per line).
 - axe-core: 0 violations at 390×844 and 1366×768, light and dark, on all three pages.
 - Parity with the live site, same data: identical for USD, JPY and EUR. That is 42 planner figures each, plus all 13 Hedging values for USD.
-- Lighthouse mobile: Planner 96, Hedging 91, How it works 98. Accessibility 100 and CLS 0 on every run.
+- Lighthouse mobile: Planner 97, Hedging 91–92, How it works 98. Accessibility 100 and CLS 0 on every run.
 - Throttled trace (412px, slow 4G, 4× CPU): no layout shifts on any page, How it works included.
+
+## Follow-up: controls hidden behind the phone bars
+
+CI failed on `acdbd5f`: the new 375px test could not click "One month earlier". The button had been scrolled to the bottom edge of the screen, the way focus and Playwright scroll a control into view, and the fixed tab bar covered it. Phone users moving focus with a keyboard or switch control would hit the same problem (WCAG 2.4.11, focus not obscured).
+
+The fix:
+
+- `scroll-padding-top: 64px` on `html` below 1024px, clearing the 56px sticky summary bar.
+- `scroll-padding-bottom: 72px + the safe area`, clearing the 56px tab bar.
+- The footer's bottom padding matches the tab bar, so the page's last line clears it too.
+
+A new test scrolls the timeline step buttons and Download Excel to the top and bottom edges and checks that nothing covers them. It also checks that the footer's last link clears the tab bar. Without the padding, all three buttons were covered at the bottom edge; with it, all are clear.
