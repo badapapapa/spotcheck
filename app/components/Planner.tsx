@@ -36,6 +36,7 @@ import type { PlannerState } from "@/lib/url-state.ts";
 import { ComparisonTable } from "./ComparisonTable";
 import { DistributionChart } from "./DistributionChart";
 import { Glance, GlanceProgress, HISTORICAL_CONTEXT } from "./Glance";
+import { DataNote } from "./DataNote";
 import { LoadError } from "./LoadError";
 import { ScenarioForm, type DateIssue } from "./ScenarioForm";
 import { ScenarioLink } from "./ScenarioLink";
@@ -283,6 +284,7 @@ export function Planner() {
             >
               {fxSourceLabel(currency)}
             </p>
+            <DataNote code={scenario.currency} className="mt-3" />
           </div>
         </div>
         <div className="mt-10">

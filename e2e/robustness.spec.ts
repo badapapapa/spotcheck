@@ -544,3 +544,25 @@ test.describe("A10: figures", () => {
     );
   });
 });
+
+test.describe("A11: data notes", () => {
+  test("ISK carries a note about Iceland's 2008 split market", async ({
+    page,
+  }) => {
+    await page.goto("/?c=ISK&a=1000000&s=2026-10-17&d=2027-08-01");
+    await expect(page.getByTestId("data-note")).toContainText(
+      "During Iceland's 2008 financial crisis the króna traded at two rates",
+    );
+    await page.getByRole("link", { name: "How it works" }).click();
+    await expect(page.getByTestId("data-note")).toContainText("two rates");
+  });
+
+  test("other currencies don't show it", async ({ page }) => {
+    await page.goto("/?c=USD&a=15000&s=2026-10-17&d=2027-08-01");
+    await expect(page.getByTestId("summary")).toBeVisible();
+    await expect(page.getByTestId("data-note")).toHaveCount(0);
+    await page.goto("/how-it-works");
+    await expect(page.getByRole("heading", { name: "The data" })).toBeVisible();
+    await expect(page.getByTestId("data-note")).toHaveCount(0);
+  });
+});

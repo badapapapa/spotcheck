@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ScenarioDataNote } from "../components/DataNote";
 import { ScenarioLink } from "../components/ScenarioLink";
 import meta from "@/data/meta.json";
 import { CURRENCIES } from "@/engine/currencies.ts";
@@ -125,6 +126,7 @@ export default function HowItWorks() {
                 funds rate from FRED, used only on the Hedging page.
               </dd>
             </dl>
+            <ScenarioDataNote />
             <p>
               Rates run from {first} to {ratesTo}. An automated job adds each
               working day&apos;s rates, checks them and rebuilds the site.
