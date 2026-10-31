@@ -1,6 +1,6 @@
 import type { ReplayResult } from "@/engine/replay.ts";
 import { STRATEGY_IDS, type StrategyId } from "@/engine/types.ts";
-import { formatSgd } from "@/lib/format.ts";
+import { formatSgdAt } from "@/lib/format.ts";
 import { signedSgd } from "@/lib/signed.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { CopyLinkButton } from "./CopyLinkButton";
@@ -92,7 +92,9 @@ export function Glance({
                     {STRATEGY_STYLE[id].label}
                   </button>
                 </th>
-                <td className="t-data-m text-right">{formatSgd(median)}</td>
+                <td className="t-data-m text-right">
+                  {formatSgdAt(median, lump)}
+                </td>
                 <td className="t-small pl-3 text-right text-muted-foreground">
                   {id === "lumpSum" ? (
                     <span>
@@ -100,7 +102,7 @@ export function Glance({
                       <span className="sr-only">the reference</span>
                     </span>
                   ) : (
-                    signedSgd(median - lump)
+                    signedSgd(median - lump, lump)
                   )}
                 </td>
               </tr>

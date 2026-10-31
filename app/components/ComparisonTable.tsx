@@ -1,5 +1,5 @@
 import type { Summary } from "@/engine/stats.ts";
-import { formatPercent, formatSgd } from "@/lib/format.ts";
+import { formatPercent, formatSgdAt } from "@/lib/format.ts";
 import { signedSgd } from "@/lib/signed.ts";
 
 export type ComparisonRow = {
@@ -40,26 +40,42 @@ export function ComparisonTable({
   onActive?: (id: string | null) => void;
 }) {
   const withReference = reference !== undefined;
+  // One money format for the whole table (whole dollars unless the
+  // scenario itself costs under S$100).
+  const scale = Math.max(...rows.map((r) => r.summary.median));
+  const sgd = (v: number) => formatSgdAt(v, scale);
   const measures = (r: ComparisonRow): [string, React.ReactNode][] => [
-    ["Median", formatSgd(r.summary.median)],
+    ["Median", sgd(r.summary.median)],
     ...(withReference
       ? ([
           [
             `Median vs ${reference}`,
-            r.vsReference === undefined ? "–" : signedSgd(r.vsReference),
+            r.vsReference === undefined ? "–" : signedSgd(r.vsReference, scale),
           ],
         ] as [string, string][])
       : []),
     [
       "Middle 90%",
-      <>
-        {/* Breaks after the dash on narrow screens, never mid-number. */}
-        <span className="whitespace-nowrap">{formatSgd(r.summary.p5)}–</span>
-        <wbr />
-        <span className="whitespace-nowrap">{formatSgd(r.summary.p95)}</span>
-      </>,
+      // A strategy with no range (all at once: its cost is known today)
+      // says so, rather than showing the same figure twice.
+      (() => {
+        // Same markup either way, so styling never depends on the results.
+        const fixed = r.summary.p95 - r.summary.p5 < 1e-9 * scale;
+        return (
+          <>
+            <span className="whitespace-nowrap">
+              {fixed ? `${sgd(r.summary.p5)} ` : `${sgd(r.summary.p5)}–`}
+            </span>
+            {/* Breaks here on narrow screens, never mid-number. */}
+            <wbr />
+            <span className="whitespace-nowrap">
+              {fixed ? "(fixed)" : sgd(r.summary.p95)}
+            </span>
+          </>
+        );
+      })(),
     ],
-    ["Worst case", formatSgd(r.summary.max)],
+    ["Worst case", sgd(r.summary.max)],
     ...(withReference
       ? ([
           [

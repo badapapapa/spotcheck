@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ReplayResult } from "@/engine/replay.ts";
 import type { Summary } from "@/engine/stats.ts";
 import { STRATEGY_IDS } from "@/engine/types.ts";
-import { formatPercent, formatSgd } from "@/lib/format.ts";
+import { formatPercent, formatSgd, formatSgdAt } from "@/lib/format.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { niceTicks, sgdTickDecimals } from "@/lib/ticks.ts";
 import { useWidth } from "@/lib/use-width.ts";
@@ -100,6 +100,9 @@ export function RangeChart({
   const ticks = axis.ticks;
   const domain = axis.domain;
   const tickDecimals = sgdTickDecimals(axis);
+  // Whole dollars unless the scenario itself costs under S$100.
+  const scale = Math.max(...rows.map((r) => r.summary.median));
+  const sgd = (v: number) => formatSgdAt(v, scale);
   const plotL = left + 8;
   const plotR = W - right - 8;
   const x = (v: number) =>
@@ -154,7 +157,7 @@ export function RangeChart({
               key={id}
               tabIndex={0}
               role="button"
-              aria-label={`${row.label}: median ${formatSgd(s.median)}, 5th to 95th percentile ${formatSgd(s.p5)} to ${formatSgd(s.p95)}`}
+              aria-label={`${row.label}: median ${sgd(s.median)}, 5th to 95th percentile ${sgd(s.p5)} to ${sgd(s.p95)}`}
               onMouseEnter={() => setActive(id)}
               onMouseLeave={() => setActive(null)}
               onFocus={() => setActive(id)}
@@ -208,7 +211,7 @@ export function RangeChart({
                 textAnchor="end"
                 className="fill-[var(--ink)] text-[14px] tabular-nums"
               >
-                median {formatSgd(s.median)}
+                median {sgd(s.median)}
               </text>
               {!point && (
                 <>
@@ -249,9 +252,9 @@ export function RangeChart({
         {shown ? (
           <>
             <span className="font-medium text-ink">{shown.label}:</span>{" "}
-            cheapest {formatSgd(shown.summary.min)}, middle 90%{" "}
-            {formatSgd(shown.summary.p5)}–{formatSgd(shown.summary.p95)}, most
-            expensive {formatSgd(shown.summary.max)}
+            cheapest {sgd(shown.summary.min)}, middle 90%{" "}
+            {sgd(shown.summary.p5)}–{sgd(shown.summary.p95)}, most expensive{" "}
+            {sgd(shown.summary.max)}
             {shown.note && <>; {shown.note}</>}.
           </>
         ) : (

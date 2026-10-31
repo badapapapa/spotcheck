@@ -6,7 +6,7 @@ import { daysBetween, rateAsOf } from "@/engine/calendar.ts";
 import { convertAmount } from "@/lib/convert.ts";
 import { loadFx } from "@/lib/data.ts";
 import { formatDate } from "@/lib/dates.ts";
-import { formatSgd } from "@/lib/format.ts";
+import { formatSgdAt } from "@/lib/format.ts";
 import { todayCost } from "@/lib/today-cost.ts";
 import { LIMITS, type PlannerState } from "@/lib/url-state.ts";
 import { CurrencyPicker } from "./CurrencyPicker";
@@ -204,7 +204,7 @@ export function ScenarioForm({
             <p className="t-label">Converting it all today</p>
             {cost ? (
               <p className="t-data-m tabular-nums" data-testid="today-cost">
-                {formatSgd(cost.withSpread)}
+                {formatSgdAt(cost.withSpread, cost.withSpread)}
               </p>
             ) : (
               // Invisible text of the same shape, so the row has the same
@@ -216,7 +216,7 @@ export function ScenarioForm({
           </div>
           <p className="t-small mt-1 min-h-5 text-right text-muted-foreground tabular-nums">
             {cost &&
-              `${formatSgd(cost.mid)} at mid rate, before your ${pctText(s.spread)}% spread`}
+              `${formatSgdAt(cost.mid, cost.withSpread)} at mid rate, before your ${pctText(s.spread)}% spread`}
           </p>
         </div>
       )}
@@ -231,8 +231,11 @@ export function ScenarioForm({
             More options
           </span>
           <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground tabular-nums">
-            {conversions}, from {formatDate(s.startDate)}, {pctText(s.spread)}%
-            spread, {pctText(state.targetBelowSpot)}% target
+            {/* Hedging uses only the start date and spread, so its summary
+                and fields leave out the planner-only settings. */}
+            {chips
+              ? `from ${formatDate(s.startDate)}, ${pctText(s.spread)}% spread`
+              : `${conversions}, from ${formatDate(s.startDate)}, ${pctText(s.spread)}% spread, ${pctText(state.targetBelowSpot)}% target`}
           </span>
           <ChevronDown
             aria-hidden
@@ -242,22 +245,24 @@ export function ScenarioForm({
           />
         </summary>
         <div className="grid gap-x-4 gap-y-4 pt-3 pb-1 sm:grid-cols-2">
-          <Field
-            id={`${id}-tranches`}
-            label="Most conversions you'd make"
-            help="Used by the equal-tranches strategy."
-            error={errorText("tranches")}
-          >
-            <input
-              {...field("tranches")}
-              inputMode="numeric"
-              type="number"
-              min={1}
-              max={LIMITS.tranches.max}
-              step={1}
-              className="field-input"
-            />
-          </Field>
+          {!chips && (
+            <Field
+              id={`${id}-tranches`}
+              label="Most conversions you'd make"
+              help="Used by the equal-tranches strategy."
+              error={errorText("tranches")}
+            >
+              <input
+                {...field("tranches")}
+                inputMode="numeric"
+                type="number"
+                min={1}
+                max={LIMITS.tranches.max}
+                step={1}
+                className="field-input"
+              />
+            </Field>
+          )}
           <Field
             id={`${id}-startDate`}
             label="Start converting from"
@@ -286,22 +291,24 @@ export function ScenarioForm({
               className="field-input"
             />
           </Field>
-          <Field
-            id={`${id}-target`}
-            label="Target: % below the starting rate"
-            help="Used by the target-rate strategy."
-            error={errorText("target")}
-          >
-            <input
-              {...field("target")}
-              inputMode="decimal"
-              type="number"
-              min={0}
-              max={LIMITS.targetPct.max}
-              step={0.5}
-              className="field-input"
-            />
-          </Field>
+          {!chips && (
+            <Field
+              id={`${id}-target`}
+              label="Target: % below the starting rate"
+              help="Used by the target-rate strategy."
+              error={errorText("target")}
+            >
+              <input
+                {...field("target")}
+                inputMode="decimal"
+                type="number"
+                min={0}
+                max={LIMITS.targetPct.max}
+                step={0.5}
+                className="field-input"
+              />
+            </Field>
+          )}
         </div>
       </details>
     </form>

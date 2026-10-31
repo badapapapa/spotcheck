@@ -190,7 +190,7 @@ export function Planner() {
             </p>
             {spot && (
               <p className="t-small mt-3 text-muted-foreground">
-                Today&apos;s mid rate: {formatRate(spot.value)} SGD per{" "}
+                Latest mid rate: {formatRate(spot.value)} SGD per{" "}
                 {scenario.currency} ({formatDate(spot.date)}).
               </p>
             )}
