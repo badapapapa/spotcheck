@@ -1,6 +1,6 @@
 # Weeks 4–5 · Phase 2: Engine
 
-**Status:** merged into `main` in [`c54cd13`](https://github.com/badapapapa/spotcheck/commit/c54cd13).
+**Status:** merged into `main` in [`6afe3b5`](https://github.com/badapapapa/spotcheck/commit/6afe3b5).
 
 ## What was built
 

@@ -1,6 +1,6 @@
 # Weeks 8–9 · Phase 4: Advanced tab
 
-**Status:** merged into `main` in [`c76ed3d`](https://github.com/badapapapa/spotcheck/commit/c76ed3d).
+**Status:** merged into `main` in [`a4e3f70`](https://github.com/badapapapa/spotcheck/commit/a4e3f70).
 
 ## What was built
 
