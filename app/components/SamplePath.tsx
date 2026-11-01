@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import {
   CartesianGrid,
   ComposedChart,
@@ -15,7 +15,12 @@ import {
 } from "recharts";
 import { fromEpochDay, indexOnOrAfter, toEpochDay } from "@/engine/calendar.ts";
 import type { sampleWindow } from "@/engine/replay.ts";
-import { STRATEGY_IDS, type Scenario, type Series } from "@/engine/types.ts";
+import {
+  STRATEGY_IDS,
+  type Scenario,
+  type Series,
+  type StrategyId,
+} from "@/engine/types.ts";
 import { formatDate, formatMonth } from "@/lib/dates.ts";
 import {
   formatPct,
@@ -24,9 +29,11 @@ import {
   formatSgdAt,
 } from "@/lib/format.ts";
 import { findCurrency } from "@/engine/currencies.ts";
+import { AXIS_STROKE, AXIS_TICK, LINE_WIDTH } from "@/lib/chart-style.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { niceTicks } from "@/lib/ticks.ts";
 import { useCoarsePointer } from "@/lib/use-coarse-pointer.ts";
+import { ChartLegend, Marker, PointMark } from "./ChartLegend.tsx";
 
 export type Window = ReturnType<typeof sampleWindow>;
 
@@ -34,22 +41,26 @@ type Props = {
   fx: Series;
   scenario: Scenario;
   targetBelowSpot: number;
-  startDates: string[];
   /** The selected window. The planner owns it so Download Excel can export it. */
-  index: number;
-  onIndex: (index: number) => void;
   window: Window;
+  /** The same window's costs at the latest rate, as the timeline readout shows. */
+  today?: { scale: number; costs: Record<StrategyId, number> };
+  /** What costs are rescaled to: "the latest rate", "the rate on 2 Jan 2025". */
+  rescaled: string;
 };
 
-/** One historical window: the rate line, and where each strategy converted. */
-export function SamplePath({
+/**
+ * One historical window: the rate line, and where each strategy converted.
+ * Memoised: while the timeline is scrubbed, the planner re-renders the
+ * detail with its previous (deferred) period first, and this skips that.
+ */
+export const SamplePath = memo(function SamplePath({
   fx,
   scenario,
   targetBelowSpot,
-  startDates,
-  index,
-  onIndex,
   window: w,
+  today,
+  rescaled,
 }: Props) {
   // A pegged currency's rates read like the peg (1.0000, 0.9800).
   const formatRate = findCurrency(scenario.currency)?.peggedToSgd
@@ -62,11 +73,14 @@ export function SamplePath({
         .filter((c) => toEpochDay(c.date) === day)
         .map((c) => ({ sid, rate: c.rate })),
     );
-  const id = useId();
   const coarse = useCoarsePointer();
   // The point last tapped, for the touch readout under the chart.
-  const [at, setAt] = useState<number | undefined>();
-  const start = startDates[index]!;
+  // The point last tapped, for this period only: a new period (picked on
+  // the timeline) starts with no point, and the chart below is keyed by the
+  // period, so Recharts' own cursor can't linger without a readout either.
+  const [tapped, setTapped] = useState<{ start: string; i?: number }>();
+  const at = tapped?.start === w.start ? tapped.i : undefined;
+  const setAt = (i: number | undefined) => setTapped({ start: w.start, i });
 
   const line = useMemo(() => {
     const out: { x: number; rate: number }[] = [];
@@ -84,6 +98,22 @@ export function SamplePath({
     return out;
   }, [fx, w]);
 
+  /**
+   * Strategies that convert on the same day would hide each other's marker
+   * (All at once under Equal tranches' first part, Wait until deadline
+   * under Target rate's). They sit side by side instead, 11px apart,
+   * centred on the day, in the fixed order.
+   */
+  const offsetOn = (sid: StrategyId, day: number) => {
+    const same = STRATEGY_IDS.filter((s) =>
+      w.results[s].conversions.some((c) => toEpochDay(c.date) === day),
+    );
+    const k = same.indexOf(sid);
+    // At the plot's edges the group opens inwards, so none is clipped.
+    if (day <= line[0]!.x) return k * 11;
+    if (day >= line.at(-1)!.x) return (k - same.length + 1) * 11;
+    return (k - (same.length - 1) / 2) * 11;
+  };
   // Rate ticks with decimals from their spacing, so labels never repeat
   // (VND is about 0.00005 SGD per unit).
   const yAxis = useMemo(() => {
@@ -96,28 +126,8 @@ export function SamplePath({
   );
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-1.5">
-        <label htmlFor={`${id}-start`} className="t-small font-medium">
-          Start of the period: {formatDate(w.start)}
-        </label>
-        <input
-          id={`${id}-start`}
-          type="range"
-          min={0}
-          max={startDates.length - 1}
-          value={index}
-          onChange={(e) => onIndex(Number(e.target.value))}
-          aria-valuetext={formatDate(start)}
-          className="h-11 w-full"
-        />
-        <div className="t-label flex justify-between">
-          <span>{formatMonth(startDates[0]!)}</span>
-          <span>{formatMonth(startDates.at(-1)!)}</span>
-        </div>
-      </div>
-
-      <div className="grid gap-8 pt-2 lg:grid-cols-12 lg:gap-6">
+    <div>
+      <div className="grid gap-8 lg:grid-cols-12 lg:gap-6">
         <div className="min-w-0 lg:col-span-7">
           <div
             className="h-72 w-full"
@@ -126,6 +136,7 @@ export function SamplePath({
           >
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
+                key={w.start}
                 // No focus stop or assertive live region: the conversions
                 // table and the period slider carry the same values (B1).
                 accessibilityLayer={false}
@@ -134,7 +145,7 @@ export function SamplePath({
                 onMouseMove={(st) => coarse && setAt(pointOf(st))}
                 margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
               >
-                <CartesianGrid stroke="var(--rule)" vertical={false} />
+                <CartesianGrid stroke={AXIS_STROKE} vertical={false} />
                 <XAxis
                   dataKey="x"
                   type="number"
@@ -142,16 +153,16 @@ export function SamplePath({
                   tickFormatter={(v: number) => formatMonth(fromEpochDay(v))}
                   // Clear of the lowest rate label (they overlapped by 1px).
                   tickMargin={8}
-                  tick={{ fill: "var(--muted)", fontSize: 12 }}
-                  stroke="var(--rule)"
+                  tick={AXIS_TICK}
+                  stroke={AXIS_STROKE}
                   tickCount={5}
                 />
                 <YAxis
                   domain={yAxis.domain}
                   ticks={yAxis.ticks}
                   tickFormatter={(v: number) => v.toFixed(yAxis.decimals)}
-                  tick={{ fill: "var(--muted)", fontSize: 12 }}
-                  stroke="var(--rule)"
+                  tick={AXIS_TICK}
+                  stroke={AXIS_STROKE}
                   width={yAxisWidth}
                 />
                 <Tooltip
@@ -182,7 +193,7 @@ export function SamplePath({
                   name={`SGD per ${scenario.currency}`}
                   stroke="var(--ink)"
                   strokeOpacity={0.6}
-                  strokeWidth={2}
+                  strokeWidth={LINE_WIDTH}
                   dot={false}
                   isAnimationActive={false}
                   legendType="plainline"
@@ -194,12 +205,22 @@ export function SamplePath({
                     data={w.results[sid].conversions.map((c) => ({
                       x: toEpochDay(c.date),
                       rate: c.rate,
+                      dx: offsetOn(sid, toEpochDay(c.date)),
                     }))}
                     dataKey="rate"
                     fill={STRATEGY_STYLE[sid].color}
-                    stroke="var(--surface)"
-                    strokeWidth={2}
-                    shape={STRATEGY_STYLE[sid].shape}
+                    shape={(p: {
+                      cx?: number;
+                      cy?: number;
+                      payload?: { dx: number };
+                    }) => (
+                      <PointMark
+                        shape={STRATEGY_STYLE[sid].shape}
+                        color={STRATEGY_STYLE[sid].color}
+                        x={(p.cx ?? 0) + (p.payload?.dx ?? 0)}
+                        y={p.cy ?? 0}
+                      />
+                    )}
                     legendType={STRATEGY_STYLE[sid].shape}
                     isAnimationActive={false}
                   />
@@ -230,9 +251,10 @@ export function SamplePath({
         </div>
 
         <div className="min-w-0 lg:col-span-5">
-          <table className="t-small w-full tabular-nums">
+          {/* Laptops and tablets: a table. */}
+          <table className="t-small hidden w-full tabular-nums sm:table">
             <caption className="sr-only">
-              Conversions made by each strategy in this window
+              Conversions made by each strategy in this period
             </caption>
             <thead className="bg-sunken text-left text-muted-foreground">
               <tr>
@@ -245,12 +267,17 @@ export function SamplePath({
                 <th scope="col" className="py-2.5 pr-3 font-medium">
                   Converted on
                 </th>
-                <th
-                  scope="col"
-                  className="rounded-r-md py-2.5 pr-3 text-right font-medium"
-                >
-                  Total cost
+                <th scope="col" className="py-2.5 pr-3 text-right font-medium">
+                  Cost then
                 </th>
+                {today && (
+                  <th
+                    scope="col"
+                    className="rounded-r-md py-2.5 pr-3 text-right font-medium"
+                  >
+                    At {rescaled}
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -265,38 +292,105 @@ export function SamplePath({
                       {STRATEGY_STYLE[sid].label}
                     </th>
                     <td className="py-2.5 pr-3 text-muted-foreground">
-                      {/* One conversion per line: date · rate. */}
-                      <ul>
-                        {r.conversions.map((c) => (
-                          <li key={c.date}>
-                            {/* Breaks after the dot on the narrowest phones
-                                (320px), never inside the date or the rate. */}
-                            <span className="whitespace-nowrap">
-                              {formatDate(c.date)} ·
-                            </span>{" "}
-                            <span className="whitespace-nowrap">
-                              {formatRate(c.rate)}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                      <Conversions
+                        list={r.conversions}
+                        formatRate={formatRate}
+                      />
                     </td>
                     <td className="py-2.5 pr-3 text-right">
                       {formatSgdAt(r.totalSgd, w.results.lumpSum.totalSgd)}
                     </td>
+                    {today && (
+                      <td
+                        className="py-2.5 pr-3 text-right"
+                        data-testid={`detail-today-${sid}`}
+                      >
+                        {formatSgdAt(today.costs[sid], today.scale)}
+                      </td>
+                    )}
                   </tr>
                 );
               })}
             </tbody>
           </table>
+
+          {/* Phones: one block per strategy, the costs beside its name and
+              its conversions under it, date and rate in two columns. */}
+          <ul
+            className="t-small border-t tabular-nums sm:hidden"
+            aria-label="Conversions made by each strategy in this period"
+          >
+            {STRATEGY_IDS.map((sid) => {
+              const r = w.results[sid];
+              return (
+                <li
+                  key={sid}
+                  className="border-b py-3"
+                  data-testid={`conversions-${sid}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-medium">{STRATEGY_STYLE[sid].label}</p>
+                    <dl className="text-right">
+                      <div>
+                        <dt className="sr-only">Cost then</dt>
+                        <dd>
+                          {formatSgdAt(r.totalSgd, w.results.lumpSum.totalSgd)}{" "}
+                          then
+                        </dd>
+                      </div>
+                      {today && (
+                        <div className="text-muted-foreground">
+                          <dt className="sr-only">At {rescaled}</dt>
+                          <dd>
+                            {formatSgdAt(today.costs[sid], today.scale)} at{" "}
+                            {rescaled}
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+                  <Conversions
+                    list={r.conversions}
+                    formatRate={formatRate}
+                    className="mt-1"
+                  />
+                </li>
+              );
+            })}
+          </ul>
           <p className="t-small mt-3 text-muted-foreground">
-            Actual SGD paid in that window, at that time&apos;s rates, plus your
-            spread. The target was {formatRate(w.spot * (1 - targetBelowSpot))}{" "}
-            ({formatPct(targetBelowSpot)} below {formatRate(w.spot)}).
+            Cost then: the SGD actually paid in that period, at that time&apos;s
+            rates, plus your exchange fee.
+            {today &&
+              ` At ${rescaled}: the same period rescaled, as on the timeline above.`}{" "}
+            The target was {formatRate(w.spot * (1 - targetBelowSpot))} (
+            {formatPct(targetBelowSpot)} below {formatRate(w.spot)}).
           </p>
         </div>
       </div>
     </div>
+  );
+});
+
+/** One conversion per line: its date, then its rate in a column of its own. */
+function Conversions({
+  list,
+  formatRate,
+  className = "",
+}: {
+  list: { date: string; rate: number }[];
+  formatRate: (r: number) => string;
+  className?: string;
+}) {
+  return (
+    <ul className={`text-muted-foreground ${className}`}>
+      {list.map((c) => (
+        <li key={c.date} className="grid grid-cols-[6.75rem_auto] gap-x-3">
+          <span className="whitespace-nowrap">{formatDate(c.date)}</span>
+          <span className="whitespace-nowrap">{formatRate(c.rate)}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -308,39 +402,27 @@ function pointOf(
   return i === null || i === undefined ? undefined : Number(i);
 }
 
-function Marker({ shape, color }: { shape: string; color: string }) {
-  return (
-    <svg aria-hidden viewBox="0 0 12 12" className="size-3 shrink-0">
-      {shape === "circle" && <circle cx="6" cy="6" r="5" fill={color} />}
-      {shape === "square" && (
-        <rect x="1.5" y="1.5" width="9" height="9" fill={color} />
-      )}
-      {shape === "diamond" && (
-        <path d="M6 0.5 11.5 6 6 11.5 0.5 6Z" fill={color} />
-      )}
-      {shape === "triangle" && <path d="M6 1 11.5 11H0.5Z" fill={color} />}
-    </svg>
-  );
-}
-
 /** The rate line, then the four strategies in the fixed order (DESIGN.md §1). */
 function PathLegend({ code }: { code: string }) {
   return (
-    <ul className="t-small flex flex-wrap justify-center gap-x-4 gap-y-1 pt-2 text-muted-foreground">
-      <li className="flex items-center gap-1.5">
-        <span aria-hidden className="h-0.5 w-4 bg-ink opacity-60" />
-        SGD per {code}
-      </li>
-      {STRATEGY_IDS.map((sid) => (
-        <li key={sid} className="flex items-center gap-1.5">
-          <Marker
-            shape={STRATEGY_STYLE[sid].shape}
-            color={STRATEGY_STYLE[sid].color}
-          />
-          {STRATEGY_STYLE[sid].label}
-        </li>
-      ))}
-    </ul>
+    <ChartLegend
+      className="pt-2"
+      items={[
+        {
+          key: "rate",
+          label: `SGD per ${code}`,
+          color: "var(--ink)",
+          mark: "line",
+          muted: true,
+        },
+        ...STRATEGY_IDS.map((sid) => ({
+          key: sid,
+          label: STRATEGY_STYLE[sid].label,
+          color: STRATEGY_STYLE[sid].color,
+          mark: STRATEGY_STYLE[sid].shape,
+        })),
+      ]}
+    />
   );
 }
 

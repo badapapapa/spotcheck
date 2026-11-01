@@ -43,13 +43,13 @@ export function CurrencyCombobox({
     trigger.current?.focus();
   }, [generation]);
   const selected = findCurrency(value)!;
-  const filtered = useMemo<Group[]>(
-    () =>
-      query.trim() === ""
-        ? GROUPS
-        : [{ value: "Matches", items: searchCurrencies(query) }],
-    [query],
-  );
+  // No group at all when nothing matches, so the empty message shows
+  // (an empty "Matches" group used to hide it).
+  const filtered = useMemo<Group[]>(() => {
+    if (query.trim() === "") return GROUPS;
+    const matches = searchCurrencies(query);
+    return matches.length > 0 ? [{ value: "Matches", items: matches }] : [];
+  }, [query]);
 
   return (
     <Combobox.Root
@@ -81,9 +81,6 @@ export function CurrencyCombobox({
         aria-label={`Currency you need: ${selected.code}`}
         className={`field-chip gap-1.5 pr-2 ${className}`}
       >
-        <span aria-hidden className="font-sans text-[0.9em]">
-          {selected.flag}
-        </span>
         {selected.code}
         <ChevronDown
           aria-hidden
@@ -109,14 +106,19 @@ export function CurrencyCombobox({
               />
             </div>
             <Combobox.Empty>
-              <p className="px-4 py-6 text-sm text-muted-foreground">
-                No currency matches &ldquo;{query}&rdquo;.
-              </p>
+              <div className="px-4 py-5" data-testid="no-match">
+                <p className="text-sm font-medium">
+                  No currency matches &ldquo;{query.trim()}&rdquo;.
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Try a country (Japan), a currency name (yen) or a code (JPY).
+                </p>
+              </div>
             </Combobox.Empty>
             <Combobox.List className="max-h-[min(22rem,calc(var(--available-height)-3.5rem))] overflow-y-auto overscroll-contain py-1">
               {(group: Group) => (
                 <Combobox.Group key={group.value} items={group.items}>
-                  <Combobox.GroupLabel className="px-4 pt-3 pb-1 text-xs font-medium text-muted-foreground">
+                  <Combobox.GroupLabel className="px-4 pt-3 pb-1 text-annotation font-medium text-muted-foreground">
                     {group.value}
                   </Combobox.GroupLabel>
                   <Combobox.Collection>
@@ -124,9 +126,11 @@ export function CurrencyCombobox({
                       <Combobox.Item
                         key={c.code}
                         value={c}
-                        className="grid min-h-11 cursor-default grid-cols-[1.5rem_3rem_1fr_1rem] items-center gap-2 px-4 text-[15px] select-none data-highlighted:bg-sunken"
+                        // Selected: the check and a green tint. Highlighted
+                        // (pointer or arrow keys): the sunken band, which
+                        // wins when the two coincide; the check stays.
+                        className="grid min-h-11 cursor-default grid-cols-[3rem_1fr_1rem] items-center gap-2 px-4 text-ui select-none data-highlighted:bg-sunken data-selected:not-data-highlighted:bg-accent-soft"
                       >
-                        <span aria-hidden>{c.flag}</span>
                         <span className="font-semibold tabular-nums">
                           {c.code}
                         </span>

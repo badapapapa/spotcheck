@@ -71,12 +71,12 @@ function Tabs({
             aria-current={active ? "page" : undefined}
             className={
               variant === "top"
-                ? `flex min-h-11 items-center border-b-2 px-3 text-[15px] transition-colors ${
+                ? `flex min-h-11 items-center border-b-2 px-3 text-ui transition-colors ${
                     active
                       ? "border-accent font-medium text-ink"
                       : "border-transparent text-muted-foreground hover:text-ink"
                   }`
-                : `flex flex-col items-center justify-center gap-0.5 text-xs font-medium ${
+                : `flex flex-col items-center justify-center gap-0.5 text-annotation font-medium ${
                     active ? "text-accent" : "text-muted-foreground"
                   }`
             }

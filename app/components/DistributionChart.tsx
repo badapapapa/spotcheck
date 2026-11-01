@@ -52,7 +52,7 @@ export function DistributionChart({
         note:
           id === "lumpSum"
             ? undefined
-            : `cost less than all at once in ${formatPercent(result.stats[id].beatLumpSum)} of periods`,
+            : `cost less than all at once in ${formatPercent(result.stats[id].beatLumpSum)} of past periods`,
       }))}
     />
   );
@@ -139,7 +139,7 @@ export function RangeChart({
               textAnchor={
                 x(t) < 40 ? "start" : x(t) > W - 40 ? "end" : "middle"
               }
-              className="fill-muted-foreground text-[12px] tabular-nums"
+              className="fill-muted-foreground text-chart tabular-nums"
             >
               {formatSgd(t, { decimals: tickDecimals })}
             </text>
@@ -205,7 +205,7 @@ export function RangeChart({
                 aria-hidden
                 x={0}
                 y={yText}
-                className={`${dim ? "fill-[var(--muted)]" : "fill-[var(--ink)]"} text-[14px] font-medium`}
+                className={`${dim ? "fill-[var(--muted)]" : "fill-[var(--ink)]"} text-sm font-medium`}
               >
                 {stacked ? (row.shortLabel ?? row.label) : row.label}
               </text>
@@ -214,7 +214,7 @@ export function RangeChart({
                 x={W}
                 y={yText}
                 textAnchor="end"
-                className={`${dim ? "fill-[var(--muted)]" : "fill-[var(--ink)]"} text-[14px] tabular-nums`}
+                className={`${dim ? "fill-[var(--muted)]" : "fill-[var(--ink)]"} text-sm tabular-nums`}
               >
                 median {sgd(s.median)}
               </text>
@@ -269,8 +269,8 @@ export function RangeChart({
           </>
         ) : (
           <>
-            Bar: the middle 90% of periods. Ring: the median. Line: cheapest to
-            most expensive. Further left is cheaper.
+            Bar: the middle 90% of past periods. Ring: the median. Line:
+            cheapest to most expensive. Further left is cheaper.
           </>
         )}
       </figcaption>

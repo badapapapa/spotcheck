@@ -99,6 +99,12 @@ export function comparesStrategies(text: string): string | undefined {
 /**
  * The one template every non-reference strategy's summary sentence follows:
  * the same measures, in the same order, against all at once only.
+ *
+ * Round D renamed two words in the UI ("worst case" → "most expensive past
+ * period", "windows" → "past periods"). Only those words changed here; the
+ * structure is identical, and tests/strategy-sentence.test.ts runs the same
+ * bad sentences against this and the previous pattern to show both reject
+ * every one.
  */
 export const STRATEGY_SENTENCE =
-  /^(Equal tranches|Wait until deadline|Target rate)( \([^)]*\))?: median ([−+]S\$[\d,.]+|S\$0(\.00)?) vs all at once, middle 90% (S\$[\d,.]+–S\$[\d,.]+|S\$[\d,.]+ \(fixed\)), worst case S\$[\d,.]+; cheaper than all at once in \d+% of windows\.$/;
+  /^(Equal tranches|Wait until deadline|Target rate)( \([^)]*\))?: median ([−+]S\$[\d,.]+|S\$0(\.00)?) vs all at once, middle 90% (S\$[\d,.]+–S\$[\d,.]+|S\$[\d,.]+ \(fixed\)), most expensive past period S\$[\d,.]+; cheaper than all at once in \d+% of past periods\.$/;

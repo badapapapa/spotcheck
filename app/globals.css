@@ -35,6 +35,21 @@
   --color-series-2: var(--series-2);
   --color-series-3: var(--series-3);
   --color-series-4: var(--series-4);
+  /* §3 the type scale's sizes. The defaults are cleared, so only these
+     exist: chart ticks, annotations (footnotes, tab labels), supporting text,
+     interface text (buttons, nav, tables, value rows) and body. The roles
+     with their own weight or family (t-display … t-data-m) are below. */
+  --text-*: initial;
+  --text-chart: 12px;
+  --text-chart--line-height: 16px;
+  --text-annotation: 13px;
+  --text-annotation--line-height: 18px;
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  --text-ui: 15px;
+  --text-ui--line-height: 22px;
+  --text-base: 16px;
+  --text-base--line-height: 25px;
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
@@ -71,7 +86,8 @@
   --measure: 68ch;
   /* §8 motion */
   --ease: cubic-bezier(0.2, 0, 0, 1);
-  --fast: 150ms;
+  --fast: 150ms; /* hover and press feedback */
+  --base: 200ms; /* a change of state: results arriving, a selection */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -166,8 +182,8 @@
     text-wrap: balance;
   }
   .t-display {
-    font-size: 36px;
-    line-height: 40px;
+    font-size: 30px;
+    line-height: 34px;
     letter-spacing: -0.015em;
   }
   .t-h1 {
@@ -189,8 +205,8 @@
     font-weight: 600;
   }
   .t-lede {
-    font-size: 17px;
-    line-height: 27px;
+    font-size: 16px;
+    line-height: 25px;
     color: var(--muted);
     max-width: var(--measure);
     text-wrap: pretty;
@@ -242,6 +258,13 @@
       font-size: 22px;
       line-height: 28px;
     }
+  }
+  /* The logo's name: the serif at one size everywhere. */
+  .t-wordmark {
+    font-family: var(--font-serif);
+    font-size: 23px;
+    line-height: 1;
+    font-weight: 400;
   }
   .prose-measure {
     max-width: var(--measure);
@@ -332,7 +355,7 @@
   /* §7 buttons: exactly two styles. */
   .btn-primary,
   .btn-secondary {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-[15px] font-medium whitespace-nowrap select-none disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-ui font-medium whitespace-nowrap select-none disabled:cursor-not-allowed disabled:opacity-50;
     transition:
       background-color var(--fast) var(--ease),
       border-color var(--fast) var(--ease);
@@ -380,6 +403,24 @@
   .field-chip:disabled {
     cursor: progress;
   }
+  .field-input:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  /* A select styled as a field: the browser's arrow is replaced by the
+     chevron the currency picker uses (drawn by the component). */
+  .field-select {
+    appearance: none;
+    padding-right: 2.25rem;
+    cursor: pointer;
+  }
+  /* Disclosures (More options): the label behaves like a link on hover. */
+  .disclosure:hover .disclosure-label {
+    color: var(--accent-strong);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   /* Number spinners crowd a short inline field; arrow keys still work. */
   .no-spin {
     -moz-appearance: textfield;
@@ -401,53 +442,53 @@
      loading fallback so the page doesn't move when the planner loads.
      Measured from the real components at each breakpoint. */
   .converter-min-h {
-    min-height: 281px;
+    min-height: 297px;
   }
   .result-min-h {
-    min-height: 537px;
+    min-height: 563px;
   }
   @media (width < 400px) {
     .result-min-h {
-      min-height: 553px;
+      min-height: 581px;
     }
   }
   @media (width < 380px) {
     .result-min-h {
-      min-height: 611px;
+      min-height: 637px;
     }
   }
   /* Only the narrowest phones wrap the converter's sentence onto a third
-     line; at 375px it fits in 281px, so no empty space under More options. */
+     line; at 375px it fits, so no empty space under More options. */
   @media (width < 370px) {
     .converter-min-h {
-      min-height: 301px;
+      min-height: 317px;
     }
     .result-min-h {
-      min-height: 635px;
+      min-height: 661px;
     }
   }
   @media (width >= 40rem) {
     .converter-min-h {
-      min-height: 245px;
+      min-height: 277px;
     }
     .result-min-h {
-      min-height: 511px;
+      min-height: 539px;
     }
   }
   @media (width >= 64rem) {
     .converter-min-h {
-      min-height: 299px;
+      min-height: 331px;
     }
     .result-min-h {
-      min-height: 569px;
+      min-height: 617px;
     }
   }
   @media (width >= 80rem) {
     .converter-min-h {
-      min-height: 247px;
+      min-height: 279px;
     }
     .result-min-h {
-      min-height: 511px;
+      min-height: 539px;
     }
   }
   /* Placeholder blocks that hold a result's space while it loads. */
@@ -487,7 +528,7 @@
   }
 
   .fade-in {
-    animation: fade-in var(--fast) var(--ease);
+    animation: fade-in var(--base) var(--ease);
   }
   @keyframes fade-in {
     from {
@@ -536,34 +577,43 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Landscape phones (844×390): the summary bar and the tab bar together
    left 277px for a 300px chart, so the summary bar stays away below 480px
-   of height, and nothing needs room above a focused control. */
+   of height. The sticky header stays (its disclaimer is the one in view),
+   slimmed to 44px, the height of its own tap targets. */
 @media (max-height: 30rem) {
   .summary-bar {
     display: none;
   }
+  .header-inner {
+    height: 44px;
+  }
   html {
-    scroll-padding-top: 0;
+    scroll-padding-top: 52px;
   }
 }
 
 /* The option panel's measured height at each width, held while its code
    (and Recharts) loads, so nothing below moves when it arrives. */
 .option-panel-min-h {
-  min-height: 1088px;
+  min-height: 1190px;
+}
+@media (width >= 25rem) {
+  .option-panel-min-h {
+    min-height: 1145px;
+  }
 }
 @media (width >= 40rem) {
   .option-panel-min-h {
-    min-height: 864px;
+    min-height: 938px;
   }
 }
 @media (width >= 64rem) {
   .option-panel-min-h {
-    min-height: 953px;
+    min-height: 1019px;
   }
 }
 @media (width >= 80rem) {
   .option-panel-min-h {
-    min-height: 888px;
+    min-height: 934px;
   }
 }
 
@@ -576,4 +626,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   content: "";
   position: absolute;
   inset: -10px -4px;
+}
+
+/* Results that aren't current (a newer set is on its way, or a field holds
+   an entry that isn't valid yet): figures turn muted and marks fade, like a
+   dimmed row, so the text keeps at least 4.5:1. */
+[data-stale] td,
+[data-stale] th,
+[data-stale] dd,
+[data-stale] [data-testid^="readout-"] {
+  color: var(--muted);
+}
+[data-stale] svg text {
+  fill: var(--muted);
+}
+[data-stale] .mark {
+  opacity: 0.3;
 }

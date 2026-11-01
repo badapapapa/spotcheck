@@ -213,7 +213,7 @@ test.describe("A3/A4: typed numbers", () => {
     await page.goto("/?c=USD&a=15000&s=2026-10-17&d=2027-08-01&sp=1");
     await expect(page.getByTestId("summary")).toBeVisible();
     await openMore(page);
-    const spread = page.getByLabel("Conversion spread (%)");
+    const spread = page.getByLabel("Exchange fee (spread, %)");
     await spread.fill("0,5");
     await expect(page.getByTestId("error-spread")).toHaveText(
       "Use a dot for decimals, e.g. 0.5.",
@@ -238,7 +238,7 @@ test.describe("A4: partial values", () => {
     await expect(page.getByTestId("summary")).toBeVisible();
     await openMore(page);
     const cases = [
-      ["Conversion spread (%)", "15", "sp", "Enter 0–5%.", "spread"],
+      ["Exchange fee (spread, %)", "15", "sp", "Enter 0–5%.", "spread"],
       [
         "Most conversions you'd make",
         "36",
@@ -393,7 +393,7 @@ test.describe("A7: the BND peg", () => {
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
     await page.goto("/?c=BND&a=15000&s=2026-10-31&d=2027-07-31");
     await expect(page.getByTestId("summary")).toBeVisible();
-    const timeline = page.getByRole("img", { name: /^Cost of each strategy/ });
+    const timeline = page.getByRole("slider", { name: "Start of the period" });
     await timeline.scrollIntoViewIfNeeded();
     await page.waitForTimeout(500);
     for (const d of await timeline
@@ -535,7 +535,7 @@ test.describe("A10: figures", () => {
     const head = /S\$[\d,]+(\.\d\d)?/.exec(
       await page.getByTestId("answer").innerText(),
     )![0];
-    await expect(page.getByText(/the forward price is/)).toContainText(head);
+    await expect(page.getByText(/the forward fixes a/)).toContainText(head);
     await expect(
       page.getByRole("button", { name: "About forward points" }),
     ).toBeVisible();

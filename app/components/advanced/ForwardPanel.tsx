@@ -65,18 +65,42 @@ export function ForwardPanel({
               value: formatPips(q.points),
             },
             {
-              label: `SGD rate: SORA compounded over the last ${Math.round(q.T * 365)} days, to ${formatDate(sgdRateDate)}`,
+              key: "sgd-rate",
+              label: (
+                <span>
+                  SGD rate: SORA compounded over the last{" "}
+                  {Math.round(q.T * 365)} days, to {formatDate(sgdRateDate)}
+                  <HelpTip term="SORA" inline>
+                    The Singapore Overnight Rate Average, published by the
+                    Monetary Authority of Singapore: what banks pay to borrow
+                    SGD overnight. Compounded over your plan&apos;s length, it
+                    stands in for the SGD interest rate.
+                  </HelpTip>
+                </span>
+              ),
               value: pct(q.rd),
             },
             {
-              label: `${currency} rate: fed funds compounded the same way, to ${formatDate(foreignRateDate)}`,
+              key: "foreign-rate",
+              label: (
+                <span>
+                  {currency} rate: fed funds compounded the same way, to{" "}
+                  {formatDate(foreignRateDate)}
+                  <HelpTip term="fed funds" inline>
+                    The US federal funds rate, from the Federal Reserve (via
+                    FRED): what banks pay to borrow USD overnight. Compounded
+                    the same way, it stands in for the USD interest rate.
+                  </HelpTip>
+                </span>
+              ),
               value: pct(q.rf),
             },
           ]}
         />
       </div>
-      <p className="mt-4 border-t pt-4 text-[15px]">
-        For {amount.toLocaleString("en-SG")} {currency}, the forward price is{" "}
+      <p className="mt-4 border-t pt-4 text-ui">
+        For {amount.toLocaleString("en-SG")} {currency}, the forward fixes a
+        rate{" "}
         <span className="font-semibold tabular-nums">
           {/* The headline's precision: whole dollars for a plan of S$100+. */}
           {formatSgdAt(Math.abs(carry), q.spot * amount)}
@@ -85,8 +109,14 @@ export function ForwardPanel({
         {currency} interest rates are {q.rf > q.rd ? "higher" : "lower"} than
         SGD rates over this period. That gap is the carry; it isn&apos;t a
         forecast of the rate&apos;s direction.
+        <HelpTip term="carry" inline>
+          The difference between the two currencies&apos; interest rates over
+          your plan. A forward has to build it in, so the forward rate sits away
+          from spot. It isn&apos;t a view on where the rate goes next, and it
+          isn&apos;t a saving or a cost of its own.
+        </HelpTip>
       </p>
-      <p className="mt-3 text-xs text-muted-foreground">
+      <p className="mt-3 text-annotation text-muted-foreground">
         Its price comes from the interest-rate gap between SGD and {currency}{" "}
         (covered interest parity): F = S × (1 + r<sub>SGD</sub> × T) / (1 + r
         <sub>{currency}</sub> × T), T = {q.T.toFixed(3)} years. The rates are

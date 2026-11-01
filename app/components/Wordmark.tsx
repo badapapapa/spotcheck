@@ -25,7 +25,7 @@ export function Wordmark() {
     // Home keeps the scenario too, like the nav tabs.
     <ScenarioLink
       href="/"
-      className="-ml-1 flex min-h-11 items-center gap-2 px-1 font-display text-[23px] leading-none font-normal tracking-[-0.01em] text-ink"
+      className="-ml-1 flex min-h-11 items-center gap-2 px-1 t-wordmark tracking-[-0.01em] text-ink"
     >
       <LogoMark className="size-6 text-ink" />
       {SITE_NAME}

@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   CartesianGrid,
@@ -26,11 +27,20 @@ import {
   formatSgd,
 } from "@/lib/format.ts";
 import { readNumberField } from "@/lib/number-input.ts";
-import { HEDGE_STYLE } from "@/lib/hedge-style.ts";
+import {
+  AXIS_STROKE,
+  AXIS_TICK,
+  LINE_WIDTH,
+  REFERENCE_LABEL,
+  REFERENCE_LINE,
+  TOOLTIP_STYLE,
+} from "@/lib/chart-style.ts";
+import { HEDGE_IDS, HEDGE_STYLE } from "@/lib/hedge-style.ts";
 import { useCoarsePointer } from "@/lib/use-coarse-pointer.ts";
 import { niceTicks, sgdTickDecimals, type Ticks } from "@/lib/ticks.ts";
 import { LIMITS, VOL_LOOKBACKS, type VolLookback } from "@/lib/url-state.ts";
 import { HelpTip } from "../HelpTip";
+import { ChartLegend } from "../ChartLegend";
 import { ValueRows } from "../ValueRows";
 
 type Props = {
@@ -49,19 +59,16 @@ type Props = {
   onVol: (override: number | undefined, lookback: VolLookback) => void;
 };
 
-const axisTick = { fill: "var(--muted)", fontSize: 12 };
-const tooltipStyle = {
-  background: "var(--surface)",
-  border: "1px solid var(--rule)",
-  borderRadius: 8,
-  color: "var(--ink)",
-  fontSize: 13,
-};
-
 /** Plain-English notes for the "About …" help tips. */
 const HELP = {
   premium:
     "What the option costs up front, per unit of foreign currency. You pay it whether or not you end up using the option.",
+  strike:
+    "The rate the option lets you convert at. It is set as a percentage of the spot rate: 100% is today's rate; a higher strike makes a cheaper option that caps the rate higher.",
+  notional:
+    "The amount the option covers: your whole amount of foreign currency, valued at spot. The premium as a share of it gives the option's cost in percentage terms.",
+  volatility:
+    "Realised volatility is how much the rate actually moved over a past stretch of trading days. Implied volatility is what market option prices assume; SpotCheck has no market prices, so realised volatility stands in for it.",
   delta:
     "How much the option's value moves when the spot rate moves by 1 SGD, per unit. Near 0.5 means about half as sensitive as the currency itself.",
   gamma:
@@ -192,9 +199,12 @@ export function OptionPanel(props: Props) {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid content-start gap-1.5">
-            <label htmlFor={`${id}-strike`} className="t-small font-medium">
-              Strike: {formatRate(K)} ({Math.round(strikePct * 100)}% of spot)
-            </label>
+            <div className="flex items-center">
+              <label htmlFor={`${id}-strike`} className="t-small font-medium">
+                Strike: {formatRate(K)} ({Math.round(strikePct * 100)}% of spot)
+              </label>
+              <HelpTip term="the strike">{HELP.strike}</HelpTip>
+            </div>
             <input
               id={`${id}-strike`}
               type="range"
@@ -208,40 +218,54 @@ export function OptionPanel(props: Props) {
             />
           </div>
           <div className="grid content-start gap-1.5">
-            <label htmlFor={`${id}-vol`} className="t-small font-medium">
-              Volatility (% a year)
-            </label>
+            <div className="flex items-center">
+              <label htmlFor={`${id}-vol`} className="t-small font-medium">
+                Volatility (% a year)
+              </label>
+              <HelpTip term="realised and implied volatility">
+                {HELP.volatility}
+              </HelpTip>
+            </div>
             <div className="flex gap-2">
               <input
                 id={`${id}-vol`}
                 type="text"
                 inputMode="decimal"
                 autoComplete="off"
-                placeholder={(realised.sigma * 100).toFixed(1)}
+                // Empty means "use the realised figure", which it shows, so
+                // the field reads as a value rather than a disabled box.
+                placeholder={`${(realised.sigma * 100).toFixed(1)} realised`}
                 value={vol.text}
                 aria-invalid={vol.error ? true : undefined}
                 aria-describedby={`${id}-vol-note`}
                 onChange={(e) => typeVol(e.target.value)}
                 className="field-input min-w-0 flex-1"
               />
-              <select
-                aria-label="Realised volatility lookback"
-                value={realised.lookback}
-                onChange={(e) =>
-                  props.onVol(
-                    volOverride,
-                    VOL_LOOKBACKS.find((n) => String(n) === e.target.value) ??
-                      250,
-                  )
-                }
-                className="field-input w-auto"
-              >
-                {VOL_LOOKBACKS.map((n) => (
-                  <option key={n} value={n}>
-                    {n}-day
-                  </option>
-                ))}
-              </select>
+              <span className="relative flex">
+                <select
+                  aria-label="Realised volatility lookback"
+                  value={realised.lookback}
+                  onChange={(e) =>
+                    props.onVol(
+                      volOverride,
+                      VOL_LOOKBACKS.find((n) => String(n) === e.target.value) ??
+                        250,
+                    )
+                  }
+                  className="field-input field-select w-auto"
+                >
+                  {VOL_LOOKBACKS.map((n) => (
+                    <option key={n} value={n}>
+                      {n}-day
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  aria-hidden
+                  className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+                  strokeWidth={2.5}
+                />
+              </span>
             </div>
             <p
               id={`${id}-vol-note`}
@@ -273,20 +297,32 @@ export function OptionPanel(props: Props) {
               value: formatSgd(premium * amount),
             },
             {
-              label: "Premium, % of notional",
+              key: "notional",
+              label: (
+                <>
+                  Premium, % of notional
+                  <HelpTip term="notional">{HELP.notional}</HelpTip>
+                </>
+              ),
               value: formatPercent(premium / base.S, 2),
             },
             {
-              label: "Worst-case cost",
+              label: "Highest possible cost",
               value: formatSgd(amount * (premium + K * (1 + spread))),
             },
           ]}
         />
 
         <figure className="space-y-2">
-          <figcaption className="t-h3">
-            Total SGD cost on {formatDate(props.deadline)}, by where the rate
-            ends up
+          <figcaption>
+            <span className="t-h3 block">
+              Total SGD cost on {formatDate(props.deadline)}, by where the rate
+              ends up
+            </span>
+            <span className="t-small mt-1 block text-muted-foreground">
+              For the strike and volatility above: move the strike and the
+              option&apos;s line moves with it.
+            </span>
           </figcaption>
           <div
             className="h-72 w-full sm:h-64"
@@ -304,7 +340,7 @@ export function OptionPanel(props: Props) {
                 onClick={(st) => coarse && setPayoffAt(indexOf(st))}
                 onMouseMove={(st) => coarse && setPayoffAt(indexOf(st))}
               >
-                <CartesianGrid stroke="var(--rule)" vertical={false} />
+                <CartesianGrid stroke={AXIS_STROKE} vertical={false} />
                 <XAxis
                   dataKey="ST"
                   type="number"
@@ -312,9 +348,16 @@ export function OptionPanel(props: Props) {
                   tickFormatter={(v: number) =>
                     v.toFixed(Math.max(2, rateAxis.decimals))
                   }
-                  tick={axisTick}
-                  stroke="var(--rule)"
+                  tick={AXIS_TICK}
+                  stroke={AXIS_STROKE}
                   ticks={rateAxis.ticks}
+                  height={44}
+                  label={{
+                    ...REFERENCE_LABEL,
+                    value: `SGD per ${currency} on the deadline`,
+                    position: "insideBottom",
+                    offset: 0,
+                  }}
                 />
                 <YAxis
                   domain={payoffAxis.domain}
@@ -322,12 +365,12 @@ export function OptionPanel(props: Props) {
                   tickFormatter={(v: number) =>
                     formatSgd(v, { decimals: sgdTickDecimals(payoffAxis) })
                   }
-                  tick={axisTick}
-                  stroke="var(--rule)"
+                  tick={AXIS_TICK}
+                  stroke={AXIS_STROKE}
                   width={76}
                 />
                 <Tooltip
-                  contentStyle={tooltipStyle}
+                  contentStyle={TOOLTIP_STYLE}
                   separator=": "
                   // Touch: no floating box (it stays open and covers the
                   // chart); the readout under the chart shows the values.
@@ -338,30 +381,35 @@ export function OptionPanel(props: Props) {
                   formatter={(v, name) => [formatSgd(Number(v)), name]}
                 />
                 <Legend
-                  wrapperStyle={{ fontSize: 13, paddingTop: 8 }}
-                  // Names in ink; the marker beside each carries the colour.
-                  formatter={(name) => (
-                    <span style={{ color: "var(--muted)" }}>{name}</span>
+                  // Our own legend, in the hedge order of the history table.
+                  content={() => (
+                    <ChartLegend
+                      className="pt-2"
+                      items={HEDGE_IDS.map((h) => ({
+                        key: h,
+                        label: HEDGE_STYLE[h].label,
+                        color: HEDGE_STYLE[h].color,
+                        mark: "line",
+                      }))}
+                    />
                   )}
                 />
                 <ReferenceLine
                   x={base.S}
-                  stroke="var(--muted)"
-                  strokeDasharray="4 4"
+                  {...REFERENCE_LINE}
                   label={{
+                    ...REFERENCE_LABEL,
                     value: props.spotLabel,
-                    fill: "var(--muted)",
-                    fontSize: 12,
                     position: "top",
                   }}
                 />
-                {(["unhedged", "forward", "option"] as const).map((h) => (
+                {HEDGE_IDS.map((h) => (
                   <Line
                     key={h}
                     dataKey={h}
                     name={HEDGE_STYLE[h].label}
                     stroke={HEDGE_STYLE[h].color}
-                    strokeWidth={2}
+                    strokeWidth={LINE_WIDTH}
                     dot={false}
                     isAnimationActive={false}
                   />
@@ -384,19 +432,17 @@ export function OptionPanel(props: Props) {
                   <span className="font-medium">
                     Rate on deadline {formatRate(payoff[payoffAt]!.ST)}:
                   </span>{" "}
-                  {(["unhedged", "forward", "option"] as const)
-                    .map(
-                      (h) =>
-                        `${HEDGE_STYLE[h].short} ${formatSgd(payoff[payoffAt]![h])}`,
-                    )
-                    .join(", ")}
+                  {HEDGE_IDS.map(
+                    (h) =>
+                      `${HEDGE_STYLE[h].short} ${formatSgd(payoff[payoffAt]![h])}`,
+                  ).join(", ")}
                 </>
               )}
             </p>
           )}
         </figure>
 
-        <p className="text-xs text-muted-foreground">
+        <p className="text-annotation text-muted-foreground">
           Priced with Garman-Kohlhagen, using continuously compounded
           equivalents of the rates in the forward panel. The premium&apos;s own
           time value (interest you could have earned on it) is ignored. Real
@@ -415,7 +461,8 @@ export function OptionPanel(props: Props) {
           </h2>
           <p className="mt-3 text-muted-foreground">
             The Greeks: how the option&apos;s value changes as the rate,
-            volatility and time move.
+            volatility and time move, for the strike and volatility above. Each
+            chart runs across the spot rate, SGD per {currency}.
           </p>
         </div>
         <div className="grid gap-x-8 xl:grid-cols-2">
@@ -495,7 +542,8 @@ export function OptionPanel(props: Props) {
                     <LineChart
                       accessibilityLayer={false}
                       data={greekCurves}
-                      margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+                      // Room above the plot for the "today" label.
+                      margin={{ top: 18, right: 8, bottom: 0, left: 0 }}
                       onClick={(st) =>
                         coarse &&
                         setGreekAt((a) => ({ ...a, [g.key]: indexOf(st) }))
@@ -505,7 +553,7 @@ export function OptionPanel(props: Props) {
                         setGreekAt((a) => ({ ...a, [g.key]: indexOf(st) }))
                       }
                     >
-                      <CartesianGrid stroke="var(--rule)" vertical={false} />
+                      <CartesianGrid stroke={AXIS_STROKE} vertical={false} />
                       <XAxis
                         dataKey="S"
                         type="number"
@@ -513,8 +561,8 @@ export function OptionPanel(props: Props) {
                         tickFormatter={(v: number) =>
                           v.toFixed(Math.max(2, greekRateAxis.decimals))
                         }
-                        tick={axisTick}
-                        stroke="var(--rule)"
+                        tick={AXIS_TICK}
+                        stroke={AXIS_STROKE}
                         ticks={greekRateAxis.ticks}
                       />
                       <YAxis
@@ -527,12 +575,12 @@ export function OptionPanel(props: Props) {
                               })
                             : v.toFixed(g.axis.decimals)
                         }
-                        tick={axisTick}
-                        stroke="var(--rule)"
+                        tick={AXIS_TICK}
+                        stroke={AXIS_STROKE}
                         width={64}
                       />
                       <Tooltip
-                        contentStyle={tooltipStyle}
+                        contentStyle={TOOLTIP_STYLE}
                         separator=": "
                         content={coarse ? () => null : undefined}
                         labelFormatter={(v) => `Spot ${formatRate(Number(v))}`}
@@ -540,14 +588,18 @@ export function OptionPanel(props: Props) {
                       />
                       <ReferenceLine
                         x={base.S}
-                        stroke="var(--muted)"
-                        strokeDasharray="4 4"
+                        {...REFERENCE_LINE}
+                        label={{
+                          ...REFERENCE_LABEL,
+                          value: props.spotLabel,
+                          position: "top",
+                        }}
                       />
                       <Line
                         dataKey={(d: Greeks) => g.scale(d[g.key])}
                         name={g.title}
                         stroke={HEDGE_STYLE.option.color}
-                        strokeWidth={2}
+                        strokeWidth={LINE_WIDTH}
                         dot={false}
                         isAnimationActive={false}
                       />

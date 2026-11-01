@@ -35,9 +35,9 @@ export function convertWhen(c: StartContext): string {
   return "at the latest rate";
 }
 
-/** The rate every period is rescaled to: "today's rate" / "the rate on 2 Jan 2025". */
+/** The rate every period is rescaled to: "the latest rate" / "the rate on 2 Jan 2025". */
 export function rescaledTo(c: StartContext): string {
-  if (c.kind === "latest") return "today's rate";
+  if (c.kind === "latest") return "the latest rate";
   if (c.kind === "past") return `the rate on ${formatDate(c.start)}`;
   return "the latest rate";
 }
@@ -57,10 +57,10 @@ export function rateLine(c: StartContext, rate: string, code: string): string {
 /** The All at once sentence of the plain-words summary. */
 export function lumpSumSentence(c: StartContext, cost: string): string {
   if (c.kind === "latest")
-    return `All at once: ${cost} at the latest mid rate plus your spread, known today, so it has no range.`;
+    return `All at once: ${cost} at the latest mid rate plus your exchange fee, known today, so it has no range.`;
   if (c.kind === "past")
-    return `All at once: ${cost} at the mid rate on ${formatDate(c.rateDate)} plus your spread, known on that day, so it has no range.`;
-  return `All at once: ${cost} at the latest mid rate (${formatDate(c.rateDate)}) plus your spread, so it has no range. The rate on ${formatDate(c.start)} isn't known yet.`;
+    return `All at once: ${cost} at the mid rate on ${formatDate(c.rateDate)} plus your exchange fee, known on that day, so it has no range.`;
+  return `All at once: ${cost} at the latest mid rate (${formatDate(c.rateDate)}) plus your exchange fee, so it has no range. The rate on ${formatDate(c.start)} isn't known yet.`;
 }
 
 /** Hedging: "today's spot" / "the spot on 2 Jan 2025" / "the latest spot". */

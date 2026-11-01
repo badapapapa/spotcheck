@@ -14,7 +14,8 @@ async function pickCurrency(page: Page, search: string, code: string) {
 }
 
 /** The mid-rate line under today's cost, e.g. "S$19,188 at mid rate, …". */
-const MID_HINT = /^S\$[\d,.]+ at mid rate, before your/;
+// The note under today's cost (its help tip's "i" is part of the text).
+const MID_HINT = /^S\$[\d,.]+ at mid rate.*before your [\d.]+% fee$/;
 const firstSgd = (text: string | null) =>
   Number(/S\$([\d,.]+)/.exec(text ?? "")![1]!.replaceAll(",", ""));
 
@@ -44,7 +45,7 @@ test("planner loads with defaults and shows the outcome chart", async ({
     ).toBeVisible();
   }
   await expect(page.getByTestId("summary")).toContainText(
-    "overlapping windows",
+    "overlapping past periods",
   );
 });
 
@@ -100,7 +101,9 @@ test("typing in the amount updates the URL once, without route requests or histo
 
   // Read the S$ hint at 15,000 first, so the check below doesn't depend on
   // today's USD/SGD rate.
-  const hint = page.getByText(MID_HINT);
+  const hint = page
+    .getByTestId("today-cost-note")
+    .filter({ hasText: MID_HINT });
   const sgd = async () => firstSgd(await hint.textContent());
   const at15000 = await sgd();
 
@@ -235,7 +238,9 @@ test("switching currency keeps the SGD value of the amount", async ({
   page,
 }) => {
   await page.goto("/?c=USD&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2");
-  const amountHint = page.getByText(MID_HINT);
+  const amountHint = page
+    .getByTestId("today-cost-note")
+    .filter({ hasText: MID_HINT });
   const sgd = async () => firstSgd(await amountHint.textContent());
   await expect(amountHint).toBeVisible();
   const before = await sgd();
@@ -281,8 +286,13 @@ test("today's cost matches the All at once result, including the spread", async 
     (await lump.getAttribute("aria-label"))!,
   )![1]!;
   await expect(page.getByTestId("today-cost")).toHaveText(median);
-  // The mid-rate figure underneath is the same cost without the 0.5% spread.
-  const mid = firstSgd(await page.getByText(MID_HINT).textContent());
+  // The mid-rate figure underneath is the same cost without the 0.5% fee.
+  const mid = firstSgd(
+    await page
+      .getByTestId("today-cost-note")
+      .filter({ hasText: MID_HINT })
+      .textContent(),
+  );
   expect(firstSgd(median) / mid).toBeCloseTo(1.005, 4);
 });
 
@@ -332,6 +342,10 @@ for (const q of SCENARIOS) {
   }) => {
     await page.goto(`/?${q}`);
     await expect(page.getByTestId("summary")).toBeVisible();
+    // Open every disclosure (the plain words are folded on phones), so the
+    // checks below read all of the text.
+    for (const d of await page.locator("details").all())
+      await d.evaluate((el) => el.setAttribute("open", ""));
 
     // The same fixed order everywhere a strategy list appears.
     const glance = page.getByRole("region", { name: "Comparison at a glance" });
@@ -348,15 +362,14 @@ for (const q of SCENARIOS) {
       name: "SGD cost of each strategy across comparable past periods",
     });
     if (await table.isVisible()) {
-      expect(await table.locator("tbody th").allTextContents()).toEqual(
-        STRATEGY_NAMES,
-      );
+      // The name, without the gloss under it ("convert in equal parts").
+      expect(
+        await table.locator("tbody th > span:first-child").allTextContents(),
+      ).toEqual(STRATEGY_NAMES);
     }
     const legend = page
       .getByRole("region", { name: /What if you had converted/ })
-      .locator("ul")
-      .first()
-      .getByRole("button");
+      .getByTestId("legend-name");
     // The timeline loads just after the page.
     await expect(legend).toHaveCount(STRATEGY_NAMES.length);
     expect(await legend.allTextContents()).toEqual(STRATEGY_NAMES);
@@ -408,16 +421,15 @@ test("picking a day on the timeline selects that period", async ({ page }) => {
   const heading = page.getByRole("heading", { name: /^The period starting / });
   await expect(heading).toBeVisible();
   const latest = await heading.textContent();
-  const timeline = page.getByRole("img", { name: /^Cost of each strategy/ });
+  const timeline = page.getByRole("slider", { name: "Start of the period" });
   await timeline.scrollIntoViewIfNeeded();
   const box = (await timeline.boundingBox())!;
   // A quarter of the way along: a period years before the latest one.
   await page.mouse.click(box.x + box.width * 0.25, box.y + box.height / 2);
   await expect(heading).not.toHaveText(latest!);
-  // The slider, the keyboard control for the same choice, follows.
-  const slider = page.getByLabel(/^Start of the period:/);
-  expect(Number(await slider.inputValue())).toBeLessThan(
-    Number(await slider.getAttribute("max")),
+  // The chart is the slider: its value follows the pick.
+  expect(Number(await timeline.getAttribute("aria-valuenow"))).toBeLessThan(
+    Number(await timeline.getAttribute("aria-valuemax")),
   );
 });
 

@@ -11,7 +11,7 @@ export default function NotFound() {
       <h1 className="t-h1">Page not found</h1>
       <p className="t-lede mt-5">
         There&apos;s nothing at this address. The planner, Hedging and How it
-        works are linked at the top of the page.
+        works are in the site menu.
       </p>
       <p className="mt-6">
         <Link href="/" prefetch={false} className="link">

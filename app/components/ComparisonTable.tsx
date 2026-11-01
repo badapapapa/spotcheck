@@ -5,6 +5,8 @@ import { signedDiff } from "@/lib/signed.ts";
 export type ComparisonRow = {
   id: string;
   label: string;
+  /** A gloss shown under the name ("convert in equal parts"). */
+  note?: string;
   color: string;
   summary: Summary;
   /** Median minus the reference's median (planner: all at once). */
@@ -83,14 +85,14 @@ export function ComparisonTable({
         );
       })(),
     ],
-    ["Worst case", sgd(r.summary.max)],
+    ["Most expensive past period", sgd(r.summary.max)],
     ...(withReference
       ? ([
           [
             `Cheaper than ${reference}`,
             r.cheaperShare === undefined
               ? "–"
-              : `${formatPercent(r.cheaperShare)} of periods`,
+              : `${formatPercent(r.cheaperShare)} of past periods`,
           ],
         ] as [string, string][])
       : []),
@@ -106,7 +108,7 @@ export function ComparisonTable({
 
   return (
     <>
-      <table className="hidden w-full text-[15px] tabular-nums sm:table">
+      <table className="hidden w-full text-ui tabular-nums sm:table">
         <caption className="sr-only">{caption}</caption>
         <thead className="text-left text-muted-foreground">
           <tr className="t-small bg-sunken">
@@ -138,6 +140,11 @@ export function ComparisonTable({
                   {swatch(r.color)}
                   {r.label}
                 </span>
+                {r.note && (
+                  <span className="t-small block pl-4.5 font-normal text-muted-foreground">
+                    {r.note}
+                  </span>
+                )}
               </th>
               {measures(r).map(([label, value], i, all) => (
                 <td
@@ -157,12 +164,17 @@ export function ComparisonTable({
         {rows.map((r) => (
           <li
             key={r.id}
-            className="border-b py-4 transition-colors duration-150"
+            className="border-b py-3 transition-colors duration-150"
             data-dimmed={dim(r.id)}
           >
             <p className="flex items-center gap-2 font-medium">
               {swatch(r.color)}
               {r.label}
+              {r.note && (
+                <span className="t-small font-normal text-muted-foreground">
+                  {r.note}
+                </span>
+              )}
             </p>
             <dl className="t-small mt-2 grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 tabular-nums">
               {measures(r).map(([label, value]) => (

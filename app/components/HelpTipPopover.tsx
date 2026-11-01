@@ -6,19 +6,21 @@ import { Popover } from "@base-ui/react/popover";
 export function HelpTipPopover({
   term,
   children,
+  inline,
 }: {
   term: string;
   children: string;
+  inline?: boolean;
 }) {
   return (
     <Popover.Root>
       <Popover.Trigger
         aria-label={`About ${term}`}
-        className="group -my-2.5 inline-flex size-11 shrink-0 items-center justify-center rounded-full align-middle"
+        className={`group -my-2.5 inline-flex size-11 shrink-0 items-center justify-center rounded-full align-middle ${inline ? "-mx-1.5" : ""}`}
       >
         <span
           aria-hidden
-          className="flex size-[22px] items-center justify-center rounded-full border-[1.5px] border-input text-[12px] font-semibold text-accent group-hover:border-ink group-data-[popup-open]:border-accent"
+          className="flex size-[22px] items-center justify-center rounded-full border-[1.5px] border-input text-chart font-semibold text-accent group-hover:border-ink group-data-[popup-open]:border-accent"
         >
           i
         </span>

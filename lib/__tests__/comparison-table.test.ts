@@ -139,7 +139,7 @@ describe.each(RESULTS)("comparisons for %s", (_, r) => {
         expect(t).toContain(formatSgd(v));
     }
     expect(t).toMatch(
-      /Median Median vs all at once Middle 90% Worst case Cheaper than all at once/,
+      /Median Median vs all at once Middle 90% Most expensive past period Cheaper than all at once/,
     );
   });
 });

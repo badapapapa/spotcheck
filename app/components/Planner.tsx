@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Pencil } from "lucide-react";
+import { ChevronDown, Download, Pencil } from "lucide-react";
 import {
   lazy,
   Suspense,
@@ -8,13 +8,15 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useDeferredValue,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { addDays, daysBetween, rateAsOf } from "@/engine/calendar.ts";
 import { findCurrency, fxSourceLabel } from "@/engine/currencies.ts";
 import type { ReplayResult } from "@/engine/replay.ts";
 import { sampleWindow } from "@/engine/replay.ts";
-import { STRATEGY_IDS } from "@/engine/types.ts";
+import { STRATEGY_IDS, type Series, type StrategyId } from "@/engine/types.ts";
 import { windowCount } from "@/lib/periods.ts";
 import { computeReplay } from "@/lib/compute.ts";
 import { latestStart, startDateIssue } from "@/lib/coverage.ts";
@@ -29,7 +31,13 @@ import {
   startContext,
 } from "@/lib/start-context.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
+import {
+  createPeriodStore,
+  usePeriod,
+  type PeriodStore,
+} from "@/lib/period-store.ts";
 import { describeReplay } from "@/lib/summary.ts";
+import { trendNote } from "@/lib/trend.ts";
 import { useLoad } from "@/lib/use-data.ts";
 import { usePlannerState } from "@/lib/use-planner-state.ts";
 import type { PlannerState } from "@/lib/url-state.ts";
@@ -116,46 +124,13 @@ export function Planner() {
     [series, scenario, issue],
   );
 
-  // The period picked on the timeline or slider (latest by default). It
-  // lives here so the Excel export and the detail share it. A new set of
-  // periods starts again from the latest.
+  // The period picked on the timeline (latest by default), in a store that
+  // only the timeline and the period detail read (lib/period-store.ts). A
+  // new set of periods starts again from the latest.
   const windowsKey = result
     ? `${result.startDates.length}:${result.windowDays}`
     : "";
-  const [picked, setPicked] = useState<{ key: string; index: number }>();
-  const index = result
-    ? picked?.key === windowsKey
-      ? picked.index
-      : result.startDates.length - 1
-    : 0;
-  const select = (i: number) => setPicked({ key: windowsKey, index: i });
-  const sample = useMemo(
-    () =>
-      result && series
-        ? sampleWindow(series, deferred.scenario, result.startDates[index]!, {
-            targetBelowSpot: deferred.targetBelowSpot,
-          })
-        : undefined,
-    [result, series, deferred, index],
-  );
-
-  const [exporting, setExporting] = useState(false);
-  async function exportXlsx() {
-    if (!series || !sample) return;
-    setExporting(true);
-    try {
-      // Loaded on demand: ExcelJS is large and most visitors never export.
-      const { downloadWorkbook } = await import("@/lib/xlsx.ts");
-      await downloadWorkbook(
-        series,
-        deferred.scenario,
-        deferred.targetBelowSpot,
-        sample,
-      );
-    } finally {
-      setExporting(false);
-    }
-  }
+  const [periods] = useState(createPeriodStore);
 
   // One highlighted strategy, shared by every chart and table. Only ever set
   // by the user: hovering or focusing previews it, clicking pins it.
@@ -163,11 +138,25 @@ export function Planner() {
   const [pinned, setPinned] = useState<string | null>(null);
   const active = hovered ?? pinned;
   const toggle = (id: string) => setPinned((p) => (p === id ? null : id));
+  // Esc unlocks a locked strategy, from anywhere on the page (a popover
+  // that handles Esc itself marks the event as handled first).
+  useEffect(() => {
+    if (!pinned) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !e.defaultPrevented) setPinned(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [pinned]);
 
   const converterRef = useRef<HTMLElement>(null);
   const showBar = useScrolledPast(converterRef);
   const length = result ? planLength(result.windowDays) : undefined;
-  const rescaled = ctx ? rescaledTo(ctx) : "today's rate";
+  const trend = useMemo(
+    () => (series ? trendNote(series, scenario.currency) : undefined),
+    [series, scenario.currency],
+  );
+  const rescaled = ctx ? rescaledTo(ctx) : "the latest rate";
   const pastDeadline = pastDeadlineNote(scenario.deadline, today);
   /** Moves the plan to the suggested start, keeping its length. */
   const startOn = (start: string) =>
@@ -206,7 +195,7 @@ export function Planner() {
       <section
         ref={converterRef}
         aria-label="Your plan"
-        className="col-main converter-min-h mt-8 self-start rounded-lg border bg-surface p-4 sm:p-6 lg:row-start-2"
+        className="col-main converter-min-h mt-5 self-start rounded-lg border bg-surface p-4 sm:mt-8 sm:p-6 lg:row-start-2"
       >
         <ScenarioForm
           state={state}
@@ -229,7 +218,7 @@ export function Planner() {
       {/* The answer, beside the question on laptops and under it on phones. */}
       <section
         aria-label="Comparison at a glance"
-        className="col-side result-min-h mt-8 self-start rounded-lg border bg-surface p-4 sm:p-6 lg:row-span-2 lg:row-start-1 lg:mt-2"
+        className="col-side result-min-h mt-4 self-start rounded-lg border bg-surface p-4 sm:mt-8 sm:p-6 lg:row-span-2 lg:row-start-1 lg:mt-2"
       >
         {fx.status === "error" ? (
           <LoadError message={fx.error} retry={fx.retry} />
@@ -288,11 +277,11 @@ export function Planner() {
                 : `Every past period of the same length as yours, each cost rescaled to ${rescaled}.`}
             </p>
             {spot && ctx && (
-              <p
-                className="t-small mt-3 text-muted-foreground"
-                data-testid="rate-line"
-              >
-                {rateLine(ctx, formatRate(spot.value), scenario.currency)}
+              <p className="t-small mt-3 text-muted-foreground">
+                <span data-testid="rate-line">
+                  {rateLine(ctx, formatRate(spot.value), scenario.currency)}
+                </span>{" "}
+                SGD per {scenario.currency}: lower = cheaper for you.
               </p>
             )}
             <p
@@ -306,7 +295,13 @@ export function Planner() {
         </div>
         <div className="mt-10">
           {result ? (
-            <div className="space-y-8">
+            // Not current (a newer set is on its way, or a field isn't valid
+            // yet): the figures turn muted in place, as in the glance.
+            <div
+              className="space-y-8"
+              data-stale={stale || formInvalid || undefined}
+              aria-busy={stale || undefined}
+            >
               <DistributionChart
                 result={result}
                 active={active}
@@ -332,29 +327,54 @@ export function Planner() {
                         ? undefined
                         : result.stats[id].beatLumpSum,
                     label: STRATEGY_STYLE[id].label,
+                    note: STRATEGY_STYLE[id].subtitle,
                     color: STRATEGY_STYLE[id].color,
                     summary: result.stats[id].summary,
                   }))}
                 />
-                <p className="t-small mt-3 text-muted-foreground">
-                  Median vs all at once: the difference from converting it all{" "}
-                  {ctx ? convertWhen(ctx) : "today"}. Middle 90%: from low to
-                  high, the range 90% of past periods fell in. Worst case: the
-                  most expensive period. Cheaper: the share of periods that cost
-                  less than converting all at once.
-                </p>
-                <p className="t-small mt-2 font-medium">{HISTORICAL_CONTEXT}</p>
               </div>
-              <div data-testid="summary" className="prose-measure space-y-3">
-                <h3 className="t-h3">In plain words</h3>
-                {describeReplay(
-                  result,
-                  deferred.scenario,
-                  deferred.targetBelowSpot,
-                  ctx,
-                ).map((line) => (
-                  <p key={line}>{line}</p>
-                ))}
+              {/* Laptops: the sentences on the left, how to read the table
+                  and what shaped the history on the right (a column that was
+                  empty). Phones: the notes first, the sentences folded. */}
+              <div className="grid gap-8 lg:grid-cols-12 lg:gap-6">
+                <div
+                  className="t-small space-y-3 text-muted-foreground lg:col-span-5 lg:col-start-8 lg:row-start-1"
+                  data-testid="reading-notes"
+                >
+                  <p>
+                    <span className="font-medium text-ink">
+                      Median vs all at once:
+                    </span>{" "}
+                    the difference from converting it all{" "}
+                    {ctx ? convertWhen(ctx) : "today"}; negative = cost less.{" "}
+                    <span className="font-medium text-ink">Middle 90%:</span>{" "}
+                    from low to high, the range 90% of past periods fell in.{" "}
+                    <span className="font-medium text-ink">
+                      Most expensive past period:
+                    </span>{" "}
+                    the highest cost in this history.{" "}
+                    <span className="font-medium text-ink">
+                      Cheaper than all at once:
+                    </span>{" "}
+                    the share of past periods that cost less. It is a share of
+                    past periods, not a probability.
+                  </p>
+                  {trend && <p data-testid="trend-note">{trend}</p>}
+                  <p className="font-medium text-ink">
+                    {HISTORICAL_CONTEXT}{" "}
+                    <ScenarioLink href="/how-it-works" className="link">
+                      How the history is tested
+                    </ScenarioLink>
+                  </p>
+                </div>
+                <PlainWords
+                  lines={describeReplay(
+                    result,
+                    deferred.scenario,
+                    deferred.targetBelowSpot,
+                    ctx,
+                  )}
+                />
               </div>
             </div>
           ) : fx.status === "error" || issue ? (
@@ -378,6 +398,7 @@ export function Planner() {
       <section
         aria-labelledby="explore-title"
         className="bleed mt-16 bg-sunken py-12 lg:mt-24 lg:py-16"
+        data-stale={(result && (stale || formInvalid)) || undefined}
       >
         <div className="page">
           <div className="lg:grid lg:grid-cols-12 lg:gap-6">
@@ -386,28 +407,32 @@ export function Planner() {
                 What if you had converted in another period?
               </h2>
               <p className="mt-3 text-muted-foreground">
-                Each line is what a strategy would have cost, at {rescaled}, if
-                your plan had started on that day. Pick a day to see exactly
-                what happened.
+                Each line is what a strategy would have cost, at {rescaled}, for
+                a plan starting that day. Drag across the chart
+                <span className="max-sm:hidden">
+                  , or focus it and use the arrow keys,
+                </span>{" "}
+                to pick a period.
               </p>
             </div>
           </div>
-          {/* Legend plus chart: 2 legend rows on phones, 1 on laptops. */}
-          <div className="mt-8 min-h-[320px] sm:min-h-[336px]">
+          {/* The timeline's measured height at each width (readout, legend,
+              chart, and on phones the note and month buttons). */}
+          <div className="mt-8 min-h-[528px] sm:min-h-[508px] md:min-h-[424px] lg:min-h-[380px]">
             {result ? (
               <Suspense
                 fallback={
                   <div
                     aria-hidden
-                    className="skeleton h-[320px] bg-paper sm:h-[336px]"
+                    className="skeleton h-[528px] bg-paper sm:h-[508px] md:h-[424px] lg:h-[380px]"
                   />
                 }
               >
-                <OutcomeTimeline
+                <Timeline
+                  store={periods}
+                  windowsKey={windowsKey}
                   result={result}
                   amount={deferred.scenario.amount}
-                  selected={index}
-                  onSelect={select}
                   active={active}
                   pinned={pinned}
                   onActive={setActive}
@@ -418,50 +443,21 @@ export function Planner() {
             ) : (
               <div
                 aria-hidden
-                className="skeleton h-[320px] bg-paper sm:h-[336px]"
+                className="skeleton h-[528px] bg-paper sm:h-[508px] md:h-[424px] lg:h-[380px]"
               />
             )}
           </div>
 
           <div className="mt-10 border-t pt-8">
-            {result && series && sample ? (
-              <>
-                <div className="flex flex-wrap items-end justify-between gap-4">
-                  <h3 className="t-h3">
-                    The period starting {formatDate(sample.start)}
-                  </h3>
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={exportXlsx}
-                    disabled={exporting}
-                  >
-                    <Download aria-hidden className="size-4" />
-                    {exporting ? "Preparing…" : "Download Excel"}
-                    <span className="sr-only"> of this period</span>
-                  </button>
-                </div>
-                <div className="mt-6">
-                  <Suspense
-                    fallback={
-                      <div
-                        aria-hidden
-                        className="skeleton h-[34rem] bg-paper"
-                      />
-                    }
-                  >
-                    <SamplePath
-                      fx={series}
-                      scenario={deferred.scenario}
-                      targetBelowSpot={deferred.targetBelowSpot}
-                      startDates={result.startDates}
-                      index={index}
-                      onIndex={select}
-                      window={sample}
-                    />
-                  </Suspense>
-                </div>
-              </>
+            {result && series ? (
+              <PeriodDetail
+                store={periods}
+                windowsKey={windowsKey}
+                result={result}
+                series={series}
+                planned={deferred}
+                rescaled={rescaled}
+              />
             ) : (
               <div aria-hidden className="skeleton h-[34rem] bg-paper" />
             )}
@@ -585,12 +581,196 @@ function useScrolledPast(ref: React.RefObject<HTMLElement | null>) {
  * Phones: once the converter scrolls away, a bar along the top edge keeps
  * the scenario in view, with a way back to edit it.
  */
+/** The timeline, reading and setting the selected period in the store. */
+function Timeline({
+  store,
+  windowsKey,
+  ...props
+}: Omit<
+  React.ComponentProps<typeof OutcomeTimeline>,
+  "selected" | "onSelect"
+> & { store: PeriodStore; windowsKey: string }) {
+  const selected = usePeriod(
+    store,
+    windowsKey,
+    props.result.startDates.length - 1,
+  );
+  return (
+    <OutcomeTimeline
+      {...props}
+      selected={selected}
+      onSelect={(index) => store.set({ key: windowsKey, index })}
+    />
+  );
+}
+
+/**
+ * The selected period in detail, with its Excel export. While the timeline
+ * is scrubbed it follows a deferred copy of the selection, so the
+ * timeline's marker and readout stay smooth while the detail catches up.
+ */
+function PeriodDetail({
+  store,
+  windowsKey,
+  result,
+  series,
+  planned,
+  rescaled,
+}: {
+  store: PeriodStore;
+  windowsKey: string;
+  result: ReplayResult;
+  series: Series;
+  /** The state the result was computed for. */
+  planned: PlannerState;
+  rescaled: string;
+}) {
+  const index = useDeferredValue(
+    usePeriod(store, windowsKey, result.startDates.length - 1),
+  );
+  const sample = useMemo(
+    () =>
+      sampleWindow(series, planned.scenario, result.startDates[index]!, {
+        targetBelowSpot: planned.targetBelowSpot,
+      }),
+    [result, series, planned, index],
+  );
+  // The same period's costs at the latest rate, as the timeline's readout
+  // shows them, so the detail and the readout can be read together.
+  const today = useMemo(() => {
+    const scale = planned.scenario.amount * result.referenceSpot;
+    return {
+      scale,
+      costs: Object.fromEntries(
+        STRATEGY_IDS.map((id) => [
+          id,
+          result.relativeCosts[id][index]! * scale,
+        ]),
+      ) as Record<StrategyId, number>,
+    };
+  }, [result, planned.scenario.amount, index]);
+
+  const [exporting, setExporting] = useState(false);
+  async function exportXlsx() {
+    setExporting(true);
+    try {
+      // Loaded on demand: ExcelJS is large and most visitors never export.
+      const { downloadWorkbook } = await import("@/lib/xlsx.ts");
+      await downloadWorkbook(
+        series,
+        planned.scenario,
+        planned.targetBelowSpot,
+        sample,
+      );
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h3 className="t-h3">The period starting {formatDate(sample.start)}</h3>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={exportXlsx}
+          disabled={exporting}
+        >
+          <Download aria-hidden className="size-4" />
+          {exporting ? "Preparing…" : "Download Excel"}
+          <span className="sr-only"> of this period</span>
+        </button>
+      </div>
+      <div className="mt-6">
+        <Suspense
+          fallback={<div aria-hidden className="skeleton h-[34rem] bg-paper" />}
+        >
+          <SamplePath
+            fx={series}
+            scenario={planned.scenario}
+            targetBelowSpot={planned.targetBelowSpot}
+            window={sample}
+            today={today}
+            rescaled={rescaled}
+          />
+        </Suspense>
+      </div>
+    </>
+  );
+}
+
+const WIDE = "(min-width: 64rem)";
+const subscribeWide = (onChange: () => void) => {
+  const mq = window.matchMedia(WIDE);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+};
+
+/**
+ * The results as sentences. Folded on phones, where the table just above
+ * already gives every figure; open from 1024px, beside the reading notes.
+ * The static HTML has it folded; laptops open it on hydration, far below the
+ * first screen, so nothing in view moves.
+ */
+function PlainWords({ lines }: { lines: string[] }) {
+  const wide = useSyncExternalStore(
+    subscribeWide,
+    () => window.matchMedia(WIDE).matches,
+    () => false,
+  );
+  // Once the reader opens or closes it, their choice wins.
+  const [chosen, setChosen] = useState<boolean | null>(null);
+  const open = chosen ?? wide;
+  return (
+    <details
+      open={open}
+      onToggle={(e) => {
+        const now = e.currentTarget.open;
+        if (now !== open) setChosen(now);
+      }}
+      data-testid="summary"
+      className="group prose-measure lg:col-span-7 lg:row-start-1"
+    >
+      <summary className="disclosure flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-3 [&::-webkit-details-marker]:hidden">
+        <h3 className="t-h3">In plain words</h3>
+        <span className="disclosure-label text-ui text-accent group-open:hidden">
+          Read as sentences
+        </span>
+        <ChevronDown
+          aria-hidden
+          className="ml-auto size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+        />
+      </summary>
+      <div className="mt-2 space-y-3">
+        {lines.map((line) => (
+          <p key={line}>{line}</p>
+        ))}
+      </div>
+    </details>
+  );
+}
+
 function SummaryBar({ text, onEdit }: { text: string; onEdit: () => void }) {
   return (
-    <div className="summary-bar fixed inset-x-0 top-0 z-30 border-b bg-paper lg:hidden">
+    // Covers the sticky header, so it carries the disclaimer too (CLAUDE.md
+    // rule 3): one is in view at every scroll position.
+    <div className="summary-bar fixed inset-x-0 top-0 z-50 border-b bg-paper lg:hidden">
       <div className="page flex h-14 items-center justify-between gap-3">
-        <p className="truncate font-medium tabular-nums">{text}</p>
-        <button type="button" className="btn-secondary px-3" onClick={onEdit}>
+        <div className="min-w-0">
+          <p className="truncate font-medium tabular-nums">{text}</p>
+          <p
+            className="text-annotation text-muted-foreground"
+            data-testid="bar-disclaimer"
+          >
+            Not advice
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn-secondary shrink-0 px-3"
+          onClick={onEdit}
+        >
           <Pencil aria-hidden className="size-4" />
           Edit
         </button>
@@ -605,9 +785,9 @@ export function PlannerFallback() {
     <>
       <div
         aria-hidden
-        className="col-main converter-min-h mt-8 rounded-lg border bg-surface lg:row-start-2"
+        className="col-main converter-min-h mt-5 rounded-lg border bg-surface sm:mt-8 lg:row-start-2"
       />
-      <div className="col-side result-min-h mt-8 rounded-lg border bg-surface p-4 sm:p-6 lg:row-span-2 lg:row-start-1 lg:mt-2">
+      <div className="col-side result-min-h mt-4 rounded-lg border bg-surface p-4 sm:mt-8 sm:p-6 lg:row-span-2 lg:row-start-1 lg:mt-2">
         <GlanceProgress />
       </div>
     </>

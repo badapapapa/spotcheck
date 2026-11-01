@@ -8,6 +8,7 @@ import { DISCLAIMER } from "@/lib/site";
 import { METHOD } from "../components/Methodology";
 import { HISTORICAL_CONTEXT } from "../components/Glance";
 import { StrategyGuide } from "../components/StrategyGuide";
+import { TimingDiagram } from "../components/TimingDiagram";
 
 export const metadata: Metadata = {
   title: "How it works | SpotCheck",
@@ -30,6 +31,7 @@ export default function HowItWorks() {
   const first = formatDate(meta.series["SGD-USD"]?.first ?? "");
 
   const toc: [string, string][] = [
+    ["glance", "At a glance"],
     ["question", "The question"],
     ["strategies", "The four strategies"],
     ["replay", "The method"],
@@ -69,6 +71,40 @@ export default function HowItWorks() {
         </nav>
 
         <div className="lg:col-span-8 lg:col-start-5">
+          {/* Level one: the idea in three steps and one picture. The full
+              method follows, unchanged in substance. */}
+          <Part id="glance" title="At a glance">
+            <ol className="space-y-4" data-testid="three-steps">
+              {[
+                [
+                  "Your plan has a length.",
+                  "The days from your start date to your deadline, and an amount to convert.",
+                ],
+                [
+                  "SpotCheck replays it from every past start.",
+                  `Each strategy runs over the same number of days from every day since ${first}, using the rates of the time.`,
+                ],
+                [
+                  "You see the range of costs.",
+                  "Each period's cost is rescaled to the latest rate, so periods from different years compare fairly. It is a record of what happened, not a forecast.",
+                ],
+              ].map(([lead, text], i) => (
+                <li key={lead} className="grid grid-cols-[2rem_minmax(0,1fr)]">
+                  <span
+                    aria-hidden
+                    className="t-data-m leading-6 text-muted-foreground tabular-nums"
+                  >
+                    {i + 1}
+                  </span>
+                  <p>
+                    <span className="font-medium">{lead}</span> {text}
+                  </p>
+                </li>
+              ))}
+            </ol>
+            <TimingDiagram />
+          </Part>
+
           <Part id="question" title="The question">
             <p>
               Exchange students usually know two things: how much foreign
@@ -81,7 +117,7 @@ export default function HowItWorks() {
               is how each of those approaches would have worked out, had the
               same plan started on any day since {first}. SpotCheck replays your
               plan over every one of those periods and shows the range of costs,
-              rescaled to today&apos;s rate. The result is a record of what
+              rescaled to the latest rate. The result is a record of what
               happened, not a forecast.
             </p>
           </Part>
@@ -152,7 +188,7 @@ export default function HowItWorks() {
             <p>
               How the strategies compare depends on three things: the currency
               pair, the direction its rate was moving during the periods tested,
-              and the length of the window. A strategy that cost less across one
+              and the length of the plan. A strategy that cost less across one
               currency&apos;s history may have cost more across another&apos;s,
               because their trends differed. The US dollar&apos;s history says
               nothing about the yen&apos;s or the euro&apos;s; each currency is
@@ -163,8 +199,9 @@ export default function HowItWorks() {
             {method("limits").body}
             <p>
               The rates are mid-market reference rates. Banks, cards and money
-              changers charge more; the spread setting adds that cost to every
-              conversion, but your provider&apos;s fees may differ from it.
+              changers charge more; the exchange fee (spread) setting adds that
+              cost to every conversion, but your provider&apos;s fees may differ
+              from it.
             </p>
             <p>
               The Hedging page prices forwards and options from past overnight
