@@ -16,6 +16,7 @@ SpotCheck is a free, static web app for students going on exchange. It replays h
 ## Working style
 - Work **one phase at a time** from `SPOTCHECK_PLAN.md`. At each phase's gate, stop, summarise what was done, show test output, and wait for the owner (Ben) to approve before starting the next phase.
 - Ask before adding any dependency not listed in the plan.
+- Ask before downloading or installing anything on my machine — including npm packages outside package.json, Playwright browsers, Homebrew/pip tools, or any other binaries — and say what it is, where it comes from, and roughly how big it is. Re-running npm ci for existing locked dependencies is fine.
 - Write tests alongside code. A phase is not done until `npm run check` passes (type-check, lint, tests).
 - Small, focused commits with clear messages, e.g. `engine: add equal-tranche strategy`.
 - When the plan is ambiguous or a data source doesn't behave as described, report it and propose an option. Don't silently improvise.
