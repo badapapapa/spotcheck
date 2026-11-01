@@ -246,13 +246,7 @@ test.describe("A4: partial values", () => {
         "Enter a whole number from 1 to 24.",
         "tranches",
       ],
-      [
-        "Target: % below the starting rate",
-        "1000",
-        "t",
-        "Enter 0–20%.",
-        "target",
-      ],
+      ["Rate you'd wait for (target)", "1000", "t", "Enter 0–20%.", "target"],
     ] as const;
     for (const [label, typed, param, msg, name] of cases) {
       const before = query(page).get(param);

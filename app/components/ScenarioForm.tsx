@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { addDays, daysBetween, rateAsOf } from "@/engine/calendar.ts";
 import type { ISODate } from "@/engine/types.ts";
@@ -373,10 +373,24 @@ export function ScenarioForm({
 
   return (
     <form
-      className={chips ? "max-w-3xl space-y-2" : "space-y-5 sm:space-y-6"}
+      className={chips ? "max-w-3xl space-y-2" : "space-y-4 sm:space-y-6"}
       onSubmit={(e) => e.preventDefault()}
       aria-label="Scenario"
     >
+      {/* Which way the money goes: SpotCheck only converts from SGD, so
+          this is a statement, not a swap control. The second code follows
+          the currency picker. */}
+      <p
+        // Its own gap: the form's space-y sets each child's bottom margin.
+        className="mb-2 flex items-center gap-2 text-sm text-muted-foreground sm:mb-4"
+        data-testid="direction"
+      >
+        You pay <span className="code-pill">SGD</span>
+        {/* Read as "You pay SGD, you need USD"; the arrow is decoration. */}
+        <span className="sr-only">,</span>{" "}
+        <ArrowRight aria-hidden className="size-4" />
+        you need <span className="code-pill">{currency}</span>
+      </p>
       {/* Two groups so a phone wraps "by [date]" onto its own line, never
           mid-group; wider screens keep the sentence on one line. */}
       <p className="t-data-m flex flex-wrap items-center gap-x-2.5 gap-y-2 text-ink">
@@ -449,7 +463,7 @@ export function ScenarioForm({
       {!shownError("deadline") && (
         <p
           id={`${id}-deadline-text`}
-          className={`t-small text-muted-foreground tabular-nums ${chips ? "" : "-mt-4"}`}
+          className={`t-small text-muted-foreground tabular-nums ${chips ? "" : "-mt-3 sm:-mt-4"}`}
           data-testid="deadline-text"
         >
           {deadlineText}
@@ -592,8 +606,8 @@ export function ScenarioForm({
           {!chips && (
             <Field
               id={`${id}-target`}
-              label="Target: % below the starting rate"
-              help="Used by the target-rate strategy."
+              label="Rate you'd wait for (target)"
+              help="% below the starting rate. Used by the Target rate strategy."
               error={errorText("target")}
             >
               <input

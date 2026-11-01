@@ -3,7 +3,7 @@ import { Planner, PlannerFallback } from "./components/Planner";
 
 export default function Home() {
   return (
-    <div className="layout pt-6 sm:pt-10 lg:pt-16">
+    <div className="layout pt-4 sm:pt-10 lg:pt-16">
       {/* The question is static, outside the planner's Suspense boundary, so
           it paints before any script runs and is never re-rendered. */}
       <div className="col-main lg:row-start-1">

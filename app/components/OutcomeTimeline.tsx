@@ -10,6 +10,14 @@ import { formatSgd, formatSgdAt } from "@/lib/format.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { niceTicks, sgdTickDecimals } from "@/lib/ticks.ts";
 import { stepMonth } from "@/lib/periods.ts";
+import {
+  clampTo,
+  rangeAvailable,
+  RANGES,
+  timeTicks,
+  visibleRange,
+  type RangeId,
+} from "@/lib/ranges.ts";
 import { useWidth } from "@/lib/use-width.ts";
 import { LineMark } from "./ChartLegend";
 
@@ -64,6 +72,12 @@ type Month = {
  *   cost and a line through its median, with larger targets to step between
  *   months.
  *
+ * Range buttons (1Y / 5Y / 10Y / All) choose which periods are drawn, and
+ * the axis refits to them. Display only: the results and the selected
+ * index always cover every period. Narrowing the range moves a
+ * selection outside it to the nearest visible period. The range is view
+ * state, like a pinned strategy: not in the URL, All again on reload.
+ *
  * The chart is the one control for picking a period: a slider for the
  * keyboard, and drag (or tap) to scrub with a pointer, which updates the
  * detail below as it goes. Hovering previews a period. One marker shows the
@@ -84,7 +98,16 @@ export function OutcomeTimeline({
   const id = useId();
   const [ref, measured] = useWidth<HTMLDivElement>();
   const W = Math.max(280, measured);
-  const monthly = W < MONTHLY_BELOW;
+  const [chosen, setChosen] = useState<RangeId>("all");
+  // A range the history is too short for (after a currency change) is All.
+  const range = rangeAvailable(result.startDates, chosen) ? chosen : "all";
+  const { from, to } = useMemo(
+    () => visibleRange(result.startDates, range),
+    [result.startDates, range],
+  );
+  // A year of daily periods (about 260) fits a phone's chart, so 1Y draws
+  // every period; longer ranges group them by month.
+  const monthly = W < MONTHLY_BELOW && range !== "1y";
   // Fits between the fixed bars, a landscape phone included: the legend
   // and readout take about 110px, the tab bar 56.
   const vh = useSyncExternalStore(subscribeResize, viewportHeight, () => 900);
@@ -103,15 +126,17 @@ export function OutcomeTimeline({
     result.relativeCosts[id][i]! * scale;
 
   const months = useMemo(
-    () => groupByMonth(result, days, scale),
-    [result, days, scale],
+    () => groupByMonth(result, days, scale, from, to),
+    [result, days, scale, from, to],
   );
 
   const axis = useMemo(() => {
     let lo = Infinity;
     let hi = -Infinity;
+    // Fitted to the visible periods only, so a short range fills the chart.
     for (const id of STRATEGY_IDS)
-      for (const c of result.relativeCosts[id]) {
+      for (let i = from; i <= to; i++) {
+        const c = result.relativeCosts[id][i]!;
         if (c < lo) lo = c;
         if (c > hi) hi = c;
       }
@@ -130,7 +155,7 @@ export function OutcomeTimeline({
       domain,
       ticks: nice.ticks.filter((t) => t >= domain[0] && t <= domain[1]),
     };
-  }, [result.relativeCosts, scale]);
+  }, [result.relativeCosts, scale, from, to]);
   const decimals = sgdTickDecimals(axis);
   const yLabelW = Math.max(
     44,
@@ -138,8 +163,8 @@ export function OutcomeTimeline({
   );
   const plotL = yLabelW + 8;
   const plotR = W - PAD.right;
-  const d0 = days[0]!;
-  const d1 = days.at(-1)!;
+  const d0 = days[from]!;
+  const d1 = days[to]!;
   const x = (day: number) =>
     plotL + ((day - d0) / Math.max(1, d1 - d0)) * (plotR - plotL);
   const y = (v: number) =>
@@ -163,7 +188,7 @@ export function OutcomeTimeline({
         d += `${d ? "L" : "M"}${col},${y(min * scale).toFixed(1)}`;
         if (max !== min) d += `L${col},${y(max * scale).toFixed(1)}`;
       };
-      for (let i = 0; i < series.length; i++) {
+      for (let i = from; i <= to; i++) {
         const c = Math.round(x(days[i]!));
         const v = series[i]!;
         if (c !== col) {
@@ -181,7 +206,7 @@ export function OutcomeTimeline({
     return out;
     // x and y depend only on these.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monthly, result.relativeCosts, days, W, H, axis, scale]);
+  }, [monthly, result.relativeCosts, days, W, H, axis, scale, from, to]);
 
   // Phones: each month's low–high band and a median line.
   const bands = useMemo(() => {
@@ -203,18 +228,12 @@ export function OutcomeTimeline({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthly, months, W, H, axis]);
 
-  // Year ticks: about one per 80px.
-  const years = useMemo(() => {
-    const first = Number(result.startDates[0]!.slice(0, 4)) + 1;
-    const last = Number(result.startDates.at(-1)!.slice(0, 4));
-    const step = Math.max(
-      1,
-      Math.ceil((last - first + 1) / ((W - plotL) / 80)),
-    );
-    const out: number[] = [];
-    for (let yr = first; yr <= last; yr += step) out.push(yr);
-    return out;
-  }, [result.startDates, W, plotL]);
+  // Time ticks, about one per 80px: years, or months for a short range.
+  const ticks = useMemo(
+    () =>
+      timeTicks(result.startDates[from]!, result.startDates[to]!, W - plotL),
+    [result.startDates, from, to, W, plotL],
+  );
 
   /** The period (laptops) or month (phones) nearest to a pointer position. */
   function indexAt(clientX: number, el: Element): number {
@@ -230,15 +249,15 @@ export function OutcomeTimeline({
           nearest = m;
       return nearest;
     }
-    let lo = 0;
-    let hi = days.length - 1;
+    let lo = from;
+    let hi = to;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
       if (days[mid]! < day) lo = mid + 1;
       else hi = mid;
     }
-    if (lo > 0 && day - days[lo - 1]! < days[lo]! - day) lo--;
-    return Math.max(0, Math.min(days.length - 1, lo));
+    if (lo > from && day - days[lo - 1]! < days[lo]! - day) lo--;
+    return clampTo(lo, { from, to });
   }
   /** Selecting a month selects the period in its middle. */
   const periodOf = (i: number) =>
@@ -261,7 +280,9 @@ export function OutcomeTimeline({
     axis.ticks.length ? y(axis.ticks[0]!) : H - PAD.bottom,
     ...dotYs,
   );
-  const last = result.startDates.length - 1;
+  // Month steps stay inside the visible range: at its edge they stop.
+  const monthFrom = (i: number, direction: -1 | 1) =>
+    clampTo(stepMonth(result.startDates, i, direction), { from, to });
 
   /** Everything the readout shows, also spoken as the slider's value. */
   const valueText = (i: number) =>
@@ -272,14 +293,14 @@ export function OutcomeTimeline({
 
   function onKeyDown(e: React.KeyboardEvent) {
     const step: Record<string, () => number> = {
-      ArrowRight: () => Math.min(last, selected + 1),
-      ArrowUp: () => Math.min(last, selected + 1),
-      ArrowLeft: () => Math.max(0, selected - 1),
-      ArrowDown: () => Math.max(0, selected - 1),
-      PageUp: () => stepMonth(result.startDates, selected, 1),
-      PageDown: () => stepMonth(result.startDates, selected, -1),
-      Home: () => 0,
-      End: () => last,
+      ArrowRight: () => Math.min(to, selected + 1),
+      ArrowUp: () => Math.min(to, selected + 1),
+      ArrowLeft: () => Math.max(from, selected - 1),
+      ArrowDown: () => Math.max(from, selected - 1),
+      PageUp: () => monthFrom(selected, 1),
+      PageDown: () => monthFrom(selected, -1),
+      Home: () => from,
+      End: () => to,
     };
     const next = step[e.key];
     if (!next) return;
@@ -294,8 +315,36 @@ export function OutcomeTimeline({
     if (i !== selected) onSelect(i);
   }
 
+  /** Narrowing the range snaps a selection outside it to the nearest edge. */
+  function chooseRange(next: RangeId) {
+    setChosen(next);
+    setHover(null);
+    const i = clampTo(selected, visibleRange(result.startDates, next));
+    if (i !== selected) onSelect(i);
+  }
+
   return (
     <div>
+      {/* The range shown, a familiar chart convention. Display only. */}
+      <div
+        role="group"
+        aria-label="Range shown on the chart"
+        className="segmented mb-3"
+        data-testid="ranges"
+      >
+        {RANGES.map((r) => (
+          <button
+            key={r.id}
+            type="button"
+            aria-pressed={range === r.id}
+            disabled={!rangeAvailable(result.startDates, r.id)}
+            onClick={() => chooseRange(r.id)}
+          >
+            {r.label}
+            <span className="sr-only"> ({r.spoken})</span>
+          </button>
+        ))}
+      </div>
       {/* The readout and the legend in one: the marked period's date, then
           each strategy, in the fixed order, with its cost that period.
           Hover or focus previews a strategy, a click locks it, and "Show
@@ -358,8 +407,8 @@ export function OutcomeTimeline({
         role="slider"
         tabIndex={0}
         aria-label="Start of the period"
-        aria-valuemin={0}
-        aria-valuemax={last}
+        aria-valuemin={from}
+        aria-valuemax={to}
         aria-valuenow={selected}
         aria-valuetext={valueText(selected)}
         aria-describedby={`${id}-desc`}
@@ -369,9 +418,11 @@ export function OutcomeTimeline({
       >
         <p id={`${id}-desc`} className="sr-only">
           Cost of each strategy at {rescaled}, for every period starting{" "}
-          {formatDate(result.firstStart)} to {formatDate(result.lastStart)}
+          {formatDate(result.startDates[from]!)} to{" "}
+          {formatDate(result.startDates[to]!)}
           {monthly ? ", grouped by month" : ""}. Arrow keys move a day, Page Up
-          and Page Down a month, Home and End to the first and last period.
+          and Page Down a month, Home and End to the first and last period
+          shown.
         </p>
         <svg
           viewBox={`0 0 ${W} ${H}`}
@@ -423,15 +474,15 @@ export function OutcomeTimeline({
               </text>
             </g>
           ))}
-          {years.map((yr) => (
+          {ticks.map((t) => (
             <text
-              key={yr}
-              x={x(toEpochDay(`${yr}-01-01`))}
+              key={t.day}
+              x={x(t.day)}
               y={H - 8}
               textAnchor="middle"
               className="fill-muted-foreground text-chart tabular-nums"
             >
-              {yr}
+              {t.label}
             </text>
           ))}
 
@@ -495,23 +546,33 @@ export function OutcomeTimeline({
         </svg>
       </div>
 
-      {monthly && (
+      {range !== "all" && (
+        <p
+          className="t-small mt-2 text-muted-foreground tabular-nums"
+          data-testid="range-note"
+        >
+          Showing periods starting {formatDate(result.startDates[from]!)} to{" "}
+          {formatDate(result.startDates[to]!)}. The results above use all{" "}
+          {result.windows.toLocaleString("en-SG")} periods.
+        </p>
+      )}
+      {W < MONTHLY_BELOW && (
         <>
-          <p className="t-small mt-2 text-muted-foreground">
-            Each band is a month&apos;s lowest to highest cost; the line is its
-            median. Every daily period is still in the calculation and the
-            export.
-          </p>
+          {monthly && (
+            <p className="t-small mt-2 text-muted-foreground">
+              Each band is a month&apos;s lowest to highest cost; the line is
+              its median. Every daily period is still in the calculation and the
+              export.
+            </p>
+          )}
           {/* Large targets for stepping a month at a time on a phone, side
               by side, wrapping only on the narrowest screens. */}
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3 [&>button]:grow">
             <button
               type="button"
               className="btn-secondary"
-              disabled={stepMonth(result.startDates, selected, -1) === selected}
-              onClick={() =>
-                onSelect(stepMonth(result.startDates, selected, -1))
-              }
+              disabled={monthFrom(selected, -1) === selected}
+              onClick={() => onSelect(monthFrom(selected, -1))}
             >
               <ChevronLeft aria-hidden className="size-4" />
               Earlier month
@@ -519,10 +580,8 @@ export function OutcomeTimeline({
             <button
               type="button"
               className="btn-secondary"
-              disabled={stepMonth(result.startDates, selected, 1) === selected}
-              onClick={() =>
-                onSelect(stepMonth(result.startDates, selected, 1))
-              }
+              disabled={monthFrom(selected, 1) === selected}
+              onClick={() => onSelect(monthFrom(selected, 1))}
             >
               Later month
               <ChevronRight aria-hidden className="size-4" />
@@ -535,21 +594,24 @@ export function OutcomeTimeline({
 }
 
 /**
- * Groups the periods by the calendar month they start in, keeping each
- * strategy's lowest, highest and median cost per month. Display only: the
- * selection, the detail and the export all use the daily periods.
+ * Groups the visible periods (`first` to `last`, inclusive) by the calendar
+ * month they start in, keeping each strategy's lowest, highest and median
+ * cost per month. Display only: the selection, the detail and the export
+ * all use the daily periods.
  */
 function groupByMonth(
   result: ReplayResult,
   days: number[],
   scale: number,
+  first: number,
+  last: number,
 ): Month[] {
   const out: Month[] = [];
-  let from = 0;
+  let from = first;
   const dates = result.startDates;
-  for (let i = 1; i <= dates.length; i++) {
-    if (i < dates.length && dates[i]!.slice(0, 7) === dates[from]!.slice(0, 7))
-      continue;
+  const end = last + 1;
+  for (let i = first + 1; i <= end; i++) {
+    if (i < end && dates[i]!.slice(0, 7) === dates[from]!.slice(0, 7)) continue;
     const low = {} as Record<StrategyId, number>;
     const high = {} as Record<StrategyId, number>;
     const median = {} as Record<StrategyId, number>;
