@@ -261,7 +261,7 @@ test.describe("B4: smaller accessibility fixes", () => {
     await page.goto(`/?${Q}`);
     await ready(page);
     await page
-      .getByRole("img", { name: /^Cost of each strategy/ })
+      .getByRole("slider", { name: "Start of the period" })
       .scrollIntoViewIfNeeded();
     await page.waitForTimeout(400);
     // Scrolled past the converter, where the bar used to appear.

@@ -501,7 +501,7 @@ export function ScenarioForm({
                     currency at, before any fees. Every rate in SpotCheck is a
                     mid rate; your exchange fee is added on top.
                   </HelpTip>
-                  , before your {pctText(s.spread)}% fee
+                  before your {pctText(s.spread)}% fee
                 </>
               ))}
           </p>

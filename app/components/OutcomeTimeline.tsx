@@ -1,19 +1,26 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { toEpochDay } from "@/engine/calendar.ts";
 import type { ReplayResult } from "@/engine/replay.ts";
 import { STRATEGY_IDS, type StrategyId } from "@/engine/types.ts";
-import { formatDate, formatMonth } from "@/lib/dates.ts";
+import { formatDate } from "@/lib/dates.ts";
 import { formatSgd, formatSgdAt } from "@/lib/format.ts";
-import { signedDiff } from "@/lib/signed.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { niceTicks, sgdTickDecimals } from "@/lib/ticks.ts";
 import { stepMonth } from "@/lib/periods.ts";
 import { useWidth } from "@/lib/use-width.ts";
+import { LineMark } from "./ChartLegend";
 
-const PAD = { top: 12, right: 8, bottom: 28 };
+// Right padding keeps the latest period's marker off the plot's edge.
+const PAD = { top: 12, right: 16, bottom: 28 };
+const subscribeResize = (onChange: () => void) => {
+  window.addEventListener("resize", onChange);
+  return () => window.removeEventListener("resize", onChange);
+};
+const viewportHeight = () => window.innerHeight;
+
 /** Below this chart width (phones), periods are grouped by month. */
 const MONTHLY_BELOW = 640;
 
@@ -57,9 +64,11 @@ type Month = {
  *   cost and a line through its median, with larger targets to step between
  *   months.
  *
- * Hovering or dragging moves the spot cursor; clicking or lifting selects a
- * period for the detail below. The period slider under the chart is the
- * keyboard control for the same selection.
+ * The chart is the one control for picking a period: a slider for the
+ * keyboard, and drag (or tap) to scrub with a pointer, which updates the
+ * detail below as it goes. Hovering previews a period. One marker shows the
+ * period in question, and a readout row above the chart gives its date and
+ * all four costs, so nothing floats over the lines.
  */
 export function OutcomeTimeline({
   result,
@@ -72,10 +81,16 @@ export function OutcomeTimeline({
   onToggle,
   rescaled = "today's rate",
 }: Props) {
+  const id = useId();
   const [ref, measured] = useWidth<HTMLDivElement>();
   const W = Math.max(280, measured);
   const monthly = W < MONTHLY_BELOW;
-  const H = monthly ? 280 : 300;
+  // Fits between the fixed bars, a landscape phone included: the legend
+  // and readout take about 110px, the tab bar 56.
+  const vh = useSyncExternalStore(subscribeResize, viewportHeight, () => 900);
+  const H = Math.min(monthly ? 280 : 300, Math.max(200, vh - 170));
+  // The bucket under the pointer (a month on phones, a day on laptops),
+  // shown as a preview; null when the pointer is elsewhere.
   const [hover, setHover] = useState<number | null>(null);
   const dragging = useRef(false);
 
@@ -188,13 +203,13 @@ export function OutcomeTimeline({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthly, months, W, H, axis]);
 
-  // Year ticks: about one per 110px.
+  // Year ticks: about one per 80px.
   const years = useMemo(() => {
     const first = Number(result.startDates[0]!.slice(0, 4)) + 1;
     const last = Number(result.startDates.at(-1)!.slice(0, 4));
     const step = Math.max(
       1,
-      Math.ceil((last - first + 1) / ((W - plotL) / 110)),
+      Math.ceil((last - first + 1) / ((W - plotL) / 80)),
     );
     const out: number[] = [];
     for (let yr = first; yr <= last; yr += step) out.push(yr);
@@ -230,19 +245,63 @@ export function OutcomeTimeline({
     monthly ? (months[i]!.from + months[i]!.to) >> 1 : i;
 
   const label = (id: StrategyId) => STRATEGY_STYLE[id].label;
-  const shown = hover;
-  const shownDay =
-    shown === null ? 0 : monthly ? months[shown]!.day : days[shown]!;
-  const value = (id: StrategyId, i: number) =>
-    monthly ? months[i]!.median[id] : cost(id, i);
-  const tipLeft = shown !== null && x(shownDay) > W * 0.55;
+  // One marker: where the pointer is (a preview), otherwise the selected
+  // period. It always stands on a real daily period, so the readout's
+  // figures are that period's, on phones too.
+  const shown = hover === null ? selected : periodOf(hover);
+  const last = result.startDates.length - 1;
+
+  /** Everything the readout shows, also spoken as the slider's value. */
+  const valueText = (i: number) =>
+    `${formatDate(result.startDates[i]!)}: ` +
+    STRATEGY_IDS.map(
+      (id) => `${label(id)} ${formatSgdAt(cost(id, i), scale)}`,
+    ).join(", ");
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    const step: Record<string, () => number> = {
+      ArrowRight: () => Math.min(last, selected + 1),
+      ArrowUp: () => Math.min(last, selected + 1),
+      ArrowLeft: () => Math.max(0, selected - 1),
+      ArrowDown: () => Math.max(0, selected - 1),
+      PageUp: () => stepMonth(result.startDates, selected, 1),
+      PageDown: () => stepMonth(result.startDates, selected, -1),
+      Home: () => 0,
+      End: () => last,
+    };
+    const next = step[e.key];
+    if (!next) return;
+    e.preventDefault();
+    setHover(null);
+    onSelect(next());
+  }
+
+  /** Drag to scrub: the selection follows the pointer while it is down. */
+  function scrub(e: React.PointerEvent<SVGSVGElement>) {
+    const i = periodOf(indexAt(e.clientX, e.currentTarget));
+    if (i !== selected) onSelect(i);
+  }
 
   return (
     <div>
-      {/* Legend: hover to preview a strategy, click to pin it. */}
-      <ul className="mb-3 flex flex-wrap gap-x-1 gap-y-0">
+      {/* The readout and the legend in one: the marked period's date, then
+          each strategy, in the fixed order, with its cost that period.
+          Hover or focus previews a strategy, a click locks it, and "Show
+          all strategies" (or Esc) unlocks it. Nothing floats over the lines,
+          and text never fades (DESIGN.md §6). */}
+      <p
+        className="t-small min-h-5 font-medium text-ink tabular-nums"
+        data-testid="timeline-readout"
+      >
+        {hover !== null && shown !== selected ? "Pointing at" : "Selected"}: the
+        period starting{" "}
+        <span data-testid="readout-date">
+          {formatDate(result.startDates[shown]!)}
+        </span>
+      </p>
+      <ul className="mt-1 mb-3 grid grid-cols-2 gap-x-1 sm:flex sm:flex-wrap sm:gap-x-2">
         {STRATEGY_IDS.map((id) => (
-          <li key={id}>
+          <li key={id} data-dimmed={(active && active !== id) || undefined}>
             <button
               type="button"
               aria-pressed={pinned === id}
@@ -251,20 +310,57 @@ export function OutcomeTimeline({
               onFocus={() => onActive(id)}
               onBlur={() => onActive(null)}
               onClick={() => onToggle(id)}
-              className="t-small flex min-h-11 items-center gap-2 rounded-sm px-2 text-muted-foreground transition-colors hover:text-ink aria-pressed:bg-sunken aria-pressed:text-ink"
+              className="t-small flex min-h-11 w-full items-center gap-2 rounded-sm px-2 text-left text-muted-foreground transition-colors hover:text-ink aria-pressed:bg-surface aria-pressed:text-ink"
             >
-              <span
-                aria-hidden
-                className="h-0.5 w-4 rounded-full"
-                style={{ background: STRATEGY_STYLE[id].color }}
-              />
-              {label(id)}
+              <LineMark color={STRATEGY_STYLE[id].color} />
+              <span className="flex flex-col sm:flex-row sm:gap-2">
+                <span data-testid="legend-name">{label(id)}</span>
+                <span
+                  className="text-ink tabular-nums"
+                  data-testid={`readout-${id}`}
+                >
+                  {formatSgdAt(cost(id, shown), scale)}
+                </span>
+              </span>
             </button>
           </li>
         ))}
+        {pinned && (
+          <li className="col-span-2">
+            <button
+              type="button"
+              onClick={() => onToggle(pinned)}
+              className="link t-small flex min-h-11 items-center px-2"
+              data-testid="show-all"
+            >
+              Show all strategies
+            </button>
+          </li>
+        )}
       </ul>
 
-      <div ref={ref} className="relative">
+      {/* The chart is the period slider: arrows a day, Page Up/Down a
+          month, Home/End the ends; drag (or tap) to pick with a pointer. */}
+      <div
+        ref={ref}
+        role="slider"
+        tabIndex={0}
+        aria-label="Start of the period"
+        aria-valuemin={0}
+        aria-valuemax={last}
+        aria-valuenow={selected}
+        aria-valuetext={valueText(selected)}
+        aria-describedby={`${id}-desc`}
+        onKeyDown={onKeyDown}
+        className="relative rounded-sm"
+        data-testid="timeline"
+      >
+        <p id={`${id}-desc`} className="sr-only">
+          Cost of each strategy at {rescaled}, for every period starting{" "}
+          {formatDate(result.firstStart)} to {formatDate(result.lastStart)}
+          {monthly ? ", grouped by month" : ""}. Arrow keys move a day, Page Up
+          and Page Down a month, Home and End to the first and last period.
+        </p>
         <svg
           viewBox={`0 0 ${W} ${H}`}
           width={W}
@@ -273,24 +369,23 @@ export function OutcomeTimeline({
           // shrank it to about 170px tall when it did).
           style={{ width: "100%", height: H }}
           className="block touch-pan-y select-none"
-          role="img"
-          aria-label={`Cost of each strategy at ${rescaled}, for every period starting ${formatDate(result.firstStart)} to ${formatDate(result.lastStart)}${monthly ? ", grouped by month" : ""}. The selected period starts ${formatDate(result.startDates[selected]!)}. Use the period slider below to pick another.`}
-          onPointerMove={(e) => {
-            if (e.pointerType === "touch" && !dragging.current) return;
-            setHover(indexAt(e.clientX, e.currentTarget));
-          }}
+          aria-hidden
           onPointerDown={(e) => {
             dragging.current = true;
-            setHover(indexAt(e.clientX, e.currentTarget));
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setHover(null);
+            scrub(e);
           }}
-          onPointerUp={(e) => {
+          onPointerMove={(e) => {
+            if (dragging.current) scrub(e);
+            else if (e.pointerType === "mouse")
+              setHover(indexAt(e.clientX, e.currentTarget));
+          }}
+          onPointerUp={() => {
             dragging.current = false;
-            onSelect(periodOf(indexAt(e.clientX, e.currentTarget)));
-            if (e.pointerType === "touch") setHover(null);
           }}
           onPointerLeave={() => {
-            dragging.current = false;
-            setHover(null);
+            if (!dragging.current) setHover(null);
           }}
           onPointerCancel={() => {
             dragging.current = false;
@@ -361,104 +456,31 @@ export function OutcomeTimeline({
             );
           })}
 
-          {/* The selected period: the spot motif, in the accent colour. */}
-          <g aria-hidden>
+          {/* The one marker, the spot motif (DESIGN.md §5): a hairline at
+              the marked period with a dot on each line. */}
+          <g pointerEvents="none" data-testid="marker">
             <line
-              x1={x(days[selected]!)}
-              x2={x(days[selected]!)}
-              y1={PAD.top - 4}
+              x1={x(days[shown]!)}
+              x2={x(days[shown]!)}
+              y1={PAD.top}
               y2={H - PAD.bottom}
               stroke="var(--accent)"
               strokeWidth={1.5}
             />
-            <circle
-              cx={x(days[selected]!)}
-              cy={PAD.top - 4}
-              r={4}
-              fill="var(--accent)"
-            />
-          </g>
-
-          {/* The hover cursor: a hairline and a dot on each line. */}
-          {shown !== null && (
-            <g aria-hidden pointerEvents="none">
-              <line
-                x1={x(shownDay)}
-                x2={x(shownDay)}
-                y1={PAD.top}
-                y2={H - PAD.bottom}
-                stroke="var(--ink)"
-                strokeWidth={1}
+            {STRATEGY_IDS.map((id) => (
+              <circle
+                key={id}
+                cx={x(days[shown]!)}
+                cy={y(cost(id, shown))}
+                r={4.5}
+                fill={STRATEGY_STYLE[id].color}
+                stroke="var(--surface)"
+                strokeWidth={2}
+                opacity={active && active !== id ? 0.3 : 1}
               />
-              {STRATEGY_IDS.map((id) => (
-                <circle
-                  key={id}
-                  cx={x(shownDay)}
-                  cy={y(value(id, shown))}
-                  r={4}
-                  fill={STRATEGY_STYLE[id].color}
-                  stroke="var(--surface)"
-                  strokeWidth={2}
-                  opacity={active && active !== id ? 0.3 : 1}
-                />
-              ))}
-            </g>
-          )}
+            ))}
+          </g>
         </svg>
-
-        {shown !== null && (
-          <div
-            aria-hidden
-            className="t-small pointer-events-none absolute top-2 z-10 w-64 rounded-lg border bg-surface p-3 shadow-[var(--shadow-pop)]"
-            style={
-              tipLeft
-                ? { right: Math.max(0, W - x(shownDay) + 12) }
-                : { left: Math.min(x(shownDay) + 12, W - 256) }
-            }
-          >
-            <p className="font-medium">
-              {monthly
-                ? `Periods starting in ${formatMonth(result.startDates[months[shown]!.from]!)}`
-                : `Starting ${formatDate(result.startDates[shown]!)}`}
-            </p>
-            <table className="mt-2 w-full tabular-nums">
-              <thead className="text-chart text-muted-foreground">
-                <tr>
-                  <th className="text-left font-normal">
-                    {monthly ? "Median that month" : "Cost"}
-                  </th>
-                  <th className="text-right font-normal" />
-                  <th className="text-right font-normal">vs all at once</th>
-                </tr>
-              </thead>
-              <tbody>
-                {STRATEGY_IDS.map((id) => (
-                  <tr key={id}>
-                    <td className="flex items-center gap-2 py-0.5 text-muted-foreground">
-                      <span
-                        className="size-2 rounded-full"
-                        style={{ background: STRATEGY_STYLE[id].color }}
-                      />
-                      {label(id)}
-                    </td>
-                    <td className="pl-2 text-right">
-                      {formatSgdAt(value(id, shown), scale)}
-                    </td>
-                    <td className="pl-2 text-right text-muted-foreground">
-                      {id === "lumpSum"
-                        ? "–"
-                        : signedDiff(
-                            value(id, shown),
-                            value("lumpSum", shown),
-                            scale,
-                          )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
 
       {monthly && (
@@ -468,9 +490,8 @@ export function OutcomeTimeline({
             median. Every daily period is still in the calculation and the
             export.
           </p>
-          {/* Large targets for stepping a month at a time on a phone. */}
-          {/* They sit side by side where they fit and stack on narrow
-              phones or with large text, never pushing the page sideways. */}
+          {/* Large targets for stepping a month at a time on a phone, side
+              by side, wrapping only on the narrowest screens. */}
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3 [&>button]:grow">
             <button
               type="button"
@@ -481,7 +502,7 @@ export function OutcomeTimeline({
               }
             >
               <ChevronLeft aria-hidden className="size-4" />
-              One month earlier
+              Earlier month
             </button>
             <button
               type="button"
@@ -491,7 +512,7 @@ export function OutcomeTimeline({
                 onSelect(stepMonth(result.startDates, selected, 1))
               }
             >
-              One month later
+              Later month
               <ChevronRight aria-hidden className="size-4" />
             </button>
           </div>

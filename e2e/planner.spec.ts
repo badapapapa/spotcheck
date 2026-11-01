@@ -15,7 +15,7 @@ async function pickCurrency(page: Page, search: string, code: string) {
 
 /** The mid-rate line under today's cost, e.g. "S$19,188 at mid rate, …". */
 // The note under today's cost (its help tip's "i" is part of the text).
-const MID_HINT = /^S\$[\d,.]+ at mid rate.*, before your [\d.]+% fee$/;
+const MID_HINT = /^S\$[\d,.]+ at mid rate.*before your [\d.]+% fee$/;
 const firstSgd = (text: string | null) =>
   Number(/S\$([\d,.]+)/.exec(text ?? "")![1]!.replaceAll(",", ""));
 
@@ -369,9 +369,7 @@ for (const q of SCENARIOS) {
     }
     const legend = page
       .getByRole("region", { name: /What if you had converted/ })
-      .locator("ul")
-      .first()
-      .getByRole("button");
+      .getByTestId("legend-name");
     // The timeline loads just after the page.
     await expect(legend).toHaveCount(STRATEGY_NAMES.length);
     expect(await legend.allTextContents()).toEqual(STRATEGY_NAMES);
@@ -423,16 +421,15 @@ test("picking a day on the timeline selects that period", async ({ page }) => {
   const heading = page.getByRole("heading", { name: /^The period starting / });
   await expect(heading).toBeVisible();
   const latest = await heading.textContent();
-  const timeline = page.getByRole("img", { name: /^Cost of each strategy/ });
+  const timeline = page.getByRole("slider", { name: "Start of the period" });
   await timeline.scrollIntoViewIfNeeded();
   const box = (await timeline.boundingBox())!;
   // A quarter of the way along: a period years before the latest one.
   await page.mouse.click(box.x + box.width * 0.25, box.y + box.height / 2);
   await expect(heading).not.toHaveText(latest!);
-  // The slider, the keyboard control for the same choice, follows.
-  const slider = page.getByLabel(/^Start of the period:/);
-  expect(Number(await slider.inputValue())).toBeLessThan(
-    Number(await slider.getAttribute("max")),
+  // The chart is the slider: its value follows the pick.
+  expect(Number(await timeline.getAttribute("aria-valuenow"))).toBeLessThan(
+    Number(await timeline.getAttribute("aria-valuemax")),
   );
 });
 

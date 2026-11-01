@@ -8,6 +8,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useDeferredValue,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -15,7 +16,7 @@ import { addDays, daysBetween, rateAsOf } from "@/engine/calendar.ts";
 import { findCurrency, fxSourceLabel } from "@/engine/currencies.ts";
 import type { ReplayResult } from "@/engine/replay.ts";
 import { sampleWindow } from "@/engine/replay.ts";
-import { STRATEGY_IDS } from "@/engine/types.ts";
+import { STRATEGY_IDS, type Series, type StrategyId } from "@/engine/types.ts";
 import { windowCount } from "@/lib/periods.ts";
 import { computeReplay } from "@/lib/compute.ts";
 import { latestStart, startDateIssue } from "@/lib/coverage.ts";
@@ -30,6 +31,11 @@ import {
   startContext,
 } from "@/lib/start-context.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
+import {
+  createPeriodStore,
+  usePeriod,
+  type PeriodStore,
+} from "@/lib/period-store.ts";
 import { describeReplay } from "@/lib/summary.ts";
 import { trendNote } from "@/lib/trend.ts";
 import { useLoad } from "@/lib/use-data.ts";
@@ -118,46 +124,13 @@ export function Planner() {
     [series, scenario, issue],
   );
 
-  // The period picked on the timeline or slider (latest by default). It
-  // lives here so the Excel export and the detail share it. A new set of
-  // periods starts again from the latest.
+  // The period picked on the timeline (latest by default), in a store that
+  // only the timeline and the period detail read (lib/period-store.ts). A
+  // new set of periods starts again from the latest.
   const windowsKey = result
     ? `${result.startDates.length}:${result.windowDays}`
     : "";
-  const [picked, setPicked] = useState<{ key: string; index: number }>();
-  const index = result
-    ? picked?.key === windowsKey
-      ? picked.index
-      : result.startDates.length - 1
-    : 0;
-  const select = (i: number) => setPicked({ key: windowsKey, index: i });
-  const sample = useMemo(
-    () =>
-      result && series
-        ? sampleWindow(series, deferred.scenario, result.startDates[index]!, {
-            targetBelowSpot: deferred.targetBelowSpot,
-          })
-        : undefined,
-    [result, series, deferred, index],
-  );
-
-  const [exporting, setExporting] = useState(false);
-  async function exportXlsx() {
-    if (!series || !sample) return;
-    setExporting(true);
-    try {
-      // Loaded on demand: ExcelJS is large and most visitors never export.
-      const { downloadWorkbook } = await import("@/lib/xlsx.ts");
-      await downloadWorkbook(
-        series,
-        deferred.scenario,
-        deferred.targetBelowSpot,
-        sample,
-      );
-    } finally {
-      setExporting(false);
-    }
-  }
+  const [periods] = useState(createPeriodStore);
 
   // One highlighted strategy, shared by every chart and table. Only ever set
   // by the user: hovering or focusing previews it, clicking pins it.
@@ -165,6 +138,16 @@ export function Planner() {
   const [pinned, setPinned] = useState<string | null>(null);
   const active = hovered ?? pinned;
   const toggle = (id: string) => setPinned((p) => (p === id ? null : id));
+  // Esc unlocks a locked strategy, from anywhere on the page (a popover
+  // that handles Esc itself marks the event as handled first).
+  useEffect(() => {
+    if (!pinned) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !e.defaultPrevented) setPinned(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [pinned]);
 
   const converterRef = useRef<HTMLElement>(null);
   const showBar = useScrolledPast(converterRef);
@@ -417,28 +400,32 @@ export function Planner() {
                 What if you had converted in another period?
               </h2>
               <p className="mt-3 text-muted-foreground">
-                Each line is what a strategy would have cost, at {rescaled}, if
-                your plan had started on that day. Pick a day to see exactly
-                what happened.
+                Each line is what a strategy would have cost, at {rescaled}, for
+                a plan starting that day. Drag across the chart
+                <span className="max-sm:hidden">
+                  , or focus it and use the arrow keys,
+                </span>{" "}
+                to pick a period.
               </p>
             </div>
           </div>
-          {/* Legend plus chart: 2 legend rows on phones, 1 on laptops. */}
-          <div className="mt-8 min-h-[320px] sm:min-h-[336px]">
+          {/* The timeline's measured height at each width (readout, legend,
+              chart, and on phones the note and month buttons). */}
+          <div className="mt-8 min-h-[528px] sm:min-h-[508px] md:min-h-[424px] lg:min-h-[380px]">
             {result ? (
               <Suspense
                 fallback={
                   <div
                     aria-hidden
-                    className="skeleton h-[320px] bg-paper sm:h-[336px]"
+                    className="skeleton h-[528px] bg-paper sm:h-[508px] md:h-[424px] lg:h-[380px]"
                   />
                 }
               >
-                <OutcomeTimeline
+                <Timeline
+                  store={periods}
+                  windowsKey={windowsKey}
                   result={result}
                   amount={deferred.scenario.amount}
-                  selected={index}
-                  onSelect={select}
                   active={active}
                   pinned={pinned}
                   onActive={setActive}
@@ -449,50 +436,21 @@ export function Planner() {
             ) : (
               <div
                 aria-hidden
-                className="skeleton h-[320px] bg-paper sm:h-[336px]"
+                className="skeleton h-[528px] bg-paper sm:h-[508px] md:h-[424px] lg:h-[380px]"
               />
             )}
           </div>
 
           <div className="mt-10 border-t pt-8">
-            {result && series && sample ? (
-              <>
-                <div className="flex flex-wrap items-end justify-between gap-4">
-                  <h3 className="t-h3">
-                    The period starting {formatDate(sample.start)}
-                  </h3>
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={exportXlsx}
-                    disabled={exporting}
-                  >
-                    <Download aria-hidden className="size-4" />
-                    {exporting ? "Preparing…" : "Download Excel"}
-                    <span className="sr-only"> of this period</span>
-                  </button>
-                </div>
-                <div className="mt-6">
-                  <Suspense
-                    fallback={
-                      <div
-                        aria-hidden
-                        className="skeleton h-[34rem] bg-paper"
-                      />
-                    }
-                  >
-                    <SamplePath
-                      fx={series}
-                      scenario={deferred.scenario}
-                      targetBelowSpot={deferred.targetBelowSpot}
-                      startDates={result.startDates}
-                      index={index}
-                      onIndex={select}
-                      window={sample}
-                    />
-                  </Suspense>
-                </div>
-              </>
+            {result && series ? (
+              <PeriodDetail
+                store={periods}
+                windowsKey={windowsKey}
+                result={result}
+                series={series}
+                planned={deferred}
+                rescaled={rescaled}
+              />
             ) : (
               <div aria-hidden className="skeleton h-[34rem] bg-paper" />
             )}
@@ -616,6 +574,125 @@ function useScrolledPast(ref: React.RefObject<HTMLElement | null>) {
  * Phones: once the converter scrolls away, a bar along the top edge keeps
  * the scenario in view, with a way back to edit it.
  */
+/** The timeline, reading and setting the selected period in the store. */
+function Timeline({
+  store,
+  windowsKey,
+  ...props
+}: Omit<
+  React.ComponentProps<typeof OutcomeTimeline>,
+  "selected" | "onSelect"
+> & { store: PeriodStore; windowsKey: string }) {
+  const selected = usePeriod(
+    store,
+    windowsKey,
+    props.result.startDates.length - 1,
+  );
+  return (
+    <OutcomeTimeline
+      {...props}
+      selected={selected}
+      onSelect={(index) => store.set({ key: windowsKey, index })}
+    />
+  );
+}
+
+/**
+ * The selected period in detail, with its Excel export. While the timeline
+ * is scrubbed it follows a deferred copy of the selection, so the
+ * timeline's marker and readout stay smooth while the detail catches up.
+ */
+function PeriodDetail({
+  store,
+  windowsKey,
+  result,
+  series,
+  planned,
+  rescaled,
+}: {
+  store: PeriodStore;
+  windowsKey: string;
+  result: ReplayResult;
+  series: Series;
+  /** The state the result was computed for. */
+  planned: PlannerState;
+  rescaled: string;
+}) {
+  const index = useDeferredValue(
+    usePeriod(store, windowsKey, result.startDates.length - 1),
+  );
+  const sample = useMemo(
+    () =>
+      sampleWindow(series, planned.scenario, result.startDates[index]!, {
+        targetBelowSpot: planned.targetBelowSpot,
+      }),
+    [result, series, planned, index],
+  );
+  // The same period's costs at today's rate, as the timeline's readout
+  // shows them, so the detail and the readout can be read together.
+  const today = useMemo(() => {
+    const scale = planned.scenario.amount * result.referenceSpot;
+    return {
+      scale,
+      costs: Object.fromEntries(
+        STRATEGY_IDS.map((id) => [
+          id,
+          result.relativeCosts[id][index]! * scale,
+        ]),
+      ) as Record<StrategyId, number>,
+    };
+  }, [result, planned.scenario.amount, index]);
+
+  const [exporting, setExporting] = useState(false);
+  async function exportXlsx() {
+    setExporting(true);
+    try {
+      // Loaded on demand: ExcelJS is large and most visitors never export.
+      const { downloadWorkbook } = await import("@/lib/xlsx.ts");
+      await downloadWorkbook(
+        series,
+        planned.scenario,
+        planned.targetBelowSpot,
+        sample,
+      );
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h3 className="t-h3">The period starting {formatDate(sample.start)}</h3>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={exportXlsx}
+          disabled={exporting}
+        >
+          <Download aria-hidden className="size-4" />
+          {exporting ? "Preparing…" : "Download Excel"}
+          <span className="sr-only"> of this period</span>
+        </button>
+      </div>
+      <div className="mt-6">
+        <Suspense
+          fallback={<div aria-hidden className="skeleton h-[34rem] bg-paper" />}
+        >
+          <SamplePath
+            fx={series}
+            scenario={planned.scenario}
+            targetBelowSpot={planned.targetBelowSpot}
+            window={sample}
+            today={today}
+            rescaled={rescaled}
+          />
+        </Suspense>
+      </div>
+    </>
+  );
+}
+
 const WIDE = "(min-width: 64rem)";
 const subscribeWide = (onChange: () => void) => {
   const mq = window.matchMedia(WIDE);

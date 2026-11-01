@@ -53,9 +53,7 @@ test("375px: tapping the period chart fills its readout", async ({ page }) => {
   await expect(chart.locator(".recharts-tooltip-wrapper")).toBeEmpty();
 });
 
-test("375px: one month earlier lands a calendar month back", async ({
-  page,
-}) => {
+test("375px: Earlier month lands a calendar month back", async ({ page }) => {
   await page.goto(`/?c=USD&a=15000&s=2026-10-17&d=2026-11-17&k=2&sp=0.5&t=2`);
   const heading = page.getByRole("heading", { name: /^The period starting / });
   await expect(heading).toBeVisible();
@@ -65,7 +63,7 @@ test("375px: one month earlier lands a calendar month back", async ({
         " UTC",
     ).getTime();
   const before = await date();
-  await page.getByRole("button", { name: "One month earlier" }).click();
+  await page.getByRole("button", { name: "Earlier month" }).click();
   await expect.poll(date).not.toBe(before);
   const days = (before - (await date())) / 86_400_000;
   // A calendar month, give or take the nearest trading day.
@@ -77,7 +75,7 @@ test("375px: the timeline is tall and its axis hugs the data", async ({
   page,
 }) => {
   await page.goto(`/?${Q}`);
-  const timeline = page.getByRole("img", { name: /^Cost of each strategy/ });
+  const timeline = page.getByRole("slider", { name: "Start of the period" });
   await timeline.scrollIntoViewIfNeeded();
   const box = (await timeline.boundingBox())!;
   expect(box.height).toBeGreaterThanOrEqual(260);
@@ -91,19 +89,25 @@ test("375px: the timeline is tall and its axis hugs the data", async ({
 
 test("375px: each conversion sits on its own line", async ({ page }) => {
   await page.goto(`/?${Q}`);
-  const row = page.getByRole("row", { name: /^Equal tranches/ });
-  await row.scrollIntoViewIfNeeded();
-  await expect(row.locator("li")).toHaveCount(6);
-  await expect(row.locator("li").first()).toHaveText(
-    /^\d{1,2} \w{3} \d{4} · [\d.]+$/,
+  // Phones list each strategy's conversions under its name: one per line,
+  // the date and the rate in two columns.
+  const block = page.getByTestId("conversions-tranches");
+  await block.scrollIntoViewIfNeeded();
+  const items = block.locator("ul li");
+  await expect(items).toHaveCount(6);
+  await expect(items.first().locator("span").first()).toHaveText(
+    /^\d{1,2} \w{3} \d{4}$/,
   );
+  await expect(items.first().locator("span").last()).toHaveText(/^[\d.]+$/);
+  const box = (await items.first().boundingBox())!;
+  expect(box.height).toBeLessThan(28);
 });
 
 test("375px: controls scrolled to an edge stay clear of the fixed bars", async ({
   page,
 }) => {
   await page.goto(`/?c=USD&a=15000&s=2026-10-17&d=2026-11-17&k=2&sp=0.5&t=2`);
-  await page.getByRole("button", { name: "One month earlier" }).waitFor();
+  await page.getByRole("button", { name: "Earlier month" }).waitFor();
   // Scroll each control to the bottom edge, then to the top edge (where the
   // summary bar appears once the converter is off screen), the way focus
   // and Playwright do, and check nothing else sits on its centre.
@@ -123,7 +127,7 @@ test("375px: controls scrolled to an edge stay clear of the fixed bars", async (
       },
       { name, block },
     );
-  for (const name of ["One month earlier", "One month later", "Download Excel"])
+  for (const name of ["Earlier month", "Later month", "Download Excel"])
     for (const block of ["end", "start"] as const)
       expect(await clear(name, block), `${name} at the ${block}`).toBe(true);
 

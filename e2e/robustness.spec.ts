@@ -393,7 +393,7 @@ test.describe("A7: the BND peg", () => {
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
     await page.goto("/?c=BND&a=15000&s=2026-10-31&d=2027-07-31");
     await expect(page.getByTestId("summary")).toBeVisible();
-    const timeline = page.getByRole("img", { name: /^Cost of each strategy/ });
+    const timeline = page.getByRole("slider", { name: "Start of the period" });
     await timeline.scrollIntoViewIfNeeded();
     await page.waitForTimeout(500);
     for (const d of await timeline

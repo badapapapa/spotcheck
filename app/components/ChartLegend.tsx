@@ -71,3 +71,37 @@ export function ChartLegend({
     </ul>
   );
 }
+
+/**
+ * A strategy's marker drawn on a chart at (x, y), about 11px across, with a
+ * 2px --surface ring so it stays distinct where it overlaps the line.
+ */
+export function PointMark({
+  shape,
+  color,
+  x,
+  y,
+}: {
+  shape: MarkShape;
+  color: string;
+  x: number;
+  y: number;
+}) {
+  const ring = { fill: color, stroke: "var(--surface)", strokeWidth: 2 };
+  if (shape === "circle") return <circle cx={x} cy={y} r={5.5} {...ring} />;
+  if (shape === "square")
+    return <rect x={x - 5} y={y - 5} width={10} height={10} {...ring} />;
+  if (shape === "diamond")
+    return (
+      <path
+        d={`M${x} ${y - 6.5}L${x + 6.5} ${y}L${x} ${y + 6.5}L${x - 6.5} ${y}Z`}
+        {...ring}
+      />
+    );
+  return (
+    <path
+      d={`M${x} ${y - 6.5}L${x + 6.5} ${y + 5}L${x - 6.5} ${y + 5}Z`}
+      {...ring}
+    />
+  );
+}
