@@ -30,8 +30,8 @@ export function describeReplay(
   const lines: string[] = [];
 
   lines.push(
-    `SpotCheck replayed your ${planLength(r.windowDays)} plan over ${count(r.windows)} overlapping windows starting between ${formatDate(r.firstStart)} and ${formatDate(r.lastStart)}. ` +
-      `Because neighbouring windows share most of their days, that is closer to ${count(r.independentWindows)} separate histories than ${count(r.windows)}.`,
+    `SpotCheck replayed your ${planLength(r.windowDays)} plan over ${count(r.windows)} overlapping past periods starting between ${formatDate(r.firstStart)} and ${formatDate(r.lastStart)}. ` +
+      `Because neighbouring periods share most of their days, that is closer to ${count(r.independentWindows)} separate histories than ${count(r.windows)}.`,
   );
   lines.push(lumpSumSentence(start, sgd(lump)));
   for (const id of COMPARED) {
@@ -42,7 +42,7 @@ export function describeReplay(
       id === "tranches"
         ? ` (${scenario.tranches} conversion${scenario.tranches === 1 ? "" : "s"})`
         : id === "target"
-          ? ` (${formatPct(targetBelowSpot)} below the starting rate, reached in ${formatPercent(r.targetHitShare)} of windows)`
+          ? ` (${formatPct(targetBelowSpot)} below the starting rate, reached in ${formatPercent(r.targetHitShare)} of past periods)`
           : "";
     // A range that rounds to one figure (the BND peg) reads "(fixed)", as
     // in the table, not "S$15,075–S$15,075".
@@ -52,8 +52,8 @@ export function describeReplay(
         : `${sgd(s.p5)}–${sgd(s.p95)}`;
     lines.push(
       `${STRATEGY_STYLE[id].label}${setting}: median ${signedDiff(s.median, lump, lump)} vs all at once, ` +
-        `middle 90% ${middle}, worst case ${sgd(s.max)}; ` +
-        `cheaper than all at once in ${formatPercent(stats[id].beatLumpSum)} of windows.`,
+        `middle 90% ${middle}, most expensive past period ${sgd(s.max)}; ` +
+        `cheaper than all at once in ${formatPercent(stats[id].beatLumpSum)} of past periods.`,
     );
   }
   lines.push(

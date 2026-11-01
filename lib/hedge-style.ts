@@ -18,7 +18,8 @@ export const HEDGE_STYLE: Record<
   }
 > = {
   unhedged: {
-    label: "Unhedged (convert on deadline)",
+    // Named as the planner names it, so the two pages read as one.
+    label: "Unhedged (same as Wait until deadline)",
     short: "Unhedged",
     color: "var(--series-3)",
     shape: "square",

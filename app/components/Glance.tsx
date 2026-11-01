@@ -42,23 +42,39 @@ export function Glance({
   onToggle: (id: StrategyId) => void;
 }) {
   const lump = result.stats.lumpSum.summary.median;
+  const shown = `${state.scenario.currency} ${state.scenario.amount.toLocaleString("en-SG")}`;
   return (
+    // Results that aren't current keep their place, but their figures turn
+    // muted (still 4.5:1, unlike the opacity this replaced) and the line
+    // under the heading says why, so they never pass for current ones.
     <div
-      className={`transition-opacity duration-150 ${stale || outdated ? "opacity-60" : ""}`}
+      data-stale={stale || outdated || undefined}
       aria-busy={stale || undefined}
     >
-      {outdated && (
-        <p className="t-small mb-3 font-medium" data-testid="outdated">
-          Not current: these results are for your last valid entry.
-        </p>
-      )}
       <h2 className="t-h3">
         Across {result.windows.toLocaleString("en-SG")} comparable past periods
       </h2>
-      <p className="t-small mt-1 text-muted-foreground">
-        Median cost of each strategy, and how far it sits from converting it all
-        at once. Select a strategy to follow it through the charts.
-      </p>
+      {outdated ? (
+        <p className="t-small mt-1 font-medium" data-testid="outdated">
+          Not current: these are for {shown}, your last valid entry.
+        </p>
+      ) : stale ? (
+        <p
+          className="t-small mt-1 text-muted-foreground"
+          data-testid="updating"
+        >
+          Updating these results…
+        </p>
+      ) : (
+        <p className="t-small mt-1 text-muted-foreground">
+          Median cost of each strategy, and its difference from converting it
+          all at once.
+          <span className="max-sm:hidden">
+            {" "}
+            Select one to follow it through the charts.
+          </span>
+        </p>
+      )}
       <table className="mt-5 w-full tabular-nums">
         <caption className="sr-only">
           Median historical cost of each strategy
@@ -72,7 +88,9 @@ export function Glance({
               Median
             </th>
             <th scope="col" className="pb-2 pl-3 text-right font-medium">
-              vs all at once
+              {/* Two short lines on narrow phones, so the names fit on one line. */}
+              <span className="max-[25rem]:block">vs all</span>{" "}
+              <span className="max-[25rem]:block">at once</span>
             </th>
           </tr>
         </thead>
@@ -123,13 +141,16 @@ export function Glance({
           })}
         </tbody>
       </table>
+      <p className="t-small mt-3 text-muted-foreground" data-testid="vs-key">
+        vs all at once: negative = cost less than converting all at once.
+      </p>
       {pegged && (
-        <p className="t-small mt-4">
+        <p className="t-small mt-3">
           The Brunei dollar is pegged 1:1 to the Singapore dollar, so every
-          strategy costs the same, plus your spread.
+          strategy costs the same, plus your exchange fee.
         </p>
       )}
-      <p className="t-small mt-5 text-muted-foreground" data-testid="context">
+      <p className="t-small mt-4 text-muted-foreground" data-testid="context">
         {HISTORICAL_CONTEXT}
       </p>
       <p className="t-small mt-2 font-medium">Past outcomes, not a forecast.</p>

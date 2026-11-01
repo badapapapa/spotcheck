@@ -285,7 +285,7 @@ export function OptionPanel(props: Props) {
               value: formatPercent(premium / base.S, 2),
             },
             {
-              label: "Worst-case cost",
+              label: "Highest possible cost",
               value: formatSgd(amount * (premium + K * (1 + spread))),
             },
           ]}

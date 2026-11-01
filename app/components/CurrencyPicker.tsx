@@ -2,7 +2,6 @@
 
 import { ChevronDown } from "lucide-react";
 import { lazy, Suspense } from "react";
-import { findCurrency } from "@/engine/currencies.ts";
 
 // The combobox (Base UI plus its positioning code) loads in its own chunk
 // just after the page, so it doesn't delay the first paint. Until then a
@@ -32,9 +31,6 @@ function Placeholder({ code }: { code: string }) {
       aria-label={`Currency you need: ${code}`}
       className="field-chip gap-1.5 pr-2"
     >
-      <span aria-hidden className="font-sans text-[0.9em]">
-        {findCurrency(code)!.flag}
-      </span>
       {code}
       <ChevronDown
         aria-hidden

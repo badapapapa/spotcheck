@@ -38,7 +38,7 @@ describe("startContext", () => {
       "Mid rate on 2 Jan 2025: 1.3653 SGD per USD.",
     );
     expect(lumpSumSentence(c, "S$20,582")).toBe(
-      "All at once: S$20,582 at the mid rate on 2 Jan 2025 plus your spread, known on that day, so it has no range.",
+      "All at once: S$20,582 at the mid rate on 2 Jan 2025 plus your exchange fee, known on that day, so it has no range.",
     );
   });
 

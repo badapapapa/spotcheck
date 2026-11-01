@@ -52,7 +52,7 @@ export function DistributionChart({
         note:
           id === "lumpSum"
             ? undefined
-            : `cost less than all at once in ${formatPercent(result.stats[id].beatLumpSum)} of periods`,
+            : `cost less than all at once in ${formatPercent(result.stats[id].beatLumpSum)} of past periods`,
       }))}
     />
   );
@@ -269,8 +269,8 @@ export function RangeChart({
           </>
         ) : (
           <>
-            Bar: the middle 90% of periods. Ring: the median. Line: cheapest to
-            most expensive. Further left is cheaper.
+            Bar: the middle 90% of past periods. Ring: the median. Line:
+            cheapest to most expensive. Further left is cheaper.
           </>
         )}
       </figcaption>

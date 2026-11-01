@@ -182,8 +182,8 @@
     text-wrap: balance;
   }
   .t-display {
-    font-size: 36px;
-    line-height: 40px;
+    font-size: 30px;
+    line-height: 34px;
     letter-spacing: -0.015em;
   }
   .t-h1 {
@@ -205,8 +205,8 @@
     font-weight: 600;
   }
   .t-lede {
-    font-size: 17px;
-    line-height: 27px;
+    font-size: 16px;
+    line-height: 25px;
     color: var(--muted);
     max-width: var(--measure);
     text-wrap: pretty;
@@ -442,53 +442,53 @@
      loading fallback so the page doesn't move when the planner loads.
      Measured from the real components at each breakpoint. */
   .converter-min-h {
-    min-height: 281px;
+    min-height: 297px;
   }
   .result-min-h {
-    min-height: 537px;
+    min-height: 563px;
   }
   @media (width < 400px) {
     .result-min-h {
-      min-height: 553px;
+      min-height: 581px;
     }
   }
   @media (width < 380px) {
     .result-min-h {
-      min-height: 611px;
+      min-height: 637px;
     }
   }
   /* Only the narrowest phones wrap the converter's sentence onto a third
-     line; at 375px it fits in 281px, so no empty space under More options. */
+     line; at 375px it fits, so no empty space under More options. */
   @media (width < 370px) {
     .converter-min-h {
-      min-height: 301px;
+      min-height: 317px;
     }
     .result-min-h {
-      min-height: 635px;
+      min-height: 661px;
     }
   }
   @media (width >= 40rem) {
     .converter-min-h {
-      min-height: 245px;
+      min-height: 277px;
     }
     .result-min-h {
-      min-height: 511px;
+      min-height: 539px;
     }
   }
   @media (width >= 64rem) {
     .converter-min-h {
-      min-height: 299px;
+      min-height: 331px;
     }
     .result-min-h {
-      min-height: 569px;
+      min-height: 617px;
     }
   }
   @media (width >= 80rem) {
     .converter-min-h {
-      min-height: 247px;
+      min-height: 279px;
     }
     .result-min-h {
-      min-height: 511px;
+      min-height: 539px;
     }
   }
   /* Placeholder blocks that hold a result's space while it loads. */
@@ -617,4 +617,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   content: "";
   position: absolute;
   inset: -10px -4px;
+}
+
+/* Results that aren't current (a newer set is on its way, or a field holds
+   an entry that isn't valid yet): figures turn muted and marks fade, like a
+   dimmed row, so the text keeps at least 4.5:1. */
+[data-stale] td,
+[data-stale] th {
+  color: var(--muted);
+}
+[data-stale] .mark {
+  opacity: 0.3;
 }

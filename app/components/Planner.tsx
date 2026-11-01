@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Pencil } from "lucide-react";
+import { ChevronDown, Download, Pencil } from "lucide-react";
 import {
   lazy,
   Suspense,
@@ -9,6 +9,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { addDays, daysBetween, rateAsOf } from "@/engine/calendar.ts";
 import { findCurrency, fxSourceLabel } from "@/engine/currencies.ts";
@@ -30,6 +31,7 @@ import {
 } from "@/lib/start-context.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { describeReplay } from "@/lib/summary.ts";
+import { trendNote } from "@/lib/trend.ts";
 import { useLoad } from "@/lib/use-data.ts";
 import { usePlannerState } from "@/lib/use-planner-state.ts";
 import type { PlannerState } from "@/lib/url-state.ts";
@@ -167,6 +169,10 @@ export function Planner() {
   const converterRef = useRef<HTMLElement>(null);
   const showBar = useScrolledPast(converterRef);
   const length = result ? planLength(result.windowDays) : undefined;
+  const trend = useMemo(
+    () => (series ? trendNote(series, scenario.currency) : undefined),
+    [series, scenario.currency],
+  );
   const rescaled = ctx ? rescaledTo(ctx) : "today's rate";
   const pastDeadline = pastDeadlineNote(scenario.deadline, today);
   /** Moves the plan to the suggested start, keeping its length. */
@@ -206,7 +212,7 @@ export function Planner() {
       <section
         ref={converterRef}
         aria-label="Your plan"
-        className="col-main converter-min-h mt-8 self-start rounded-lg border bg-surface p-4 sm:p-6 lg:row-start-2"
+        className="col-main converter-min-h mt-5 self-start rounded-lg border bg-surface p-4 sm:mt-8 sm:p-6 lg:row-start-2"
       >
         <ScenarioForm
           state={state}
@@ -229,7 +235,7 @@ export function Planner() {
       {/* The answer, beside the question on laptops and under it on phones. */}
       <section
         aria-label="Comparison at a glance"
-        className="col-side result-min-h mt-8 self-start rounded-lg border bg-surface p-4 sm:p-6 lg:row-span-2 lg:row-start-1 lg:mt-2"
+        className="col-side result-min-h mt-4 self-start rounded-lg border bg-surface p-4 sm:mt-8 sm:p-6 lg:row-span-2 lg:row-start-1 lg:mt-2"
       >
         {fx.status === "error" ? (
           <LoadError message={fx.error} retry={fx.retry} />
@@ -288,11 +294,11 @@ export function Planner() {
                 : `Every past period of the same length as yours, each cost rescaled to ${rescaled}.`}
             </p>
             {spot && ctx && (
-              <p
-                className="t-small mt-3 text-muted-foreground"
-                data-testid="rate-line"
-              >
-                {rateLine(ctx, formatRate(spot.value), scenario.currency)}
+              <p className="t-small mt-3 text-muted-foreground">
+                <span data-testid="rate-line">
+                  {rateLine(ctx, formatRate(spot.value), scenario.currency)}
+                </span>{" "}
+                SGD per {scenario.currency}: lower = cheaper for you.
               </p>
             )}
             <p
@@ -332,29 +338,54 @@ export function Planner() {
                         ? undefined
                         : result.stats[id].beatLumpSum,
                     label: STRATEGY_STYLE[id].label,
+                    note: STRATEGY_STYLE[id].subtitle,
                     color: STRATEGY_STYLE[id].color,
                     summary: result.stats[id].summary,
                   }))}
                 />
-                <p className="t-small mt-3 text-muted-foreground">
-                  Median vs all at once: the difference from converting it all{" "}
-                  {ctx ? convertWhen(ctx) : "today"}. Middle 90%: from low to
-                  high, the range 90% of past periods fell in. Worst case: the
-                  most expensive period. Cheaper: the share of periods that cost
-                  less than converting all at once.
-                </p>
-                <p className="t-small mt-2 font-medium">{HISTORICAL_CONTEXT}</p>
               </div>
-              <div data-testid="summary" className="prose-measure space-y-3">
-                <h3 className="t-h3">In plain words</h3>
-                {describeReplay(
-                  result,
-                  deferred.scenario,
-                  deferred.targetBelowSpot,
-                  ctx,
-                ).map((line) => (
-                  <p key={line}>{line}</p>
-                ))}
+              {/* Laptops: the sentences on the left, how to read the table
+                  and what shaped the history on the right (a column that was
+                  empty). Phones: the notes first, the sentences folded. */}
+              <div className="grid gap-8 lg:grid-cols-12 lg:gap-6">
+                <div
+                  className="t-small space-y-3 text-muted-foreground lg:col-span-5 lg:col-start-8 lg:row-start-1"
+                  data-testid="reading-notes"
+                >
+                  <p>
+                    <span className="font-medium text-ink">
+                      Median vs all at once:
+                    </span>{" "}
+                    the difference from converting it all{" "}
+                    {ctx ? convertWhen(ctx) : "today"}; negative = cost less.{" "}
+                    <span className="font-medium text-ink">Middle 90%:</span>{" "}
+                    from low to high, the range 90% of past periods fell in.{" "}
+                    <span className="font-medium text-ink">
+                      Most expensive past period:
+                    </span>{" "}
+                    the highest cost in this history.{" "}
+                    <span className="font-medium text-ink">
+                      Cheaper than all at once:
+                    </span>{" "}
+                    the share of past periods that cost less. It is a share of
+                    past periods, not a probability.
+                  </p>
+                  {trend && <p data-testid="trend-note">{trend}</p>}
+                  <p className="font-medium text-ink">
+                    {HISTORICAL_CONTEXT}{" "}
+                    <ScenarioLink href="/how-it-works" className="link">
+                      How the history is tested
+                    </ScenarioLink>
+                  </p>
+                </div>
+                <PlainWords
+                  lines={describeReplay(
+                    result,
+                    deferred.scenario,
+                    deferred.targetBelowSpot,
+                    ctx,
+                  )}
+                />
               </div>
             </div>
           ) : fx.status === "error" || issue ? (
@@ -585,6 +616,57 @@ function useScrolledPast(ref: React.RefObject<HTMLElement | null>) {
  * Phones: once the converter scrolls away, a bar along the top edge keeps
  * the scenario in view, with a way back to edit it.
  */
+const WIDE = "(min-width: 64rem)";
+const subscribeWide = (onChange: () => void) => {
+  const mq = window.matchMedia(WIDE);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+};
+
+/**
+ * The results as sentences. Folded on phones, where the table just above
+ * already gives every figure; open from 1024px, beside the reading notes.
+ * The static HTML has it folded; laptops open it on hydration, far below the
+ * first screen, so nothing in view moves.
+ */
+function PlainWords({ lines }: { lines: string[] }) {
+  const wide = useSyncExternalStore(
+    subscribeWide,
+    () => window.matchMedia(WIDE).matches,
+    () => false,
+  );
+  // Once the reader opens or closes it, their choice wins.
+  const [chosen, setChosen] = useState<boolean | null>(null);
+  const open = chosen ?? wide;
+  return (
+    <details
+      open={open}
+      onToggle={(e) => {
+        const now = e.currentTarget.open;
+        if (now !== open) setChosen(now);
+      }}
+      data-testid="summary"
+      className="group prose-measure lg:col-span-7 lg:row-start-1"
+    >
+      <summary className="disclosure flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-3 [&::-webkit-details-marker]:hidden">
+        <h3 className="t-h3">In plain words</h3>
+        <span className="disclosure-label text-ui text-accent group-open:hidden">
+          Read as sentences
+        </span>
+        <ChevronDown
+          aria-hidden
+          className="ml-auto size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+        />
+      </summary>
+      <div className="mt-2 space-y-3">
+        {lines.map((line) => (
+          <p key={line}>{line}</p>
+        ))}
+      </div>
+    </details>
+  );
+}
+
 function SummaryBar({ text, onEdit }: { text: string; onEdit: () => void }) {
   return (
     <div className="summary-bar fixed inset-x-0 top-0 z-30 border-b bg-paper lg:hidden">
@@ -605,9 +687,9 @@ export function PlannerFallback() {
     <>
       <div
         aria-hidden
-        className="col-main converter-min-h mt-8 rounded-lg border bg-surface lg:row-start-2"
+        className="col-main converter-min-h mt-5 rounded-lg border bg-surface sm:mt-8 lg:row-start-2"
       />
-      <div className="col-side result-min-h mt-8 rounded-lg border bg-surface p-4 sm:p-6 lg:row-span-2 lg:row-start-1 lg:mt-2">
+      <div className="col-side result-min-h mt-4 rounded-lg border bg-surface p-4 sm:mt-8 sm:p-6 lg:row-span-2 lg:row-start-1 lg:mt-2">
         <GlanceProgress />
       </div>
     </>

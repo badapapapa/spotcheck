@@ -2,7 +2,7 @@
 
 import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
-import { addDays, rateAsOf } from "@/engine/calendar.ts";
+import { addDays, daysBetween, rateAsOf } from "@/engine/calendar.ts";
 import type { ISODate } from "@/engine/types.ts";
 import { convertAmount } from "@/lib/convert.ts";
 import {
@@ -19,6 +19,7 @@ import { formatNumberText, readNumberField } from "@/lib/number-input.ts";
 import { todayCost } from "@/lib/today-cost.ts";
 import { LIMITS, serializeState, type PlannerState } from "@/lib/url-state.ts";
 import { CurrencyPicker } from "./CurrencyPicker";
+import { HelpTip } from "./HelpTip";
 
 /** A date problem, and the field it belongs under. */
 export type DateIssue = { field: "startDate" | "deadline"; message: string };
@@ -66,6 +67,13 @@ function toDraft(s: PlannerState): Draft {
     spread: pctText(s.scenario.spread),
     target: pctText(s.targetBelowSpot),
   };
+}
+
+/** 14 → "14 days", 304 → "10 months" (as lib/dates planLength counts them). */
+function spanWords(days: number): string {
+  if (days < 28) return `${days} day${days === 1 ? "" : "s"}`;
+  const months = Math.round(days / 30.44);
+  return `${months} month${months === 1 ? "" : "s"}`;
 }
 
 /** 0.005 → "0.5" (no trailing zeros, no float noise). */
@@ -348,6 +356,14 @@ export function ScenarioForm({
     formatNumberText(amountRead.value) !== draft.amount.trim()
       ? `= ${currency} ${formatNumberText(amountRead.value)}`
       : undefined;
+  // The deadline as typed, in words, with the plan's length.
+  const shownDeadline = ISO.test(draft.deadline) ? draft.deadline : s.deadline;
+  const shownStart = ISO.test(draft.startDate) ? draft.startDate : s.startDate;
+  const days = daysBetween(shownStart, shownDeadline);
+  const deadlineText =
+    days > 0
+      ? `${formatDate(shownDeadline)}, ${spanWords(days)} from ${formatDate(shownStart)}`
+      : formatDate(shownDeadline);
   const deadlineMin = ISO.test(draft.startDate)
     ? addDays(draft.startDate, MIN_WINDOW_DAYS)
     : undefined;
@@ -357,7 +373,7 @@ export function ScenarioForm({
 
   return (
     <form
-      className={chips ? "max-w-3xl space-y-2" : "space-y-6"}
+      className={chips ? "max-w-3xl space-y-2" : "space-y-5 sm:space-y-6"}
       onSubmit={(e) => e.preventDefault()}
       aria-label="Scenario"
     >
@@ -403,7 +419,9 @@ export function ScenarioForm({
             onFocus={() => setFocused("deadline")}
             onBlur={() => blur("deadline")}
             aria-describedby={
-              shownError("deadline") ? `${id}-deadline-error` : undefined
+              shownError("deadline")
+                ? `${id}-deadline-error`
+                : `${id}-deadline-text`
             }
             aria-label="Needed by"
             type="date"
@@ -425,12 +443,24 @@ export function ScenarioForm({
         </p>
       )}
       {errorText("deadline")}
+      {/* The deadline in words. A native date field shows the browser's
+          own format (01/09/2027 is 1 Sep in Singapore but 9 Jan in the US),
+          so the date is also written out here, as it is typed. */}
+      {!shownError("deadline") && (
+        <p
+          id={`${id}-deadline-text`}
+          className={`t-small text-muted-foreground tabular-nums ${chips ? "" : "-mt-4"}`}
+          data-testid="deadline-text"
+        >
+          {deadlineText}
+        </p>
+      )}
 
       {!chips && (
         // The baseline every strategy is measured against: converting it all
         // on the start date (equal to the All at once result). Same height
         // loaded or not.
-        <div className="border-t pt-4">
+        <div className="border-t pt-3 sm:pt-4">
           <div className="flex items-baseline justify-between gap-4">
             <p className="t-label" data-testid="convert-when">
               {noCost
@@ -440,7 +470,10 @@ export function ScenarioForm({
             {noCost ? (
               <p className="t-data-m text-muted-foreground">–</p>
             ) : cost ? (
-              <p className="t-data-m tabular-nums" data-testid="today-cost">
+              <p
+                className={`t-data-m tabular-nums ${invalid ? "text-muted-foreground" : ""}`}
+                data-testid="today-cost"
+              >
                 {formatSgdAt(cost.withSpread, cost.withSpread)}
               </p>
             ) : (
@@ -451,9 +484,26 @@ export function ScenarioForm({
               </p>
             )}
           </div>
-          <p className="t-small mt-1 min-h-5 text-right text-muted-foreground tabular-nums">
+          <p
+            className="t-small mt-1 min-h-5 text-right text-muted-foreground tabular-nums"
+            data-testid="today-cost-note"
+          >
             {cost &&
-              `${formatSgdAt(cost.mid, cost.withSpread)} at mid rate, before your ${pctText(s.spread)}% spread`}
+              (invalid ? (
+                // A field holds a value that isn't valid yet: the figure is
+                // still the last valid entry's, and says so.
+                `For ${s.currency} ${formatNumberText(s.amount)}, your last valid entry`
+              ) : (
+                <>
+                  {formatSgdAt(cost.mid, cost.withSpread)} at mid rate
+                  <HelpTip term="the mid rate" inline>
+                    The midpoint between the prices banks buy and sell a
+                    currency at, before any fees. Every rate in SpotCheck is a
+                    mid rate; your exchange fee is added on top.
+                  </HelpTip>
+                  , before your {pctText(s.spread)}% fee
+                </>
+              ))}
           </p>
         </div>
       )}
@@ -471,8 +521,8 @@ export function ScenarioForm({
             {/* Hedging uses only the start date and spread, so its summary
                 and fields leave out the planner-only settings. */}
             {chips
-              ? `from ${formatDate(s.startDate)}, ${pctText(s.spread)}% spread`
-              : `${conversions}, from ${formatDate(s.startDate)}, ${pctText(s.spread)}% spread, ${pctText(state.targetBelowSpot)}% target`}
+              ? `from ${formatDate(s.startDate)}, ${pctText(s.spread)}% fee`
+              : `${conversions}, from ${formatDate(s.startDate)}, ${pctText(s.spread)}% fee, ${pctText(state.targetBelowSpot)}% target`}
           </span>
           <ChevronDown
             aria-hidden
@@ -504,7 +554,11 @@ export function ScenarioForm({
           <Field
             id={`${id}-startDate`}
             label="Start converting from"
-            help="The first day of your plan."
+            help={
+              ISO.test(draft.startDate)
+                ? `${formatDate(draft.startDate)}, the first day of your plan.`
+                : "The first day of your plan."
+            }
             error={errorText("startDate")}
           >
             <input
@@ -520,7 +574,7 @@ export function ScenarioForm({
           </Field>
           <Field
             id={`${id}-spread`}
-            label="Conversion spread (%)"
+            label="Exchange fee (spread, %)"
             help="What your bank or money changer adds on top of the mid rate."
             error={errorText("spread")}
           >

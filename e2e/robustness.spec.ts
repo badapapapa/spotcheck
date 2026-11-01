@@ -213,7 +213,7 @@ test.describe("A3/A4: typed numbers", () => {
     await page.goto("/?c=USD&a=15000&s=2026-10-17&d=2027-08-01&sp=1");
     await expect(page.getByTestId("summary")).toBeVisible();
     await openMore(page);
-    const spread = page.getByLabel("Conversion spread (%)");
+    const spread = page.getByLabel("Exchange fee (spread, %)");
     await spread.fill("0,5");
     await expect(page.getByTestId("error-spread")).toHaveText(
       "Use a dot for decimals, e.g. 0.5.",
@@ -238,7 +238,7 @@ test.describe("A4: partial values", () => {
     await expect(page.getByTestId("summary")).toBeVisible();
     await openMore(page);
     const cases = [
-      ["Conversion spread (%)", "15", "sp", "Enter 0–5%.", "spread"],
+      ["Exchange fee (spread, %)", "15", "sp", "Enter 0–5%.", "spread"],
       [
         "Most conversions you'd make",
         "36",

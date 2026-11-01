@@ -14,7 +14,9 @@ test.describe("B1: charts are not unnamed focus stops", () => {
       page,
     }) => {
       await page.goto(path);
-      await expect(page.getByText(/windows starting/).first()).toBeVisible();
+      await expect(page.getByTestId("results-status")).toHaveText(
+        /results updated/i,
+      );
       await page.waitForTimeout(1000);
       const counts = await page.evaluate(() => ({
         app: document.querySelectorAll('[role="application"]').length,
@@ -153,7 +155,9 @@ test.describe("B4: smaller accessibility fixes", () => {
 
   test("Hedging's range rows aren't fake buttons", async ({ page }) => {
     await page.goto(`/advanced?${Q}`);
-    await expect(page.getByText(/windows starting/).first()).toBeVisible();
+    await expect(page.getByTestId("results-status")).toHaveText(
+      /results updated/i,
+    );
     const chart = page.locator(
       '[aria-label^="Range of SGD cost with no hedge"]',
     );
@@ -336,7 +340,9 @@ test.describe("B6: no CSP violations", () => {
         );
       });
       await page.goto(path);
-      await expect(page.getByText(/windows starting/).first()).toBeVisible();
+      await expect(page.getByTestId("results-status")).toHaveText(
+        /results updated/i,
+      );
       await page.waitForTimeout(1000);
       expect(
         await page.evaluate(

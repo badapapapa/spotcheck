@@ -25,7 +25,9 @@ describe("describeReplay", () => {
   const text = describeReplay(r, scenario, 0.02).join(" ");
 
   it("describes the history with real numbers", () => {
-    expect(text).toMatch(/overlapping windows starting between 4 Jan 1999/);
+    expect(text).toMatch(
+      /overlapping past periods starting between 4 Jan 1999/,
+    );
     expect(text).toMatch(/S\$\d{2},\d{3}/);
     expect(text).toMatch(/not forecasts/);
   });
@@ -124,7 +126,7 @@ describe("describeReplay", () => {
     ).toBeDefined();
     expect(
       comparesStrategies(
-        "Equal tranches (6 conversions): median −S$85 vs all at once, middle 90% S$18,511–S$19,963, worst case S$21,017; cheaper than all at once in 57% of windows.",
+        "Equal tranches (6 conversions): median −S$85 vs all at once, middle 90% S$18,511–S$19,963, most expensive past period S$21,017; cheaper than all at once in 57% of past periods.",
       ),
     ).toBeUndefined();
   });
@@ -181,7 +183,7 @@ describe("describeReplay", () => {
       },
     );
     expect(lines[1]).toMatch(
-      /mid rate on 2 Jan 2025 plus your spread, known on that day/,
+      /mid rate on 2 Jan 2025 plus your exchange fee, known on that day/,
     );
     expect(lines.join(" ")).not.toMatch(/known today|latest/);
   });

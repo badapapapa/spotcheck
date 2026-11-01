@@ -7,6 +7,8 @@ export const STRATEGY_STYLE: Record<
   StrategyId,
   {
     label: string;
+    /** A plain-English gloss under a name that is jargon ("tranches"). */
+    subtitle?: string;
     color: string;
     shape: "circle" | "diamond" | "square" | "triangle";
     blurb: string;
@@ -20,6 +22,7 @@ export const STRATEGY_STYLE: Record<
   },
   tranches: {
     label: "Equal tranches",
+    subtitle: "convert in equal parts",
     color: "var(--series-2)",
     shape: "diamond",
     blurb: "Convert equal amounts on evenly spaced dates up to the deadline.",

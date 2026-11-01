@@ -14,7 +14,7 @@ const GUIDE: Record<
     trades:
       "You know the exact cost on day one, so there is no range of outcomes. You also give up any chance of a better rate later.",
     detail:
-      "In the replay this is the rate on the start date plus your spread. Because every period is rescaled to today's rate, it costs the same in every period, which is why it appears as a single point.",
+      "In the replay this is the rate on the start date plus your exchange fee. Because every period is rescaled to today's rate, it costs the same in every period, which is why it appears as a single point.",
   },
   tranches: {
     doing:
@@ -52,13 +52,20 @@ export function StrategyGuide({ headingLevel = 3 }: { headingLevel?: 2 | 3 }) {
             key={id}
             className="grid gap-x-8 gap-y-2 border-b py-6 md:grid-cols-[11rem_minmax(0,1fr)]"
           >
-            <Heading className="t-h3 flex items-center gap-2.5 self-start">
+            <Heading className="t-h3 flex items-baseline gap-2.5 self-start">
               <span
                 aria-hidden
-                className="size-2.5 shrink-0 rounded-full"
+                className="size-2.5 shrink-0 translate-y-[-1px] rounded-full"
                 style={{ background: STRATEGY_STYLE[id].color }}
               />
-              {STRATEGY_STYLE[id].label}
+              <span>
+                {STRATEGY_STYLE[id].label}
+                {STRATEGY_STYLE[id].subtitle && (
+                  <span className="t-small block font-normal text-muted-foreground">
+                    {STRATEGY_STYLE[id].subtitle}
+                  </span>
+                )}
+              </span>
             </Heading>
             <div className="prose-measure space-y-2">
               <p>
