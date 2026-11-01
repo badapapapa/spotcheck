@@ -7,7 +7,6 @@ import type {
   HedgeReplayResult,
   OptionSettings,
 } from "@/engine/hedge-replay.ts";
-import { gkCall } from "@/engine/options.ts";
 import { toContinuous } from "@/engine/rates.ts";
 import { realisedVol } from "@/engine/stats.ts";
 import type { Series } from "@/engine/types.ts";
@@ -15,12 +14,7 @@ import { computeHedges } from "@/lib/compute.ts";
 import { hedgeIssue, latestStart, startDateIssue } from "@/lib/coverage.ts";
 import { loadFx, loadRate, loadSora } from "@/lib/data.ts";
 import { formatDate } from "@/lib/dates.ts";
-import {
-  formatPercent,
-  formatRate,
-  formatSgd,
-  formatSgdAt,
-} from "@/lib/format.ts";
+import { formatPercent, formatRate, formatSgdAt } from "@/lib/format.ts";
 import { HEDGE_IDS, HEDGE_STYLE } from "@/lib/hedge-style.ts";
 import {
   fixingLabel,
@@ -30,6 +24,7 @@ import {
   startContext,
   type StartContext,
 } from "@/lib/start-context.ts";
+import { trendNote } from "@/lib/trend.ts";
 import { useLoad } from "@/lib/use-data.ts";
 import { usePlannerState } from "@/lib/use-planner-state.ts";
 import type { PlannerState } from "@/lib/url-state.ts";
@@ -98,28 +93,35 @@ export function Advanced() {
 
   return (
     <>
-      {/* The scenario as compact, editable chips directly under the title. */}
-      <div className="mt-8">
-        <ScenarioForm
-          state={state}
-          onChange={setState}
-          variant="chips"
-          checkDates={checkDates}
-          dateIssue={issue}
-          startRange={{ min: loaded?.fx.dates[0], max: latestStart(today) }}
-        />
-        {pastDeadline && (
-          <p className="t-small mt-3" data-testid="past-deadline">
-            {pastDeadline}
-          </p>
-        )}
+      {/* The same boxed converter as the planner, and beside it on laptops
+          (under it on phones) what the page shows and assumes. */}
+      <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-12 lg:gap-6">
+        <section
+          aria-label="Your plan"
+          className="self-start rounded-lg border bg-surface p-4 sm:p-6 lg:col-span-7"
+        >
+          <ScenarioForm
+            state={state}
+            onChange={setState}
+            variant="chips"
+            checkDates={checkDates}
+            dateIssue={issue}
+            startRange={{ min: loaded?.fx.dates[0], max: latestStart(today) }}
+          />
+          {pastDeadline && (
+            <p className="t-small mt-3" data-testid="past-deadline">
+              {pastDeadline}
+            </p>
+          )}
+        </section>
+        <HedgingIntro />
       </div>
 
       {currency.peggedToSgd ? (
         <Notice>
           The {currency.name} is pegged 1:1 to the Singapore dollar, so there is
           no exchange rate to hedge: every conversion costs the same, plus your
-          spread. The planner shows it for every strategy.
+          exchange fee. The planner shows it for every strategy.
         </Notice>
       ) : (
         !rateSeries && (
@@ -210,24 +212,8 @@ function Panels({
     { keepPrevious: true },
   );
 
-  const K = quote.spot * state.strikePct;
-  const premium = gkCall({
-    S: quote.spot,
-    K,
-    rd: toContinuous(quote.rd, T),
-    rf: toContinuous(quote.rf, T),
-    T,
-    sigma: Math.max(state.volOverride ?? vol.sigma, 1e-4),
-  });
   const carry = (quote.forward - quote.spot) * s.amount;
   const amountText = `${s.amount.toLocaleString("en-SG")} ${s.currency}`;
-  const forwardShare =
-    history.status === "ready"
-      ? share(
-          history.data.result.relativeCosts.forward!,
-          history.data.result.relativeCosts.unhedged!,
-        )
-      : undefined;
 
   return (
     <>
@@ -238,41 +224,22 @@ function Panels({
       >
         <div className="lg:col-span-8">
           <p className="t-label">{fixingLabel(ctx)}</p>
+          {/* The rate, then where the gap from spot comes from, worded so
+              a lower forward doesn't read as a saving (or a higher one as a
+              loss): it is the interest-rate gap, priced in. */}
           <p className="t-h2 mt-3 max-w-3xl font-medium" data-testid="answer">
             A forward would fix {formatRate(quote.forward)} SGD per {s.currency}{" "}
-            for {formatDate(deadline)}:{" "}
+            for {formatDate(deadline)}: a rate{" "}
             {formatSgdAt(Math.abs(carry), quote.spot * s.amount)}{" "}
             {carry < 0 ? "below" : "above"} {spotWhen(ctx)} for your{" "}
-            {amountText}.
+            {amountText}, because of the interest-rate gap.
           </p>
-          {/* The reason, at the same weight as the figure it explains. */}
-          <p className="t-h2 mt-2 max-w-3xl font-medium" data-testid="carry">
-            That&apos;s because {s.currency} interest rates are{" "}
-            {quote.rf > quote.rd ? "higher" : "lower"} than SGD rates. That gap
-            is carry, not a forecast.
+          <p className="mt-3 max-w-3xl text-ui" data-testid="carry">
+            {s.currency} interest rates are{" "}
+            {quote.rf > quote.rd ? "higher" : "lower"} than SGD rates, and a
+            forward prices that gap in. It is carry, not a forecast and not a
+            saving.
           </p>
-          <dl className="mt-6 grid border-t sm:grid-cols-3">
-            <HeadlineFigure
-              value={formatRate(quote.forward)}
-              label={`SGD per ${s.currency}, the forward rate to ${formatDate(deadline)}`}
-            />
-            <HeadlineFigure
-              value={formatSgd(premium * s.amount)}
-              label={`premium for a call option with a ${Math.round(state.strikePct * 100)}% strike`}
-            />
-            <HeadlineFigure
-              value={
-                forwardShare === undefined
-                  ? undefined
-                  : formatPercent(forwardShare)
-              }
-              label={
-                history.status === "ready"
-                  ? `of ${history.data.result.windows.toLocaleString("en-SG")} past periods, the forward cost less than staying unhedged`
-                  : "of past periods, the forward cost less than staying unhedged"
-              }
-            />
-          </dl>
           <p className="t-small mt-5 font-medium">
             Past outcomes, not a forecast. Prices use past rates, not a bank
             quote.
@@ -340,12 +307,12 @@ function Panels({
           How each hedge would have worked out
         </h2>
         <p className="prose-measure mt-3 text-muted-foreground">
-          Every past window of the same length since interest-rate data begins
+          Every past period of the same length since interest-rate data begins
           (SORA from July 2005), each priced with only the rates and volatility
           known on its first day, rescaled to {rescaledTo(ctx)} like the
-          planner. Each window&apos;s forward uses SORA compounded over the same
-          length of time before it starts, so the first window begins one
-          window-length after SORA does.
+          planner. Each period&apos;s forward uses SORA compounded over the same
+          length of time before it starts, so the first period begins one
+          plan-length after SORA does.
         </p>
         <div className="mt-8 min-h-[36rem] space-y-8 lg:max-w-4xl">
           {history.status === "loading" && (
@@ -361,6 +328,7 @@ function Panels({
             <HedgeHistory
               result={history.data.result}
               strikePct={history.data.strikePct}
+              trend={trendNote(d.fx, s.currency)}
             />
           )}
         </div>
@@ -396,9 +364,12 @@ function HedgingSkeleton() {
 function HedgeHistory({
   result: h,
   strikePct,
+  trend,
 }: {
   result: HedgeReplayResult;
   strikePct: number;
+  /** The long-run move in the rate history (lib/trend.ts). */
+  trend?: string;
 }) {
   const rows = HEDGE_IDS.map((id) => ({
     id,
@@ -418,18 +389,26 @@ function HedgeHistory({
   return (
     <>
       <RangeChart
-        label="Range of SGD cost with no hedge, a forward, and a call option, across historical windows."
+        label="Range of SGD cost with no hedge, a forward, and a call option, across past periods."
         rows={rows}
       />
       <ComparisonTable
-        caption="SGD cost of each hedge across historical windows"
+        caption="SGD cost of each hedge across past periods"
         rowHeader="Hedge"
         reference="unhedged"
         rows={rows}
       />
       <p className="t-small font-medium">{HISTORICAL_CONTEXT}</p>
+      {trend && (
+        <p
+          className="t-small prose-measure text-muted-foreground"
+          data-testid="trend-note"
+        >
+          {trend}
+        </p>
+      )}
       <p className="prose-measure">
-        {h.windows.toLocaleString("en-SG")} windows starting{" "}
+        {h.windows.toLocaleString("en-SG")} past periods starting{" "}
         {formatDate(h.firstStart)} to {formatDate(h.lastStart)}. The forward
         cost less than staying unhedged in{" "}
         {formatPercent(
@@ -438,27 +417,60 @@ function HedgeHistory({
         of them, and the option ({Math.round(strikePct * 100)}% strike) in{" "}
         {formatPercent(
           share(h.relativeCosts.option!, h.relativeCosts.unhedged!),
-        )}
-        . A forward fixes your rate today; an option caps it for an upfront
-        premium. The figures above show how each changed the range of outcomes
-        in this history.
+        )}{" "}
+        (shares of past periods, not probabilities). A forward fixes your rate
+        today; an option caps it for an upfront premium. The figures above show
+        how each changed the range of outcomes in this history.
       </p>
     </>
   );
 }
 
-function HeadlineFigure({ value, label }: { value?: string; label: string }) {
+/**
+ * What the page shows, what you enter, what comes out and what it assumes:
+ * the short version, before the panels. Beside the converter on laptops
+ * (a column that was empty), under it on phones.
+ */
+function HedgingIntro() {
+  const rows: [string, string][] = [
+    [
+      "Shows",
+      "What fixing your rate with a forward, or capping it with a call option, would cost for this plan, and how each would have worked out in past periods.",
+    ],
+    [
+      "You enter",
+      "The plan here, then the option's strike and volatility in its panel below.",
+    ],
+    [
+      "You get",
+      "The forward rate, the option's premium and highest possible cost, how the option responds (the Greeks), and each hedge's range of past costs.",
+    ],
+    [
+      "Assumes",
+      "Past mid rates and overnight interest rates (SORA, fed funds), not a bank quote; realised volatility in place of implied; no dealer margin.",
+    ],
+  ];
   return (
-    <div className="flex flex-col-reverse justify-end gap-1 border-b py-4 sm:border-b-0 sm:pr-4 sm:[&+&]:border-l sm:[&+&]:pl-4">
-      <dt className="t-small text-muted-foreground">{label}</dt>
-      <dd className="t-data-m min-h-7 tabular-nums">
-        {value ?? <span className="skeleton inline-block h-7 w-16" />}
-      </dd>
-    </div>
+    <dl
+      className="t-small grid content-start gap-x-4 gap-y-2 sm:grid-cols-[6rem_minmax(0,1fr)] lg:col-span-5"
+      data-testid="hedging-intro"
+    >
+      {rows.map(([term, text]) => (
+        // Phones: one run-in paragraph per row ("Shows: …"); wider screens:
+        // the term in its own column.
+        <div key={term} className="sm:contents">
+          <dt className="font-medium text-ink max-sm:inline">
+            {term}
+            <span className="sm:hidden">: </span>
+          </dt>
+          <dd className="text-muted-foreground max-sm:inline">{text}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
-/** Share of windows where `a` cost strictly less than `b`. */
+/** Share of periods where `a` cost strictly less than `b`. */
 function share(a: number[], b: number[]): number {
   return a.filter((x, i) => x < b[i]!).length / a.length;
 }

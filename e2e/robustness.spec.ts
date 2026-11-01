@@ -535,7 +535,7 @@ test.describe("A10: figures", () => {
     const head = /S\$[\d,]+(\.\d\d)?/.exec(
       await page.getByTestId("answer").innerText(),
     )![0];
-    await expect(page.getByText(/the forward price is/)).toContainText(head);
+    await expect(page.getByText(/the forward fixes a/)).toContainText(head);
     await expect(
       page.getByRole("button", { name: "About forward points" }),
     ).toBeVisible();

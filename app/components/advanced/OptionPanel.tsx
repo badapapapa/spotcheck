@@ -63,6 +63,12 @@ type Props = {
 const HELP = {
   premium:
     "What the option costs up front, per unit of foreign currency. You pay it whether or not you end up using the option.",
+  strike:
+    "The rate the option lets you convert at. It is set as a percentage of the spot rate: 100% is today's rate; a higher strike makes a cheaper option that caps the rate higher.",
+  notional:
+    "The amount the option covers: your whole amount of foreign currency, valued at spot. The premium as a share of it gives the option's cost in percentage terms.",
+  volatility:
+    "Realised volatility is how much the rate actually moved over a past stretch of trading days. Implied volatility is what market option prices assume; SpotCheck has no market prices, so realised volatility stands in for it.",
   delta:
     "How much the option's value moves when the spot rate moves by 1 SGD, per unit. Near 0.5 means about half as sensitive as the currency itself.",
   gamma:
@@ -193,9 +199,12 @@ export function OptionPanel(props: Props) {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid content-start gap-1.5">
-            <label htmlFor={`${id}-strike`} className="t-small font-medium">
-              Strike: {formatRate(K)} ({Math.round(strikePct * 100)}% of spot)
-            </label>
+            <div className="flex items-center">
+              <label htmlFor={`${id}-strike`} className="t-small font-medium">
+                Strike: {formatRate(K)} ({Math.round(strikePct * 100)}% of spot)
+              </label>
+              <HelpTip term="the strike">{HELP.strike}</HelpTip>
+            </div>
             <input
               id={`${id}-strike`}
               type="range"
@@ -209,16 +218,23 @@ export function OptionPanel(props: Props) {
             />
           </div>
           <div className="grid content-start gap-1.5">
-            <label htmlFor={`${id}-vol`} className="t-small font-medium">
-              Volatility (% a year)
-            </label>
+            <div className="flex items-center">
+              <label htmlFor={`${id}-vol`} className="t-small font-medium">
+                Volatility (% a year)
+              </label>
+              <HelpTip term="realised and implied volatility">
+                {HELP.volatility}
+              </HelpTip>
+            </div>
             <div className="flex gap-2">
               <input
                 id={`${id}-vol`}
                 type="text"
                 inputMode="decimal"
                 autoComplete="off"
-                placeholder={(realised.sigma * 100).toFixed(1)}
+                // Empty means "use the realised figure", which it shows, so
+                // the field reads as a value rather than a disabled box.
+                placeholder={`${(realised.sigma * 100).toFixed(1)} realised`}
                 value={vol.text}
                 aria-invalid={vol.error ? true : undefined}
                 aria-describedby={`${id}-vol-note`}
@@ -281,7 +297,13 @@ export function OptionPanel(props: Props) {
               value: formatSgd(premium * amount),
             },
             {
-              label: "Premium, % of notional",
+              key: "notional",
+              label: (
+                <>
+                  Premium, % of notional
+                  <HelpTip term="notional">{HELP.notional}</HelpTip>
+                </>
+              ),
               value: formatPercent(premium / base.S, 2),
             },
             {
@@ -292,9 +314,15 @@ export function OptionPanel(props: Props) {
         />
 
         <figure className="space-y-2">
-          <figcaption className="t-h3">
-            Total SGD cost on {formatDate(props.deadline)}, by where the rate
-            ends up
+          <figcaption>
+            <span className="t-h3 block">
+              Total SGD cost on {formatDate(props.deadline)}, by where the rate
+              ends up
+            </span>
+            <span className="t-small mt-1 block text-muted-foreground">
+              For the strike and volatility above: move the strike and the
+              option&apos;s line moves with it.
+            </span>
           </figcaption>
           <div
             className="h-72 w-full sm:h-64"
@@ -323,6 +351,13 @@ export function OptionPanel(props: Props) {
                   tick={AXIS_TICK}
                   stroke={AXIS_STROKE}
                   ticks={rateAxis.ticks}
+                  height={44}
+                  label={{
+                    ...REFERENCE_LABEL,
+                    value: `SGD per ${currency} on the deadline`,
+                    position: "insideBottom",
+                    offset: 0,
+                  }}
                 />
                 <YAxis
                   domain={payoffAxis.domain}
@@ -426,7 +461,8 @@ export function OptionPanel(props: Props) {
           </h2>
           <p className="mt-3 text-muted-foreground">
             The Greeks: how the option&apos;s value changes as the rate,
-            volatility and time move.
+            volatility and time move, for the strike and volatility above. Each
+            chart runs across the spot rate, SGD per {currency}.
           </p>
         </div>
         <div className="grid gap-x-8 xl:grid-cols-2">
@@ -506,7 +542,8 @@ export function OptionPanel(props: Props) {
                     <LineChart
                       accessibilityLayer={false}
                       data={greekCurves}
-                      margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+                      // Room above the plot for the "today" label.
+                      margin={{ top: 18, right: 8, bottom: 0, left: 0 }}
                       onClick={(st) =>
                         coarse &&
                         setGreekAt((a) => ({ ...a, [g.key]: indexOf(st) }))
@@ -549,7 +586,15 @@ export function OptionPanel(props: Props) {
                         labelFormatter={(v) => `Spot ${formatRate(Number(v))}`}
                         formatter={(v) => [g.format(Number(v)), g.title]}
                       />
-                      <ReferenceLine x={base.S} {...REFERENCE_LINE} />
+                      <ReferenceLine
+                        x={base.S}
+                        {...REFERENCE_LINE}
+                        label={{
+                          ...REFERENCE_LABEL,
+                          value: props.spotLabel,
+                          position: "top",
+                        }}
+                      />
                       <Line
                         dataKey={(d: Greeks) => g.scale(d[g.key])}
                         name={g.title}

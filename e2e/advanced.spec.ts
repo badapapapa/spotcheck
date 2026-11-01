@@ -51,7 +51,8 @@ test("the hedging headline states the forward's price", async ({ page }) => {
   const pct = async (label: RegExp) =>
     Number(
       (await page
-        .getByText(label)
+        .locator("dt")
+        .filter({ hasText: label })
         .locator("xpath=..")
         .locator("dd")
         .textContent())!.replace("%", ""),
@@ -59,7 +60,7 @@ test("the hedging headline states the forward's price", async ({ page }) => {
   const sgd = await pct(/^SGD rate: SORA/);
   const usd = await pct(/^USD rate: fed funds/);
   await expect(page.getByTestId("carry")).toHaveText(
-    `That's because USD interest rates are ${usd > sgd ? "higher" : "lower"} than SGD rates. That gap is carry, not a forecast.`,
+    `USD interest rates are ${usd > sgd ? "higher" : "lower"} than SGD rates, and a forward prices that gap in. It is carry, not a forecast and not a saving.`,
   );
 });
 
