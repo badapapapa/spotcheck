@@ -106,7 +106,7 @@ export function ComparisonTable({
 
   return (
     <>
-      <table className="hidden w-full text-[15px] tabular-nums sm:table">
+      <table className="hidden w-full text-ui tabular-nums sm:table">
         <caption className="sr-only">{caption}</caption>
         <thead className="text-left text-muted-foreground">
           <tr className="t-small bg-sunken">

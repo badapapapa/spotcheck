@@ -70,7 +70,7 @@ export function StrategyGuide({ headingLevel = 3 }: { headingLevel?: 2 | 3 }) {
                 {g.trades}
               </p>
               <details className="group">
-                <summary className="link inline-flex min-h-11 cursor-pointer list-none items-center text-[15px] [&::-webkit-details-marker]:hidden">
+                <summary className="link inline-flex min-h-11 cursor-pointer list-none items-center text-ui [&::-webkit-details-marker]:hidden">
                   <span className="group-open:hidden">More detail</span>
                   <span className="hidden group-open:inline">Less detail</span>
                   {/* Four toggles on one page: each says whose detail it is. */}

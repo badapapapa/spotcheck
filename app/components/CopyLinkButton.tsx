@@ -25,7 +25,9 @@ export function CopyLinkButton({ state }: { state: PlannerState }) {
   return (
     <button
       type="button"
-      className="btn-primary"
+      // Secondary: sharing is not the page's main action, and green is kept
+      // for the brand, links and the user's own selection (DESIGN.md §2).
+      className="btn-secondary"
       onClick={copy}
       aria-live="polite"
     >

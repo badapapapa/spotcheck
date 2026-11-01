@@ -75,7 +75,7 @@ export function ForwardPanel({
           ]}
         />
       </div>
-      <p className="mt-4 border-t pt-4 text-[15px]">
+      <p className="mt-4 border-t pt-4 text-ui">
         For {amount.toLocaleString("en-SG")} {currency}, the forward price is{" "}
         <span className="font-semibold tabular-nums">
           {/* The headline's precision: whole dollars for a plan of S$100+. */}
@@ -86,7 +86,7 @@ export function ForwardPanel({
         SGD rates over this period. That gap is the carry; it isn&apos;t a
         forecast of the rate&apos;s direction.
       </p>
-      <p className="mt-3 text-xs text-muted-foreground">
+      <p className="mt-3 text-annotation text-muted-foreground">
         Its price comes from the interest-rate gap between SGD and {currency}{" "}
         (covered interest parity): F = S × (1 + r<sub>SGD</sub> × T) / (1 + r
         <sub>{currency}</sub> × T), T = {q.T.toFixed(3)} years. The rates are

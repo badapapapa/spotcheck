@@ -310,7 +310,7 @@ export function OutcomeTimeline({
                 x={yLabelW}
                 y={y(t) + 4}
                 textAnchor="end"
-                className="fill-muted-foreground text-[12px] tabular-nums"
+                className="fill-muted-foreground text-chart tabular-nums"
               >
                 {formatSgd(t, { decimals })}
               </text>
@@ -322,7 +322,7 @@ export function OutcomeTimeline({
               x={x(toEpochDay(`${yr}-01-01`))}
               y={H - 8}
               textAnchor="middle"
-              className="fill-muted-foreground text-[12px] tabular-nums"
+              className="fill-muted-foreground text-chart tabular-nums"
             >
               {yr}
             </text>
@@ -422,7 +422,7 @@ export function OutcomeTimeline({
                 : `Starting ${formatDate(result.startDates[shown]!)}`}
             </p>
             <table className="mt-2 w-full tabular-nums">
-              <thead className="text-[12px] text-muted-foreground">
+              <thead className="text-chart text-muted-foreground">
                 <tr>
                   <th className="text-left font-normal">
                     {monthly ? "Median that month" : "Cost"}

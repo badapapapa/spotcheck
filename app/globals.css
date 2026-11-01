@@ -35,6 +35,21 @@
   --color-series-2: var(--series-2);
   --color-series-3: var(--series-3);
   --color-series-4: var(--series-4);
+  /* §3 the type scale's sizes. The defaults are cleared, so only these
+     exist: chart ticks, annotations (footnotes, tab labels), supporting text,
+     interface text (buttons, nav, tables, value rows) and body. The roles
+     with their own weight or family (t-display … t-data-m) are below. */
+  --text-*: initial;
+  --text-chart: 12px;
+  --text-chart--line-height: 16px;
+  --text-annotation: 13px;
+  --text-annotation--line-height: 18px;
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  --text-ui: 15px;
+  --text-ui--line-height: 22px;
+  --text-base: 16px;
+  --text-base--line-height: 25px;
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
@@ -71,7 +86,8 @@
   --measure: 68ch;
   /* §8 motion */
   --ease: cubic-bezier(0.2, 0, 0, 1);
-  --fast: 150ms;
+  --fast: 150ms; /* hover and press feedback */
+  --base: 200ms; /* a change of state: results arriving, a selection */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -243,6 +259,13 @@
       line-height: 28px;
     }
   }
+  /* The logo's name: the serif at one size everywhere. */
+  .t-wordmark {
+    font-family: var(--font-serif);
+    font-size: 23px;
+    line-height: 1;
+    font-weight: 400;
+  }
   .prose-measure {
     max-width: var(--measure);
   }
@@ -332,7 +355,7 @@
   /* §7 buttons: exactly two styles. */
   .btn-primary,
   .btn-secondary {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-[15px] font-medium whitespace-nowrap select-none disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-ui font-medium whitespace-nowrap select-none disabled:cursor-not-allowed disabled:opacity-50;
     transition:
       background-color var(--fast) var(--ease),
       border-color var(--fast) var(--ease);
@@ -379,6 +402,24 @@
   }
   .field-chip:disabled {
     cursor: progress;
+  }
+  .field-input:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  /* A select styled as a field: the browser's arrow is replaced by the
+     chevron the currency picker uses (drawn by the component). */
+  .field-select {
+    appearance: none;
+    padding-right: 2.25rem;
+    cursor: pointer;
+  }
+  /* Disclosures (More options): the label behaves like a link on hover. */
+  .disclosure:hover .disclosure-label {
+    color: var(--accent-strong);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
   }
   /* Number spinners crowd a short inline field; arrow keys still work. */
   .no-spin {
@@ -487,7 +528,7 @@
   }
 
   .fade-in {
-    animation: fade-in var(--fast) var(--ease);
+    animation: fade-in var(--base) var(--ease);
   }
   @keyframes fade-in {
     from {

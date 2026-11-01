@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   CartesianGrid,
@@ -26,11 +27,20 @@ import {
   formatSgd,
 } from "@/lib/format.ts";
 import { readNumberField } from "@/lib/number-input.ts";
-import { HEDGE_STYLE } from "@/lib/hedge-style.ts";
+import {
+  AXIS_STROKE,
+  AXIS_TICK,
+  LINE_WIDTH,
+  REFERENCE_LABEL,
+  REFERENCE_LINE,
+  TOOLTIP_STYLE,
+} from "@/lib/chart-style.ts";
+import { HEDGE_IDS, HEDGE_STYLE } from "@/lib/hedge-style.ts";
 import { useCoarsePointer } from "@/lib/use-coarse-pointer.ts";
 import { niceTicks, sgdTickDecimals, type Ticks } from "@/lib/ticks.ts";
 import { LIMITS, VOL_LOOKBACKS, type VolLookback } from "@/lib/url-state.ts";
 import { HelpTip } from "../HelpTip";
+import { ChartLegend } from "../ChartLegend";
 import { ValueRows } from "../ValueRows";
 
 type Props = {
@@ -47,15 +57,6 @@ type Props = {
   volOverride?: number;
   onStrike: (pct: number) => void;
   onVol: (override: number | undefined, lookback: VolLookback) => void;
-};
-
-const axisTick = { fill: "var(--muted)", fontSize: 12 };
-const tooltipStyle = {
-  background: "var(--surface)",
-  border: "1px solid var(--rule)",
-  borderRadius: 8,
-  color: "var(--ink)",
-  fontSize: 13,
 };
 
 /** Plain-English notes for the "About …" help tips. */
@@ -224,24 +225,31 @@ export function OptionPanel(props: Props) {
                 onChange={(e) => typeVol(e.target.value)}
                 className="field-input min-w-0 flex-1"
               />
-              <select
-                aria-label="Realised volatility lookback"
-                value={realised.lookback}
-                onChange={(e) =>
-                  props.onVol(
-                    volOverride,
-                    VOL_LOOKBACKS.find((n) => String(n) === e.target.value) ??
-                      250,
-                  )
-                }
-                className="field-input w-auto"
-              >
-                {VOL_LOOKBACKS.map((n) => (
-                  <option key={n} value={n}>
-                    {n}-day
-                  </option>
-                ))}
-              </select>
+              <span className="relative flex">
+                <select
+                  aria-label="Realised volatility lookback"
+                  value={realised.lookback}
+                  onChange={(e) =>
+                    props.onVol(
+                      volOverride,
+                      VOL_LOOKBACKS.find((n) => String(n) === e.target.value) ??
+                        250,
+                    )
+                  }
+                  className="field-input field-select w-auto"
+                >
+                  {VOL_LOOKBACKS.map((n) => (
+                    <option key={n} value={n}>
+                      {n}-day
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  aria-hidden
+                  className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+                  strokeWidth={2.5}
+                />
+              </span>
             </div>
             <p
               id={`${id}-vol-note`}
@@ -304,7 +312,7 @@ export function OptionPanel(props: Props) {
                 onClick={(st) => coarse && setPayoffAt(indexOf(st))}
                 onMouseMove={(st) => coarse && setPayoffAt(indexOf(st))}
               >
-                <CartesianGrid stroke="var(--rule)" vertical={false} />
+                <CartesianGrid stroke={AXIS_STROKE} vertical={false} />
                 <XAxis
                   dataKey="ST"
                   type="number"
@@ -312,8 +320,8 @@ export function OptionPanel(props: Props) {
                   tickFormatter={(v: number) =>
                     v.toFixed(Math.max(2, rateAxis.decimals))
                   }
-                  tick={axisTick}
-                  stroke="var(--rule)"
+                  tick={AXIS_TICK}
+                  stroke={AXIS_STROKE}
                   ticks={rateAxis.ticks}
                 />
                 <YAxis
@@ -322,12 +330,12 @@ export function OptionPanel(props: Props) {
                   tickFormatter={(v: number) =>
                     formatSgd(v, { decimals: sgdTickDecimals(payoffAxis) })
                   }
-                  tick={axisTick}
-                  stroke="var(--rule)"
+                  tick={AXIS_TICK}
+                  stroke={AXIS_STROKE}
                   width={76}
                 />
                 <Tooltip
-                  contentStyle={tooltipStyle}
+                  contentStyle={TOOLTIP_STYLE}
                   separator=": "
                   // Touch: no floating box (it stays open and covers the
                   // chart); the readout under the chart shows the values.
@@ -338,30 +346,35 @@ export function OptionPanel(props: Props) {
                   formatter={(v, name) => [formatSgd(Number(v)), name]}
                 />
                 <Legend
-                  wrapperStyle={{ fontSize: 13, paddingTop: 8 }}
-                  // Names in ink; the marker beside each carries the colour.
-                  formatter={(name) => (
-                    <span style={{ color: "var(--muted)" }}>{name}</span>
+                  // Our own legend, in the hedge order of the history table.
+                  content={() => (
+                    <ChartLegend
+                      className="pt-2"
+                      items={HEDGE_IDS.map((h) => ({
+                        key: h,
+                        label: HEDGE_STYLE[h].label,
+                        color: HEDGE_STYLE[h].color,
+                        mark: "line",
+                      }))}
+                    />
                   )}
                 />
                 <ReferenceLine
                   x={base.S}
-                  stroke="var(--muted)"
-                  strokeDasharray="4 4"
+                  {...REFERENCE_LINE}
                   label={{
+                    ...REFERENCE_LABEL,
                     value: props.spotLabel,
-                    fill: "var(--muted)",
-                    fontSize: 12,
                     position: "top",
                   }}
                 />
-                {(["unhedged", "forward", "option"] as const).map((h) => (
+                {HEDGE_IDS.map((h) => (
                   <Line
                     key={h}
                     dataKey={h}
                     name={HEDGE_STYLE[h].label}
                     stroke={HEDGE_STYLE[h].color}
-                    strokeWidth={2}
+                    strokeWidth={LINE_WIDTH}
                     dot={false}
                     isAnimationActive={false}
                   />
@@ -384,19 +397,17 @@ export function OptionPanel(props: Props) {
                   <span className="font-medium">
                     Rate on deadline {formatRate(payoff[payoffAt]!.ST)}:
                   </span>{" "}
-                  {(["unhedged", "forward", "option"] as const)
-                    .map(
-                      (h) =>
-                        `${HEDGE_STYLE[h].short} ${formatSgd(payoff[payoffAt]![h])}`,
-                    )
-                    .join(", ")}
+                  {HEDGE_IDS.map(
+                    (h) =>
+                      `${HEDGE_STYLE[h].short} ${formatSgd(payoff[payoffAt]![h])}`,
+                  ).join(", ")}
                 </>
               )}
             </p>
           )}
         </figure>
 
-        <p className="text-xs text-muted-foreground">
+        <p className="text-annotation text-muted-foreground">
           Priced with Garman-Kohlhagen, using continuously compounded
           equivalents of the rates in the forward panel. The premium&apos;s own
           time value (interest you could have earned on it) is ignored. Real
@@ -505,7 +516,7 @@ export function OptionPanel(props: Props) {
                         setGreekAt((a) => ({ ...a, [g.key]: indexOf(st) }))
                       }
                     >
-                      <CartesianGrid stroke="var(--rule)" vertical={false} />
+                      <CartesianGrid stroke={AXIS_STROKE} vertical={false} />
                       <XAxis
                         dataKey="S"
                         type="number"
@@ -513,8 +524,8 @@ export function OptionPanel(props: Props) {
                         tickFormatter={(v: number) =>
                           v.toFixed(Math.max(2, greekRateAxis.decimals))
                         }
-                        tick={axisTick}
-                        stroke="var(--rule)"
+                        tick={AXIS_TICK}
+                        stroke={AXIS_STROKE}
                         ticks={greekRateAxis.ticks}
                       />
                       <YAxis
@@ -527,27 +538,23 @@ export function OptionPanel(props: Props) {
                               })
                             : v.toFixed(g.axis.decimals)
                         }
-                        tick={axisTick}
-                        stroke="var(--rule)"
+                        tick={AXIS_TICK}
+                        stroke={AXIS_STROKE}
                         width={64}
                       />
                       <Tooltip
-                        contentStyle={tooltipStyle}
+                        contentStyle={TOOLTIP_STYLE}
                         separator=": "
                         content={coarse ? () => null : undefined}
                         labelFormatter={(v) => `Spot ${formatRate(Number(v))}`}
                         formatter={(v) => [g.format(Number(v)), g.title]}
                       />
-                      <ReferenceLine
-                        x={base.S}
-                        stroke="var(--muted)"
-                        strokeDasharray="4 4"
-                      />
+                      <ReferenceLine x={base.S} {...REFERENCE_LINE} />
                       <Line
                         dataKey={(d: Greeks) => g.scale(d[g.key])}
                         name={g.title}
                         stroke={HEDGE_STYLE.option.color}
-                        strokeWidth={2}
+                        strokeWidth={LINE_WIDTH}
                         dot={false}
                         isAnimationActive={false}
                       />

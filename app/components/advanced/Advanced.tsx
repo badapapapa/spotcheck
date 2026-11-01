@@ -4,7 +4,6 @@ import { daysBetween, rateAsOf } from "@/engine/calendar.ts";
 import { findCurrency, fxSourceLabel } from "@/engine/currencies.ts";
 import { priceForward, type RateInputs } from "@/engine/forwards.ts";
 import type {
-  HedgeId,
   HedgeReplayResult,
   OptionSettings,
 } from "@/engine/hedge-replay.ts";
@@ -22,7 +21,7 @@ import {
   formatSgd,
   formatSgdAt,
 } from "@/lib/format.ts";
-import { HEDGE_STYLE } from "@/lib/hedge-style.ts";
+import { HEDGE_IDS, HEDGE_STYLE } from "@/lib/hedge-style.ts";
 import {
   fixingLabel,
   pastDeadlineNote,
@@ -401,7 +400,7 @@ function HedgeHistory({
   result: HedgeReplayResult;
   strikePct: number;
 }) {
-  const rows = (["unhedged", "forward", "option"] as HedgeId[]).map((id) => ({
+  const rows = HEDGE_IDS.map((id) => ({
     id,
     label: HEDGE_STYLE[id].label,
     shortLabel: HEDGE_STYLE[id].short,

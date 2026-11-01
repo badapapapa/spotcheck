@@ -8,7 +8,7 @@ export function ValueRows({
   rows: { label: React.ReactNode; value: React.ReactNode; key?: string }[];
 }) {
   return (
-    <dl className="text-[15px]">
+    <dl className="text-ui">
       {rows.map((r, i) => (
         <div
           key={r.key ?? (typeof r.label === "string" ? r.label : i)}

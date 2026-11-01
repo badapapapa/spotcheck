@@ -5,6 +5,9 @@
 
 import type { HedgeId } from "@/engine/hedge-replay.ts";
 
+/** The fixed hedge order everywhere: the history table, legends, readouts. */
+export const HEDGE_IDS: HedgeId[] = ["unhedged", "forward", "option"];
+
 export const HEDGE_STYLE: Record<
   HedgeId,
   {

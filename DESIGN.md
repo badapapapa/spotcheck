@@ -66,18 +66,25 @@ Two families, self-hosted with `next/font` (the CSP keeps `font-src 'self'`), on
 - **Newsreader** (display serif), one static weight (400): page titles (the Planner's question, the H1 of Hedging and How it works) and the wordmark only. Section headings are in the sans, which reads as a product rather than a newspaper. Never for figures, controls or body text.
 - **IBM Plex Sans** (interface, variable): everything else. Its tabular figures (`tabular-nums`) keep compared numbers aligned.
 
-| Role        | Family     | Weight | Desktop size / line | Phone   | Notes                                  |
-| ----------- | ---------- | ------ | ------------------- | ------- | -------------------------------------- |
-| Display     | Newsreader | 400    | 60 / 64             | 36 / 40 | The page question. Tracking −0.015em   |
-| H1          | Newsreader | 400    | 44 / 50             | 34 / 40 | Titles of secondary pages              |
-| H2          | Plex       | 600    | 24 / 30             | 20 / 26 | Section headings. Tracking −0.01em     |
-| H3          | Plex       | 600    | 17 / 24             | 17 / 24 | Sub-headings inside a section          |
-| Body large  | Plex       | 400    | 19 / 30             | 17 / 27 | Ledes                                  |
-| Body        | Plex       | 400    | 16 / 25             | 16 / 25 | Default; long text capped at 68ch      |
-| Small       | Plex       | 400    | 14 / 20             | 14 / 20 | Notes, table cells on phones           |
-| Label       | Plex       | 500    | 13 / 16             | 13 / 16 | Field and metric labels, muted         |
-| Data large  | Plex       | 500    | 40 / 44             | 32 / 36 | Headline figures. Tracking −0.02em     |
-| Data medium | Plex       | 500    | 22 / 28             | 20 / 26 | Secondary figures, the converter field |
+One scale, defined once in `app/globals.css`. Tailwind's default sizes are cleared in `@theme`, so only these exist, and `tests/design-tokens.test.ts` fails on any one-off size, inline font size or raw colour in a component.
+
+| Role            | Token                 | Family     | Weight | Desktop size / line | Phone   | Notes                                                      |
+| --------------- | --------------------- | ---------- | ------ | ------------------- | ------- | ---------------------------------------------------------- |
+| Display         | `t-display`           | Newsreader | 400    | 60 / 64             | 36 / 40 | The page question. Tracking −0.015em                       |
+| Page            | `t-h1`                | Newsreader | 400    | 44 / 50             | 34 / 40 | Titles of secondary pages                                  |
+| Section         | `t-h2`                | Plex       | 600    | 24 / 30             | 20 / 26 | Section headings. Tracking −0.01em                         |
+| Subsection      | `t-h3`                | Plex       | 600    | 17 / 24             | 17 / 24 | Sub-headings inside a section                              |
+| Lede            | `t-lede`              | Plex       | 400    | 19 / 30             | 17 / 27 | The paragraph under a page title                           |
+| Body            | `text-base`           | Plex       | 400    | 16 / 25             | 16 / 25 | Default; long text capped at 68ch                          |
+| Interface       | `text-ui`             | Plex       | 400    | 15 / 22             | 15 / 22 | Buttons, nav, tables, value rows, disclosures, menu items  |
+| Supporting      | `t-small` / `text-sm` | Plex       | 400    | 14 / 20             | 14 / 20 | Notes, legends, tooltips, table cells on phones            |
+| Label           | `t-label`             | Plex       | 500    | 13 / 16             | 13 / 16 | Field and metric labels, muted                             |
+| Annotation      | `text-annotation`     | Plex       | 400    | 13 / 18             | 13 / 18 | Footnotes, formula notes, tab-bar labels, group labels     |
+| Chart           | `text-chart`          | Plex       | 400    | 12 / 16             | 12 / 16 | Axis ticks and chart labels (`lib/chart-style.ts` for SVG) |
+| Figures, large  | `t-data-l`            | Plex       | 500    | 40 / 44             | 32 / 36 | Headline figures. Tracking −0.02em                         |
+| Figures, medium | `t-data-m`            | Plex       | 500    | 22 / 28             | 20 / 26 | Secondary figures, the converter sentence on both pages    |
+
+The wordmark (`t-wordmark`, Newsreader 23px) is the logo, not part of the scale.
 
 Sentence case everywhere. No all-caps eyebrows, no letter-spaced labels.
 
@@ -151,7 +158,8 @@ One chart language across both pages:
 - **Axes:** rate axes use round ticks (1.10, 1.20, …), kept inside the plotted range. The timeline's cost axis fits the data with a 5% margin rather than stretching to whole tick steps.
 - **States:** a chart's space is held by a `--sunken` block of the same height while it loads. An error replaces it with a one-line message in `--negative`.
 - **Accessibility:** every chart has a text equivalent: the comparison table, the conversions table, a slider with a spoken value, or a summary label. Recharts charts are drawn with `accessibilityLayer={false}`: no unnamed focus stop and no assertive live region; the text equivalent and our own controls carry the values. Only rows that do something (pinning on the planner) are buttons. New results are announced politely ("Results updated for USD 15,000.").
-- **Legends** follow the fixed strategy order, never the library's own order.
+- **Legends** follow the fixed strategy or hedge order, never the library's own order. Every chart uses the one legend component (`ChartLegend`): left-aligned, names in `--muted` Supporting text, the colour only on the mark (a 16×2px line for line series, the marker shape for points).
+- **Shared styling:** the Recharts charts take ticks, axis and grid strokes, the 2px line width, the dashed "today" line and the tooltip box from `lib/chart-style.ts`.
 
 ## 7. Components
 
@@ -160,16 +168,16 @@ One chart language across both pages:
 | Header           | `--paper` with a bottom rule, 64px desktop / 56px phone. Logo mark plus "SpotCheck" in Newsreader. Nav: Planner, Hedging, How it works as text links; the active one gets ink text and a 2px accent underline, plus `aria-current`. Right: "Historical data, not advice".                                                                                                                                                                                                                         |
 | Bottom tab bar   | Phones only: three equal 56px targets (icon and label), `--paper` with a top rule, safe-area padding. `html` has `scroll-padding-bottom` (72px plus the safe area) and `scroll-padding-top` (64px, for the sticky summary bar) below 1024px, so a control scrolled into view or focused never sits under a bar; the footer's bottom padding matches.                                                                                                                                              |
 | Converter        | The one boxed object on the page: `--surface`, 1px `--rule`, 8px radius, no shadow. The sentence "I need [amount] [currency] by [date]", then the baseline "Converting it all today: S$X" (or "on 2 Jan 2025" for a past start, "at the latest rate" for a future one: "today" only when the plan starts on the newest rate), then More options.                                                                                                                                                  |
-| Sentence fields  | 6px radius, 1.5px `--input` border, `--surface` fill, Data-medium type. On focus a 3px accent focus ring appears. The amount grows with its digits; the date is sized to its content.                                                                                                                                                                                                                                                                                                             |
+| Sentence fields  | 6px radius, 1.5px `--input` border, `--surface` fill, Data-medium type. States: hover darkens the border to `--ink`; focus shows the 3px accent ring; an error turns the border `--negative` with a message below; disabled is 50% opacity. Selects (`.field-select`) look the same, with the currency picker's chevron instead of the browser's arrow. The amount grows with its digits; the date is sized to its content.                                                                       |
 | Currency picker  | A button showing the flag and code. It opens a menu with a search field (code, currency name, country), popular destinations first, then A–Z. Flags appear only here.                                                                                                                                                                                                                                                                                                                             |
-| More options     | A disclosure with its current values summarised in one line; closed by default.                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| More options     | A disclosure with its current values summarised in one line; closed by default. On hover its green label underlines, like a link.                                                                                                                                                                                                                                                                                                                                                                 |
 | Result           | Renamed **Glance**: a panel (`--surface`, 1px `--rule`, 8px radius) beside the converter. "Across N comparable past periods", then all four strategies in the fixed order with the same two figures: median and median vs all at once. Each row's name is a button that pins the highlight. Then the historical-context line, "Past outcomes, not a forecast.", Copy link and "See the full comparison". While periods are checked: the progress motif and "Checking N comparable past periods…". |
 | Metric           | A figure over a short label, left-aligned. Never boxed, never coloured by value.                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | Comparison table | One row per strategy in the fixed order: Median, Median vs all at once, Middle 90% (low–high), Worst case, Cheaper than all at once (% of periods). Hedging uses the same table against "unhedged". Header band on `--sunken` with 4px radius, row rules, right-aligned tabular figures. On phones the same measures stack per strategy. Every row is styled identically whatever the results; tests check this across very different histories.                                                  |
 | Outcome timeline | Each strategy's cost (rescaled to today's rate) by the period's start date, with the spot cursor, a tooltip and click/tap to select. Laptops draw every daily period (each pixel column's low and high). Phones group by month: a band from the month's lowest to highest cost with a median line, plus 44px "Earlier month"/"Later month" buttons. Grouping is display only; selection, detail and export use the daily periods.                                                                 |
 | Strategy guide   | For each strategy: swatch and name, "What you'd do", and "What it trades" in one or two sentences. A "More detail" disclosure holds the rest.                                                                                                                                                                                                                                                                                                                                                     |
 | Evidence strip   | Years of data, periods tested, separate histories and rates up to a date, each a figure over a label, divided by vertical rules. Then the sources line and a link to How it works.                                                                                                                                                                                                                                                                                                                |
-| Buttons          | Primary: `--accent` fill with `--accent-fg` text. Secondary: transparent with `--ink` text and a 1.5px `--input` border. Both 44px tall, 6px radius, Plex 500 15px, with hover, pressed, focus-ring, disabled (50% opacity) and busy ("Preparing…") states. One primary per screen.                                                                                                                                                                                                               |
+| Buttons          | Primary: `--accent` fill with `--accent-fg` text. Secondary: transparent with `--ink` text and a 1.5px `--input` border. Both 44px tall, 6px radius, Plex 500 15px, with hover, pressed, focus-ring, disabled (50% opacity) and busy ("Preparing…") states. At most one primary per screen, and only for the screen's main action: Copy link is secondary, because sharing isn't the main action and green is kept for the brand, links and the user's own selection.                             |
 | Links            | `--accent`, underlined 1px with a 3px offset; hover thickens the underline.                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | Help tips        | An "i" in a 22px circle (1.5px `--input` border) inside a 44px hit area; it opens a popover titled "About …" ("About forward points", "About delta"), which reads correctly for any term. Hedging only.                                                                                                                                                                                                                                                                                           |
 | Focus            | A 3px `--accent` outline at 2px offset on everything focusable.                                                                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -178,9 +186,14 @@ One chart language across both pages:
 
 ## 8. Motion
 
-Motion appears only in response to something the user did, or to show progress:
+Motion appears only in response to something the user did, or to show progress. Two duration tokens, with one easing (`--ease`):
 
-- **Fades:** series dim and results fade in over 150ms.
+- `--fast` (150ms): hover and press feedback, dimming a series.
+- `--base` (200ms): a change of state, such as results arriving.
+
+Figures never tween through invented intermediate values; they change in one step.
+
+- **Fades:** series dim over `--fast`; results fade in over `--base`.
 - **Progress:** the spot motif travels its hairline over 1.2s while periods are checked.
 - **Disclosures:** open without animation.
 - **Reduced motion:** with `prefers-reduced-motion`, everything is instant and the progress dot stays still.

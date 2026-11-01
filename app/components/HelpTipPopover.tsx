@@ -18,7 +18,7 @@ export function HelpTipPopover({
       >
         <span
           aria-hidden
-          className="flex size-[22px] items-center justify-center rounded-full border-[1.5px] border-input text-[12px] font-semibold text-accent group-hover:border-ink group-data-[popup-open]:border-accent"
+          className="flex size-[22px] items-center justify-center rounded-full border-[1.5px] border-input text-chart font-semibold text-accent group-hover:border-ink group-data-[popup-open]:border-accent"
         >
           i
         </span>

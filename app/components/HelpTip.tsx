@@ -20,7 +20,7 @@ export function HelpTip(props: { term: string; children: string }) {
         <span className="-my-2.5 inline-flex size-11 shrink-0 items-center justify-center">
           <span
             aria-hidden
-            className="flex size-[22px] items-center justify-center rounded-full border-[1.5px] border-input text-[12px] font-semibold text-accent"
+            className="flex size-[22px] items-center justify-center rounded-full border-[1.5px] border-input text-chart font-semibold text-accent"
           >
             i
           </span>

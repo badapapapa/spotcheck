@@ -24,9 +24,11 @@ import {
   formatSgdAt,
 } from "@/lib/format.ts";
 import { findCurrency } from "@/engine/currencies.ts";
+import { AXIS_STROKE, AXIS_TICK, LINE_WIDTH } from "@/lib/chart-style.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { niceTicks } from "@/lib/ticks.ts";
 import { useCoarsePointer } from "@/lib/use-coarse-pointer.ts";
+import { ChartLegend, Marker } from "./ChartLegend.tsx";
 
 export type Window = ReturnType<typeof sampleWindow>;
 
@@ -134,7 +136,7 @@ export function SamplePath({
                 onMouseMove={(st) => coarse && setAt(pointOf(st))}
                 margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
               >
-                <CartesianGrid stroke="var(--rule)" vertical={false} />
+                <CartesianGrid stroke={AXIS_STROKE} vertical={false} />
                 <XAxis
                   dataKey="x"
                   type="number"
@@ -142,16 +144,16 @@ export function SamplePath({
                   tickFormatter={(v: number) => formatMonth(fromEpochDay(v))}
                   // Clear of the lowest rate label (they overlapped by 1px).
                   tickMargin={8}
-                  tick={{ fill: "var(--muted)", fontSize: 12 }}
-                  stroke="var(--rule)"
+                  tick={AXIS_TICK}
+                  stroke={AXIS_STROKE}
                   tickCount={5}
                 />
                 <YAxis
                   domain={yAxis.domain}
                   ticks={yAxis.ticks}
                   tickFormatter={(v: number) => v.toFixed(yAxis.decimals)}
-                  tick={{ fill: "var(--muted)", fontSize: 12 }}
-                  stroke="var(--rule)"
+                  tick={AXIS_TICK}
+                  stroke={AXIS_STROKE}
                   width={yAxisWidth}
                 />
                 <Tooltip
@@ -182,7 +184,7 @@ export function SamplePath({
                   name={`SGD per ${scenario.currency}`}
                   stroke="var(--ink)"
                   strokeOpacity={0.6}
-                  strokeWidth={2}
+                  strokeWidth={LINE_WIDTH}
                   dot={false}
                   isAnimationActive={false}
                   legendType="plainline"
@@ -308,39 +310,27 @@ function pointOf(
   return i === null || i === undefined ? undefined : Number(i);
 }
 
-function Marker({ shape, color }: { shape: string; color: string }) {
-  return (
-    <svg aria-hidden viewBox="0 0 12 12" className="size-3 shrink-0">
-      {shape === "circle" && <circle cx="6" cy="6" r="5" fill={color} />}
-      {shape === "square" && (
-        <rect x="1.5" y="1.5" width="9" height="9" fill={color} />
-      )}
-      {shape === "diamond" && (
-        <path d="M6 0.5 11.5 6 6 11.5 0.5 6Z" fill={color} />
-      )}
-      {shape === "triangle" && <path d="M6 1 11.5 11H0.5Z" fill={color} />}
-    </svg>
-  );
-}
-
 /** The rate line, then the four strategies in the fixed order (DESIGN.md §1). */
 function PathLegend({ code }: { code: string }) {
   return (
-    <ul className="t-small flex flex-wrap justify-center gap-x-4 gap-y-1 pt-2 text-muted-foreground">
-      <li className="flex items-center gap-1.5">
-        <span aria-hidden className="h-0.5 w-4 bg-ink opacity-60" />
-        SGD per {code}
-      </li>
-      {STRATEGY_IDS.map((sid) => (
-        <li key={sid} className="flex items-center gap-1.5">
-          <Marker
-            shape={STRATEGY_STYLE[sid].shape}
-            color={STRATEGY_STYLE[sid].color}
-          />
-          {STRATEGY_STYLE[sid].label}
-        </li>
-      ))}
-    </ul>
+    <ChartLegend
+      className="pt-2"
+      items={[
+        {
+          key: "rate",
+          label: `SGD per ${code}`,
+          color: "var(--ink)",
+          mark: "line",
+          muted: true,
+        },
+        ...STRATEGY_IDS.map((sid) => ({
+          key: sid,
+          label: STRATEGY_STYLE[sid].label,
+          color: STRATEGY_STYLE[sid].color,
+          mark: STRATEGY_STYLE[sid].shape,
+        })),
+      ]}
+    />
   );
 }
 

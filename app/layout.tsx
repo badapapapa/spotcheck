@@ -67,7 +67,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </div>
             {/* Visible at every width (CLAUDE.md rule 3); compact on phones. */}
             <p
-              className="text-right text-[13px] leading-4 text-muted-foreground lg:text-sm"
+              className="text-right text-annotation text-muted-foreground lg:text-sm"
               data-testid="header-disclaimer"
             >
               Historical data, not advice

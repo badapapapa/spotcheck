@@ -363,11 +363,7 @@ export function ScenarioForm({
     >
       {/* Two groups so a phone wraps "by [date]" onto its own line, never
           mid-group; wider screens keep the sentence on one line. */}
-      <p
-        className={`flex flex-wrap items-center gap-x-2.5 gap-y-2 text-ink ${
-          chips ? "text-[18px] font-medium" : "t-data-m"
-        }`}
-      >
+      <p className="t-data-m flex flex-wrap items-center gap-x-2.5 gap-y-2 text-ink">
         <span className="flex flex-wrap items-center gap-2 whitespace-nowrap">
           I need
           <input
@@ -467,8 +463,8 @@ export function ScenarioForm({
         onToggle={(e) => setMoreOpen(e.currentTarget.open)}
         className={chips ? "" : "-mt-2"}
       >
-        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-[15px] [&::-webkit-details-marker]:hidden">
-          <span className="font-medium whitespace-nowrap text-accent">
+        <summary className="disclosure flex min-h-11 cursor-pointer list-none items-center gap-2 text-ui [&::-webkit-details-marker]:hidden">
+          <span className="disclosure-label font-medium whitespace-nowrap text-accent">
             More options
           </span>
           <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground tabular-nums">
