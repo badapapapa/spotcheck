@@ -86,7 +86,7 @@ export default function HowItWorks() {
                 ],
                 [
                   "You see the range of costs.",
-                  "Each period's cost is rescaled to today's rate, so periods from different years compare fairly. It is a record of what happened, not a forecast.",
+                  "Each period's cost is rescaled to the latest rate, so periods from different years compare fairly. It is a record of what happened, not a forecast.",
                 ],
               ].map(([lead, text], i) => (
                 <li key={lead} className="grid grid-cols-[2rem_minmax(0,1fr)]">
@@ -117,7 +117,7 @@ export default function HowItWorks() {
               is how each of those approaches would have worked out, had the
               same plan started on any day since {first}. SpotCheck replays your
               plan over every one of those periods and shows the range of costs,
-              rescaled to today&apos;s rate. The result is a record of what
+              rescaled to the latest rate. The result is a record of what
               happened, not a forecast.
             </p>
           </Part>

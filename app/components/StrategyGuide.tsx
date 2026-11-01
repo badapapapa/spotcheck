@@ -14,7 +14,7 @@ const GUIDE: Record<
     trades:
       "You know the exact cost on day one, so there is no range of outcomes. You also give up any chance of a better rate later.",
     detail:
-      "In the replay this is the rate on the start date plus your exchange fee. Because every period is rescaled to today's rate, it costs the same in every period, which is why it appears as a single point.",
+      "In the replay this is the rate on the start date plus your exchange fee. Because every period is rescaled to the latest rate, it costs the same in every period, which is why it appears as a single point.",
   },
   tranches: {
     doing:

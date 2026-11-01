@@ -26,7 +26,7 @@ const MONTHLY_BELOW = 640;
 
 type Props = {
   result: ReplayResult;
-  /** The user's amount: the replay's relative costs × amount × today's rate. */
+  /** The user's amount: the replay's relative costs × amount × the latest rate. */
   amount: number;
   selected: number;
   onSelect: (index: number) => void;
@@ -36,7 +36,7 @@ type Props = {
   pinned: string | null;
   onActive: (id: string | null) => void;
   onToggle: (id: string) => void;
-  /** What costs are rescaled to: "today's rate", "the rate on 2 Jan 2025". */
+  /** What costs are rescaled to: "the latest rate", "the rate on 2 Jan 2025". */
   rescaled?: string;
 };
 
@@ -55,7 +55,7 @@ type Month = {
 
 /**
  * Every past period on one chart (DESIGN.md §6): what each strategy would
- * have cost, at today's rate, starting on each day. The same calculation
+ * have cost, at the latest rate, starting on each day. The same calculation
  * drives every view; only the drawing differs by screen size:
  *
  * - laptops: every daily period, drawn as each pixel column's low and high,
@@ -79,7 +79,7 @@ export function OutcomeTimeline({
   pinned,
   onActive,
   onToggle,
-  rescaled = "today's rate",
+  rescaled = "the latest rate",
 }: Props) {
   const id = useId();
   const [ref, measured] = useWidth<HTMLDivElement>();

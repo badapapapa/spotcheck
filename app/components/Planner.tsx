@@ -156,7 +156,7 @@ export function Planner() {
     () => (series ? trendNote(series, scenario.currency) : undefined),
     [series, scenario.currency],
   );
-  const rescaled = ctx ? rescaledTo(ctx) : "today's rate";
+  const rescaled = ctx ? rescaledTo(ctx) : "the latest rate";
   const pastDeadline = pastDeadlineNote(scenario.deadline, today);
   /** Moves the plan to the suggested start, keeping its length. */
   const startOn = (start: string) =>
@@ -635,7 +635,7 @@ function PeriodDetail({
       }),
     [result, series, planned, index],
   );
-  // The same period's costs at today's rate, as the timeline's readout
+  // The same period's costs at the latest rate, as the timeline's readout
   // shows them, so the detail and the readout can be read together.
   const today = useMemo(() => {
     const scale = planned.scenario.amount * result.referenceSpot;

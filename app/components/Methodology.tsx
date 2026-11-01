@@ -23,16 +23,16 @@ export const METHOD: { id: string; title: string; body: React.ReactNode }[] = [
   },
   {
     id: "rescaling",
-    title: "Why the costs are rescaled to today's rate",
+    title: "Why the costs are rescaled to the latest rate",
     body: (
       <p>
         A period starting in 1999 at 1.70 SGD per USD isn&apos;t comparable with
         one starting today at around 1.30. So each period&apos;s cost is divided
         by the rate on its own start date, then multiplied by your amount and
-        today&apos;s rate. Every outcome then reads: &ldquo;if the coming months
+        the latest rate. Every outcome then reads: &ldquo;if the coming months
         move the way that period did, this is what you&apos;d pay&rdquo;.
         That&apos;s also why converting everything at once has no range: you
-        know today&apos;s rate.
+        know the latest rate.
       </p>
     ),
   },

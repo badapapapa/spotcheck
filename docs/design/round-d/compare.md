@@ -83,7 +83,7 @@ It covers Phases 2â€“6. The Planner shots show the final build, so the Phase 2â€
 **Period detail:**
 
 - **Markers:** where two strategies convert on the same day their markers sit side by side (All at once was hidden under Equal tranches, Wait under Target rate).
-- **Costs:** "Cost then" plus the cost at today's rate, which matches the timeline's readout.
+- **Costs:** "Cost then" plus the cost at the latest rate, which matches the timeline's readout.
 - **Phones:** each strategy's conversions stack under its name, date and rate in two columns.
 
 | Before                                   | After                                   |

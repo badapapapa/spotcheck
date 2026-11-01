@@ -35,9 +35,9 @@ export function convertWhen(c: StartContext): string {
   return "at the latest rate";
 }
 
-/** The rate every period is rescaled to: "today's rate" / "the rate on 2 Jan 2025". */
+/** The rate every period is rescaled to: "the latest rate" / "the rate on 2 Jan 2025". */
 export function rescaledTo(c: StartContext): string {
-  if (c.kind === "latest") return "today's rate";
+  if (c.kind === "latest") return "the latest rate";
   if (c.kind === "past") return `the rate on ${formatDate(c.start)}`;
   return "the latest rate";
 }

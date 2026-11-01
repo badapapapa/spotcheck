@@ -43,9 +43,9 @@ type Props = {
   targetBelowSpot: number;
   /** The selected window. The planner owns it so Download Excel can export it. */
   window: Window;
-  /** The same window's costs at today's rate, as the timeline readout shows. */
+  /** The same window's costs at the latest rate, as the timeline readout shows. */
   today?: { scale: number; costs: Record<StrategyId, number> };
-  /** What costs are rescaled to: "today's rate", "the rate on 2 Jan 2025". */
+  /** What costs are rescaled to: "the latest rate", "the rate on 2 Jan 2025". */
   rescaled: string;
 };
 

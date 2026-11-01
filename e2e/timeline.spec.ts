@@ -161,7 +161,7 @@ test("the legend locks a strategy; Show all and Esc clear it", async ({
   ).toHaveCount(0);
 });
 
-test("the readout's costs match the detail's 'at today's rate'", async ({
+test("the readout's costs match the detail's 'at the latest rate'", async ({
   page,
   isMobile,
 }) => {
@@ -177,11 +177,11 @@ test("the readout's costs match the detail's 'at today's rate'", async ({
     const readout = (await page.getByTestId(`readout-${id}`).textContent())!;
     expect(readout).toMatch(/^S\$[\d,]+$/);
     if (isMobile)
-      // "at today's rate", or "at the rate on 17 Oct 2026" for this past
+      // "at the latest rate", or "at the rate on 17 Oct 2026" for this past
       // start: whichever the timeline is rescaled to.
       await expect(page.getByTestId(`conversions-${id}`)).toContainText(
         new RegExp(
-          `${readout.replace(/[$]/g, "\\$")} at (today's rate|the rate on)`,
+          `${readout.replace(/[$]/g, "\\$")} at (the latest rate|the rate on)`,
         ),
       );
     else
