@@ -129,6 +129,40 @@ const SHOTS: Record<string, Shot> = {
     await page.close();
   },
 
+  // Round E: the timeline at a shorter range (no such control before it).
+  async ranges(ctx, name) {
+    const page = await ctx.newPage();
+    await page.goto(base + "/");
+    await ready(page, /Results updated/);
+    for (const range of ["1Y", "5Y"]) {
+      await page
+        .getByRole("button", { name: new RegExp(`^${range} \\(`) })
+        .click();
+      await page.waitForTimeout(300);
+      // `between` reads positions from the top of the page.
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.waitForTimeout(300);
+      await between(
+        page,
+        name(`planner-timeline-${range.toLowerCase()}`),
+        'section[aria-labelledby="explore-title"] h2',
+        'section[aria-labelledby="explore-title"] h3',
+      );
+    }
+    await page.close();
+  },
+
+  // More options open, for the fields' labels.
+  async options(ctx, name) {
+    const page = await ctx.newPage();
+    await page.goto(base + "/");
+    await ready(page, /Results updated/);
+    await page.locator("summary", { hasText: "More options" }).click();
+    await page.waitForTimeout(300);
+    await section(page, name("planner-options"), 'form[aria-label="Scenario"]');
+    await page.close();
+  },
+
   async hedging(ctx, name) {
     const page = await ctx.newPage();
     await page.goto(base + "/advanced");

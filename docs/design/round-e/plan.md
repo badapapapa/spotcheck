@@ -80,10 +80,16 @@ A button group sits above the "What if you had converted in another period?" cha
   - `after/` at 375 and 1440 in both themes, with `compare.md`;
   - the preview URL and its SHA.
 
-## Decisions needed
+## Decisions (approved)
 
-1. **Converter:** Option A (direction line) or Option B (two stacked rows)? I recommend A.
-2. **Selection outside a narrowed range:** move it to the nearest visible period, which updates the period detail? Or keep it, with the marker off-chart and a "Selected period is outside this range" note? I recommend moving it to the nearest visible period.
-3. **Y axis:** refit it to the visible range, as stock charts do? Otherwise 1Y draws as a near-flat line on the full-history scale. I recommend refitting.
-4. **Phones at 1Y:** draw the daily periods (about 250 points) instead of 12 monthly bands? I recommend daily. 5Y, 10Y and All stay monthly.
-5. **Persistence:** the range is view state, like the pinned strategy. It is not in the URL and not in a copied link, and it resets to All on reload. Persist it as a URL parameter instead?
+1. **Converter:** Option A, the direction line.
+2. **Selection outside a narrowed range:** it snaps to the nearest visible period; the readout and the period detail update.
+3. **Y axis:** refits to the visible range.
+4. **Phones at 1Y:** daily periods. 5Y, 10Y and All stay monthly.
+5. **Persistence:** the range stays out of the URL and copied links, and resets to All on reload.
+
+## Changes from this plan while building
+
+- **The range note:** the plan's wording said the export uses all periods. The export is one selected period's workbook, so the note says only that the results use every period.
+- **Phone spacing:** the direction line pushed the first result row under the tab bar at 375, so the spacing above and inside the phone converter is tighter. See [`compare.md`](compare.md).
+- **Pressed button:** a raised `--surface` button on a `--sunken` track, not the accent-soft fill in the plan, which was too faint in both themes.
