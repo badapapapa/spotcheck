@@ -577,34 +577,43 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Landscape phones (844×390): the summary bar and the tab bar together
    left 277px for a 300px chart, so the summary bar stays away below 480px
-   of height, and nothing needs room above a focused control. */
+   of height. The sticky header stays (its disclaimer is the one in view),
+   slimmed to 44px, the height of its own tap targets. */
 @media (max-height: 30rem) {
   .summary-bar {
     display: none;
   }
+  .header-inner {
+    height: 44px;
+  }
   html {
-    scroll-padding-top: 0;
+    scroll-padding-top: 52px;
   }
 }
 
 /* The option panel's measured height at each width, held while its code
    (and Recharts) loads, so nothing below moves when it arrives. */
 .option-panel-min-h {
-  min-height: 1088px;
+  min-height: 1190px;
+}
+@media (width >= 25rem) {
+  .option-panel-min-h {
+    min-height: 1145px;
+  }
 }
 @media (width >= 40rem) {
   .option-panel-min-h {
-    min-height: 864px;
+    min-height: 938px;
   }
 }
 @media (width >= 64rem) {
   .option-panel-min-h {
-    min-height: 953px;
+    min-height: 1019px;
   }
 }
 @media (width >= 80rem) {
   .option-panel-min-h {
-    min-height: 888px;
+    min-height: 934px;
   }
 }
 
@@ -623,8 +632,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
    an entry that isn't valid yet): figures turn muted and marks fade, like a
    dimmed row, so the text keeps at least 4.5:1. */
 [data-stale] td,
-[data-stale] th {
+[data-stale] th,
+[data-stale] dd,
+[data-stale] [data-testid^="readout-"] {
   color: var(--muted);
+}
+[data-stale] svg text {
+  fill: var(--muted);
 }
 [data-stale] .mark {
   opacity: 0.3;

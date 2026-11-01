@@ -249,6 +249,18 @@ export function OutcomeTimeline({
   // period. It always stands on a real daily period, so the readout's
   // figures are that period's, on phones too.
   const shown = hover === null ? selected : periodOf(hover);
+  // The marker's hairline stays inside the plot: from the top gridline to
+  // the bottom one, stretched only as far as a dot that lies beyond them.
+  const dotYs = STRATEGY_IDS.map((sid) => y(cost(sid, shown)));
+  // (A flat history, the BND peg, may have no ticks: the plot's own edges.)
+  const markerTop = Math.min(
+    axis.ticks.length ? y(axis.ticks.at(-1)!) : PAD.top,
+    ...dotYs,
+  );
+  const markerBottom = Math.max(
+    axis.ticks.length ? y(axis.ticks[0]!) : H - PAD.bottom,
+    ...dotYs,
+  );
   const last = result.startDates.length - 1;
 
   /** Everything the readout shows, also spoken as the slider's value. */
@@ -462,8 +474,8 @@ export function OutcomeTimeline({
             <line
               x1={x(days[shown]!)}
               x2={x(days[shown]!)}
-              y1={PAD.top}
-              y2={H - PAD.bottom}
+              y1={markerTop}
+              y2={markerBottom}
               stroke="var(--accent)"
               strokeWidth={1.5}
             />

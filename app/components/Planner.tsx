@@ -295,7 +295,13 @@ export function Planner() {
         </div>
         <div className="mt-10">
           {result ? (
-            <div className="space-y-8">
+            // Not current (a newer set is on its way, or a field isn't valid
+            // yet): the figures turn muted in place, as in the glance.
+            <div
+              className="space-y-8"
+              data-stale={stale || formInvalid || undefined}
+              aria-busy={stale || undefined}
+            >
               <DistributionChart
                 result={result}
                 active={active}
@@ -392,6 +398,7 @@ export function Planner() {
       <section
         aria-labelledby="explore-title"
         className="bleed mt-16 bg-sunken py-12 lg:mt-24 lg:py-16"
+        data-stale={(result && (stale || formInvalid)) || undefined}
       >
         <div className="page">
           <div className="lg:grid lg:grid-cols-12 lg:gap-6">
@@ -746,10 +753,24 @@ function PlainWords({ lines }: { lines: string[] }) {
 
 function SummaryBar({ text, onEdit }: { text: string; onEdit: () => void }) {
   return (
-    <div className="summary-bar fixed inset-x-0 top-0 z-30 border-b bg-paper lg:hidden">
+    // Covers the sticky header, so it carries the disclaimer too (CLAUDE.md
+    // rule 3): one is in view at every scroll position.
+    <div className="summary-bar fixed inset-x-0 top-0 z-50 border-b bg-paper lg:hidden">
       <div className="page flex h-14 items-center justify-between gap-3">
-        <p className="truncate font-medium tabular-nums">{text}</p>
-        <button type="button" className="btn-secondary px-3" onClick={onEdit}>
+        <div className="min-w-0">
+          <p className="truncate font-medium tabular-nums">{text}</p>
+          <p
+            className="text-annotation text-muted-foreground"
+            data-testid="bar-disclaimer"
+          >
+            Not advice
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn-secondary shrink-0 px-3"
+          onClick={onEdit}
+        >
           <Pencil aria-hidden className="size-4" />
           Edit
         </button>

@@ -75,7 +75,12 @@ export const SamplePath = memo(function SamplePath({
     );
   const coarse = useCoarsePointer();
   // The point last tapped, for the touch readout under the chart.
-  const [at, setAt] = useState<number | undefined>();
+  // The point last tapped, for this period only: a new period (picked on
+  // the timeline) starts with no point, and the chart below is keyed by the
+  // period, so Recharts' own cursor can't linger without a readout either.
+  const [tapped, setTapped] = useState<{ start: string; i?: number }>();
+  const at = tapped?.start === w.start ? tapped.i : undefined;
+  const setAt = (i: number | undefined) => setTapped({ start: w.start, i });
 
   const line = useMemo(() => {
     const out: { x: number; rate: number }[] = [];
@@ -131,6 +136,7 @@ export const SamplePath = memo(function SamplePath({
           >
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
+                key={w.start}
                 // No focus stop or assertive live region: the conversions
                 // table and the period slider carry the same values (B1).
                 accessibilityLayer={false}
