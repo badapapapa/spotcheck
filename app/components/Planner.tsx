@@ -195,7 +195,7 @@ export function Planner() {
       <section
         ref={converterRef}
         aria-label="Your plan"
-        className="col-main converter-min-h mt-5 self-start rounded-lg border bg-surface p-4 sm:mt-8 sm:p-6 lg:row-start-2"
+        className="col-main converter-min-h mt-4 self-start rounded-lg border bg-surface p-4 sm:mt-8 sm:p-6 lg:row-start-2"
       >
         <ScenarioForm
           state={state}
@@ -218,7 +218,7 @@ export function Planner() {
       {/* The answer, beside the question on laptops and under it on phones. */}
       <section
         aria-label="Comparison at a glance"
-        className="col-side result-min-h mt-4 self-start rounded-lg border bg-surface p-4 sm:mt-8 sm:p-6 lg:row-span-2 lg:row-start-1 lg:mt-2"
+        className="col-side result-min-h mt-3 self-start rounded-lg border bg-surface p-4 sm:mt-8 sm:p-6 lg:row-span-2 lg:row-start-1 lg:mt-2"
       >
         {fx.status === "error" ? (
           <LoadError message={fx.error} retry={fx.retry} />
@@ -416,15 +416,16 @@ export function Planner() {
               </p>
             </div>
           </div>
-          {/* The timeline's measured height at each width (readout, legend,
-              chart, and on phones the note and month buttons). */}
-          <div className="mt-8 min-h-[528px] sm:min-h-[508px] md:min-h-[424px] lg:min-h-[380px]">
+          {/* The timeline's measured height at each width (range buttons,
+              readout, legend, chart, and on phones the note and month
+              buttons). */}
+          <div className="mt-8 min-h-[588px] sm:min-h-[560px] md:min-h-[476px] lg:min-h-[432px]">
             {result ? (
               <Suspense
                 fallback={
                   <div
                     aria-hidden
-                    className="skeleton h-[528px] bg-paper sm:h-[508px] md:h-[424px] lg:h-[380px]"
+                    className="skeleton h-[588px] bg-paper sm:h-[560px] md:h-[476px] lg:h-[432px]"
                   />
                 }
               >
@@ -443,7 +444,7 @@ export function Planner() {
             ) : (
               <div
                 aria-hidden
-                className="skeleton h-[528px] bg-paper sm:h-[508px] md:h-[424px] lg:h-[380px]"
+                className="skeleton h-[588px] bg-paper sm:h-[560px] md:h-[476px] lg:h-[432px]"
               />
             )}
           </div>
@@ -785,9 +786,9 @@ export function PlannerFallback() {
     <>
       <div
         aria-hidden
-        className="col-main converter-min-h mt-5 rounded-lg border bg-surface sm:mt-8 lg:row-start-2"
+        className="col-main converter-min-h mt-4 rounded-lg border bg-surface sm:mt-8 lg:row-start-2"
       />
-      <div className="col-side result-min-h mt-4 rounded-lg border bg-surface p-4 sm:mt-8 sm:p-6 lg:row-span-2 lg:row-start-1 lg:mt-2">
+      <div className="col-side result-min-h mt-3 rounded-lg border bg-surface p-4 sm:mt-8 sm:p-6 lg:row-span-2 lg:row-start-1 lg:mt-2">
         <GlanceProgress />
       </div>
     </>

@@ -407,6 +407,35 @@
     cursor: not-allowed;
     opacity: 0.5;
   }
+  /* A currency code in the converter's direction line ("You pay SGD →
+     you need USD"): a label, not a control, so no border hover. */
+  .code-pill {
+    @apply inline-flex items-center rounded-full border border-rule bg-sunken px-2.5 text-annotation font-medium text-ink tabular-nums;
+  }
+  /* A segmented button group (the timeline's 1Y / 5Y / 10Y / All): a
+     sunken track with the pressed button raised on --surface, readable in
+     both themes without a new colour. Full width on phones, with 44px
+     targets; inline from 640px. */
+  .segmented {
+    @apply grid w-full grid-cols-4 gap-0.5 rounded-md bg-sunken p-0.5 sm:inline-grid sm:w-auto;
+  }
+  .segmented > button {
+    @apply min-h-11 rounded-sm px-3 text-sm font-medium text-muted-foreground tabular-nums sm:min-h-9 sm:min-w-12;
+    transition:
+      background-color var(--fast) var(--ease),
+      color var(--fast) var(--ease);
+  }
+  .segmented > button:not(:disabled):hover {
+    @apply text-ink;
+  }
+  .segmented > button[aria-pressed="true"] {
+    @apply bg-surface text-ink;
+    box-shadow: 0 0 0 1px var(--rule);
+  }
+  .segmented > button:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
   /* A select styled as a field: the browser's arrow is replaced by the
      chevron the currency picker uses (drawn by the component). */
   .field-select {
@@ -442,7 +471,7 @@
      loading fallback so the page doesn't move when the planner loads.
      Measured from the real components at each breakpoint. */
   .converter-min-h {
-    min-height: 297px;
+    min-height: 317px;
   }
   .result-min-h {
     min-height: 563px;
@@ -461,7 +490,7 @@
      line; at 375px it fits, so no empty space under More options. */
   @media (width < 370px) {
     .converter-min-h {
-      min-height: 317px;
+      min-height: 337px;
     }
     .result-min-h {
       min-height: 661px;
@@ -469,7 +498,7 @@
   }
   @media (width >= 40rem) {
     .converter-min-h {
-      min-height: 277px;
+      min-height: 313px;
     }
     .result-min-h {
       min-height: 539px;
@@ -477,7 +506,7 @@
   }
   @media (width >= 64rem) {
     .converter-min-h {
-      min-height: 331px;
+      min-height: 367px;
     }
     .result-min-h {
       min-height: 617px;
@@ -485,7 +514,7 @@
   }
   @media (width >= 80rem) {
     .converter-min-h {
-      min-height: 279px;
+      min-height: 315px;
     }
     .result-min-h {
       min-height: 539px;
