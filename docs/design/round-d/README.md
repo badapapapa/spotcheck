@@ -2,7 +2,8 @@
 
 - [`plan.md`](plan.md): the Phase 1 audit, ranked problems, risks and the approved decisions.
 - `before/`: production at `29dc164` (1 Nov 2026), at 375×812 (2× pixels, touch) and 1440×900, light and dark.
-- `after/`: the same states and filenames on this branch (added at the end of each phase).
+- `after/`: the same states and filenames on this branch, at the end of Phase 6.
+- [`compare.md`](compare.md): before and after, side by side, phase by phase.
 
 Both sets come from [`scripts/design-shots.ts`](../../../scripts/design-shots.ts):
 
