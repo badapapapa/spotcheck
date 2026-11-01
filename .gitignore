@@ -56,3 +56,4 @@ next-env.d.ts
 
 # Round D screenshots at 430, 768 and 1920px: kept locally, not in git
 docs/design/round-d/local/
+docs/design/round-e/local/
