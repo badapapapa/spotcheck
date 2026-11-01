@@ -8,3 +8,8 @@
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+
+# Next.js puts a content hash in every file name under /_next/static, so a
+# file there never changes: browsers can keep it for a year.
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable

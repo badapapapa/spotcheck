@@ -17,12 +17,17 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      # The token isn't left in .git/config for the fetch, install, test
+      # and build steps: only the commit step gets it, to push.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: lts/*
           cache: npm
-      - run: npm ci
+      # No install scripts run (see ci.yml).
+      - run: npm ci --ignore-scripts
       # Fetches new days, validates every file, and writes nothing (exit 1)
       # if any check fails, so yesterday's data stays live.
       - run: npm run fetch-data
@@ -38,6 +43,8 @@ jobs:
       - run: npm run check
       - run: npm run build
       - name: Commit if data changed
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           if git diff --quiet -- data; then
             echo "No data changes."
@@ -47,4 +54,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data
           git commit -m "data: update $(TZ=Asia/Singapore date +%F)"
-          git push
+          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:${GITHUB_REF_NAME}

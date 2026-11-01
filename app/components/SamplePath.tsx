@@ -55,6 +55,13 @@ export function SamplePath({
   const formatRate = findCurrency(scenario.currency)?.peggedToSgd
     ? formatPegRate
     : formatAnyRate;
+  /** Each strategy's conversions on an epoch day, in the fixed order. */
+  const conversionsOn = (day: number) =>
+    STRATEGY_IDS.flatMap((sid) =>
+      w.results[sid].conversions
+        .filter((c) => toEpochDay(c.date) === day)
+        .map((c) => ({ sid, rate: c.rate })),
+    );
   const id = useId();
   const coarse = useCoarsePointer();
   // The point last tapped, for the touch readout under the chart.
@@ -111,7 +118,7 @@ export function SamplePath({
       </div>
 
       <div className="grid gap-8 pt-2 lg:grid-cols-12 lg:gap-6">
-        <div className="lg:col-span-7">
+        <div className="min-w-0 lg:col-span-7">
           <div
             className="h-72 w-full"
             role="img"
@@ -119,6 +126,9 @@ export function SamplePath({
           >
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
+                // No focus stop or assertive live region: the conversions
+                // table and the period slider carry the same values (B1).
+                accessibilityLayer={false}
                 data={line}
                 onClick={(st) => coarse && setAt(pointOf(st))}
                 onMouseMove={(st) => coarse && setAt(pointOf(st))}
@@ -130,6 +140,8 @@ export function SamplePath({
                   type="number"
                   domain={["dataMin", "dataMax"]}
                   tickFormatter={(v: number) => formatMonth(fromEpochDay(v))}
+                  // Clear of the lowest rate label (they overlapped by 1px).
+                  tickMargin={8}
                   tick={{ fill: "var(--muted)", fontSize: 12 }}
                   stroke="var(--rule)"
                   tickCount={5}
@@ -143,30 +155,27 @@ export function SamplePath({
                   width={yAxisWidth}
                 />
                 <Tooltip
-                  separator=": "
                   // Touch: no floating box; the readout below shows the value.
-                  content={coarse ? () => null : undefined}
-                  labelFormatter={(v) => formatDate(fromEpochDay(Number(v)))}
-                  formatter={(v) => [
-                    formatRate(Number(v)),
-                    `SGD per ${scenario.currency}`,
-                  ]}
-                  contentStyle={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--rule)",
-                    borderRadius: 8,
-                    color: "var(--ink)",
-                    fontSize: 13,
-                  }}
+                  // Elsewhere our own box: the day's rate, then each strategy
+                  // that converted that day, by name, in the fixed order.
+                  content={({ active, label }) =>
+                    coarse || !active || label === undefined ? null : (
+                      <PathTooltip
+                        day={Number(label)}
+                        rate={line.find((p) => p.x === Number(label))?.rate}
+                        code={scenario.currency}
+                        conversions={conversionsOn(Number(label))}
+                        formatRate={formatRate}
+                      />
+                    )
+                  }
                 />
                 {/* Marker area in px²: about 11 px across, above the 8 px minimum. */}
                 <ZAxis range={[110, 110]} />
                 <Legend
-                  wrapperStyle={{ fontSize: 13, paddingTop: 8 }}
-                  // Names in ink; the marker beside each carries the colour.
-                  formatter={(name) => (
-                    <span style={{ color: "var(--muted)" }}>{name}</span>
-                  )}
+                  // Our own legend, in the fixed strategy order (Recharts
+                  // sorted it alphabetically).
+                  content={() => <PathLegend code={scenario.currency} />}
                 />
                 <Line
                   dataKey="rate"
@@ -220,7 +229,7 @@ export function SamplePath({
           )}
         </div>
 
-        <div className="lg:col-span-5">
+        <div className="min-w-0 lg:col-span-5">
           <table className="t-small w-full tabular-nums">
             <caption className="sr-only">
               Conversions made by each strategy in this window
@@ -259,8 +268,15 @@ export function SamplePath({
                       {/* One conversion per line: date · rate. */}
                       <ul>
                         {r.conversions.map((c) => (
-                          <li key={c.date} className="whitespace-nowrap">
-                            {formatDate(c.date)} · {formatRate(c.rate)}
+                          <li key={c.date}>
+                            {/* Breaks after the dot on the narrowest phones
+                                (320px), never inside the date or the rate. */}
+                            <span className="whitespace-nowrap">
+                              {formatDate(c.date)} ·
+                            </span>{" "}
+                            <span className="whitespace-nowrap">
+                              {formatRate(c.rate)}
+                            </span>
                           </li>
                         ))}
                       </ul>
@@ -290,4 +306,83 @@ function pointOf(
 ) {
   const i = st?.activeTooltipIndex;
   return i === null || i === undefined ? undefined : Number(i);
+}
+
+function Marker({ shape, color }: { shape: string; color: string }) {
+  return (
+    <svg aria-hidden viewBox="0 0 12 12" className="size-3 shrink-0">
+      {shape === "circle" && <circle cx="6" cy="6" r="5" fill={color} />}
+      {shape === "square" && (
+        <rect x="1.5" y="1.5" width="9" height="9" fill={color} />
+      )}
+      {shape === "diamond" && (
+        <path d="M6 0.5 11.5 6 6 11.5 0.5 6Z" fill={color} />
+      )}
+      {shape === "triangle" && <path d="M6 1 11.5 11H0.5Z" fill={color} />}
+    </svg>
+  );
+}
+
+/** The rate line, then the four strategies in the fixed order (DESIGN.md §1). */
+function PathLegend({ code }: { code: string }) {
+  return (
+    <ul className="t-small flex flex-wrap justify-center gap-x-4 gap-y-1 pt-2 text-muted-foreground">
+      <li className="flex items-center gap-1.5">
+        <span aria-hidden className="h-0.5 w-4 bg-ink opacity-60" />
+        SGD per {code}
+      </li>
+      {STRATEGY_IDS.map((sid) => (
+        <li key={sid} className="flex items-center gap-1.5">
+          <Marker
+            shape={STRATEGY_STYLE[sid].shape}
+            color={STRATEGY_STYLE[sid].color}
+          />
+          {STRATEGY_STYLE[sid].label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * The day under the pointer: its rate, and each strategy that converted on
+ * it, named (colour is never the only cue) and in ink, so the text keeps
+ * its contrast (B2).
+ */
+function PathTooltip({
+  day,
+  rate,
+  code,
+  conversions,
+  formatRate,
+}: {
+  day: number;
+  rate?: number;
+  code: string;
+  conversions: { sid: (typeof STRATEGY_IDS)[number]; rate: number }[];
+  formatRate: (r: number) => string;
+}) {
+  return (
+    <div className="t-small rounded-lg border bg-surface p-3 text-ink shadow-[var(--shadow-pop)] tabular-nums">
+      <p className="font-medium">{formatDate(fromEpochDay(day))}</p>
+      {rate !== undefined && (
+        <p className="mt-1">
+          {formatRate(rate)} SGD per {code}
+        </p>
+      )}
+      {conversions.length > 0 && (
+        <ul className="mt-2 space-y-1">
+          {conversions.map(({ sid, rate: r }) => (
+            <li key={sid} className="flex items-center gap-2">
+              <Marker
+                shape={STRATEGY_STYLE[sid].shape}
+                color={STRATEGY_STYLE[sid].color}
+              />
+              {STRATEGY_STYLE[sid].label} converted at {formatRate(r)}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }

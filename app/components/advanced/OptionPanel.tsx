@@ -295,6 +295,9 @@ export function OptionPanel(props: Props) {
           >
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
+                // No focus stop or assertive live region: the readouts and
+                // the figures beside the chart carry the values (B1).
+                accessibilityLayer={false}
                 data={payoff}
                 // Room above the plot for the "today" label on the dashed line.
                 margin={{ top: 24, right: 8, bottom: 0, left: 8 }}
@@ -490,6 +493,7 @@ export function OptionPanel(props: Props) {
                 >
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
+                      accessibilityLayer={false}
                       data={greekCurves}
                       margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
                       onClick={(st) =>

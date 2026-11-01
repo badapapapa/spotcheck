@@ -2,7 +2,7 @@
 
 import { Combobox } from "@base-ui/react/combobox";
 import { Check, ChevronDown, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { findCurrency, type CurrencyInfo } from "@/engine/currencies.ts";
 import { orderedCurrencies, searchCurrencies } from "@/lib/currency-search.ts";
 
@@ -30,6 +30,18 @@ export function CurrencyCombobox({
   className?: string;
 }) {
   const [query, setQuery] = useState("");
+  // Base UI's list navigation keeps closures that point at each closed
+  // list, so every open left ~40 detached options (+318 nodes, 42
+  // listeners) behind. A fresh combobox after each close lets the old one
+  // be collected; focus goes back to the button, as Base UI would do.
+  const [generation, setGeneration] = useState(0);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const refocus = useRef(false);
+  useEffect(() => {
+    if (!refocus.current) return;
+    refocus.current = false;
+    trigger.current?.focus();
+  }, [generation]);
   const selected = findCurrency(value)!;
   const filtered = useMemo<Group[]>(
     () =>
@@ -41,13 +53,22 @@ export function CurrencyCombobox({
 
   return (
     <Combobox.Root
+      key={generation}
       items={GROUPS}
       filteredItems={filtered}
       value={selected}
       onValueChange={(c: CurrencyInfo | null) => c && onChange(c.code)}
       inputValue={query}
       onInputValueChange={setQuery}
-      onOpenChange={(open) => !open && setQuery("")}
+      onOpenChange={(open) => {
+        if (open) return;
+        setQuery("");
+        // After Base UI has finished closing (and returned focus).
+        setTimeout(() => {
+          refocus.current = document.activeElement === trigger.current;
+          setGeneration((g) => g + 1);
+        });
+      }}
       isItemEqualToValue={(a: CurrencyInfo, b: CurrencyInfo) =>
         a.code === b.code
       }
@@ -56,6 +77,7 @@ export function CurrencyCombobox({
     >
       {/* The name includes the visible code, so voice users can say it. */}
       <Combobox.Trigger
+        ref={trigger}
         aria-label={`Currency you need: ${selected.code}`}
         className={`field-chip gap-1.5 pr-2 ${className}`}
       >

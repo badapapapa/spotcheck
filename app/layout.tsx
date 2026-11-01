@@ -54,6 +54,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${serif.variable} ${body.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        <a href="#main" className="skip-link btn-primary">
+          Skip to content
+        </a>
         <header className="border-b">
           <div className="page flex h-14 items-center justify-between gap-3 lg:h-16 lg:gap-6">
             <div className="flex h-full items-center gap-10">
@@ -73,7 +76,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </header>
 
         {/* Bottom padding keeps content clear of the phone tab bar. */}
-        <main className="flex-1 pb-24 lg:pb-0">{children}</main>
+        <main
+          id="main"
+          tabIndex={-1}
+          className="flex-1 pb-24 outline-none lg:pb-0"
+        >
+          {children}
+        </main>
 
         <footer className="mt-16 border-t pb-[calc(72px+env(safe-area-inset-bottom))] lg:mt-24 lg:pb-0">
           <div className="page grid gap-8 py-10 lg:grid-cols-12 lg:gap-6">

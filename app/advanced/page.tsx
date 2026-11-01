@@ -16,8 +16,10 @@ export default function AdvancedPage() {
         <p className="t-lede mt-5">
           What fixing your rate today with a forward, or capping it with an
           option, would cost for the same plan as the{" "}
-          <ScenarioLink href="/">planner</ScenarioLink>, and how each would have
-          worked out in past periods.
+          <ScenarioLink href="/" className="link link-target">
+            planner
+          </ScenarioLink>
+          , and how each would have worked out in past periods.
         </p>
       </div>
       <Suspense

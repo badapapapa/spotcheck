@@ -95,11 +95,11 @@ export function ComparisonTable({
         ] as [string, string][])
       : []),
   ];
-  const dim = (id: string) => (active && active !== id ? 0.45 : 1);
+  const dim = (id: string) => (active && active !== id) || undefined;
   const swatch = (color: string) => (
     <span
       aria-hidden
-      className="size-2.5 shrink-0 rounded-full"
+      className="mark size-2.5 shrink-0 rounded-full"
       style={{ background: color }}
     />
   );
@@ -130,8 +130,8 @@ export function ComparisonTable({
               key={r.id}
               onMouseEnter={() => onActive?.(r.id)}
               onMouseLeave={() => onActive?.(null)}
-              className="border-b transition-opacity duration-150 last:border-0"
-              style={{ opacity: dim(r.id) }}
+              className="border-b transition-colors duration-150 last:border-0"
+              data-dimmed={dim(r.id)}
             >
               <th scope="row" className="py-3 pr-2 pl-3 text-left font-medium">
                 <span className="flex items-center gap-2">
@@ -157,8 +157,8 @@ export function ComparisonTable({
         {rows.map((r) => (
           <li
             key={r.id}
-            className="border-b py-4 transition-opacity duration-150"
-            style={{ opacity: dim(r.id) }}
+            className="border-b py-4 transition-colors duration-150"
+            data-dimmed={dim(r.id)}
           >
             <p className="flex items-center gap-2 font-medium">
               {swatch(r.color)}

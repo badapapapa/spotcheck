@@ -183,7 +183,12 @@ export default function HowItWorks() {
             </p>
             <p className="font-medium">{DISCLAIMER}</p>
             <p>
-              <ScenarioLink href="/">Back to the planner</ScenarioLink>
+              <ScenarioLink
+                href="/"
+                className="link inline-flex min-h-11 items-center"
+              >
+                Back to the planner
+              </ScenarioLink>
             </p>
           </Part>
         </div>
