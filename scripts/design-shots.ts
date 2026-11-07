@@ -163,6 +163,67 @@ const SHOTS: Record<string, Shot> = {
     await page.close();
   },
 
+  // PR G: the states its items change.
+  async prg(ctx, name) {
+    const Q = "c=USD&a=15000&s=2026-10-17&d=2027-08-01&k=6&sp=0.5&t=2";
+    const page = await ctx.newPage();
+    await page.goto(`${base}/?${Q}`);
+    await ready(page, /Results updated/);
+    await section(
+      page,
+      name("g-glance"),
+      'section[aria-label="Comparison at a glance"]',
+    );
+    // A conversion scheduled for a weekend (21 Mar 2026, a Saturday).
+    await section(
+      page,
+      name("g-period"),
+      'section[aria-labelledby="explore-title"] .border-t',
+    );
+    await page.getByRole("button", { name: /^1Y \(/ }).click();
+    await page.waitForTimeout(300);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await between(
+      page,
+      name("g-timeline-1y"),
+      'section[aria-labelledby="explore-title"] h2',
+      'section[aria-labelledby="explore-title"] h3',
+    );
+    // Not current: a field holds an entry that isn't valid.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.getByLabel(/Amount needed/).fill("1.500,50");
+    await page.getByTestId("error-amount").waitFor();
+    await page.waitForTimeout(500);
+    await section(
+      page,
+      name("g-invalid-glance"),
+      'section[aria-label="Comparison at a glance"]',
+    );
+    await page.goto(
+      `${base}/?c=EUR&a=1000000000000&s=2026-11-07&d=2029-11-07&k=24&sp=5&t=20`,
+    );
+    await ready(page, /Results updated/);
+    await section(page, name("g-huge-comparison"), "#evidence");
+    await page.goto(
+      `${base}/advanced?c=JPY&a=500000&s=2026-10-17&d=2027-03-01`,
+    );
+    await page
+      .getByText(/only has for USD|USD only/)
+      .first()
+      .waitFor();
+    await page.waitForTimeout(500);
+    await viewport(page, name("g-hedging-jpy"));
+    await section(
+      page,
+      name("g-hedging-notice"),
+      "main p:has(svg.text-caution)",
+    );
+    await page.goto(`${base}/how-it-works`);
+    await page.evaluate(() => document.fonts.ready);
+    await section(page, name("g-about"), "#about");
+    await page.close();
+  },
+
   async hedging(ctx, name) {
     const page = await ctx.newPage();
     await page.goto(base + "/advanced");
