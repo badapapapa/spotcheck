@@ -71,7 +71,7 @@ On phones, the axis ticks are compact (S$1T) and each median sits under its name
 
 | Check                             | Result                                                                                                                                                                               |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `npm run check`                   | 571 tests passed                                                                                                                                                                     |
+| `npm run check`                   | 575 tests passed                                                                                                                                                                     |
 | Playwright                        | 709 passed, 111 skipped by project, 0 failed                                                                                                                                         |
 | New tests against `main`'s build  | 20 of 27 fail. The 7 that pass guard behaviour that was already right: storing nothing, a bad `from` ignored, the range chart at normal amounts, and the F05 link hidden on desktop. |
 | axe (WCAG A/AA)                   | 0 violations: Planner, Planner at 1Y, Hedging, Hedging with JPY, How it works, 404, BND, EUR 1e12; at 375 and 1366; both themes                                                      |
