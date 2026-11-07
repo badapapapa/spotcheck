@@ -23,8 +23,8 @@ export default function PageError({
     <div className="page pt-10 lg:pt-16" data-testid="page-error">
       <h1 className="t-h1">Something went wrong on this page</h1>
       <p className="t-lede prose-measure mt-5">
-        SpotCheck couldn&apos;t show this scenario. Nothing was saved or sent
-        anywhere. You can try again, or start from the default plan.
+        SpotCheck couldn&apos;t show this scenario. Nothing was saved. You can
+        try again, or start from the default plan.
       </p>
       <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
         {/* A full page load, not a client-side navigation: from "/?…" to "/"

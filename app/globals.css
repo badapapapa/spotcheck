@@ -532,16 +532,16 @@
     min-height: 317px;
   }
   .result-min-h {
-    min-height: 563px;
+    min-height: 667px;
   }
   @media (width < 400px) {
     .result-min-h {
-      min-height: 581px;
+      min-height: 685px;
     }
   }
   @media (width < 380px) {
     .result-min-h {
-      min-height: 637px;
+      min-height: 741px;
     }
   }
   /* Only the narrowest phones wrap the converter's sentence onto a third
@@ -551,7 +551,7 @@
       min-height: 337px;
     }
     .result-min-h {
-      min-height: 661px;
+      min-height: 765px;
     }
   }
   @media (width >= 40rem) {
@@ -559,7 +559,7 @@
       min-height: 313px;
     }
     .result-min-h {
-      min-height: 539px;
+      min-height: 567px;
     }
   }
   @media (width >= 64rem) {
@@ -567,7 +567,7 @@
       min-height: 367px;
     }
     .result-min-h {
-      min-height: 617px;
+      min-height: 665px;
     }
   }
   @media (width >= 80rem) {
@@ -575,7 +575,7 @@
       min-height: 315px;
     }
     .result-min-h {
-      min-height: 539px;
+      min-height: 567px;
     }
   }
   /* Placeholder blocks that hold a result's space while it loads. */

@@ -187,11 +187,19 @@ export function ComparisonTable({
                 </span>
               )}
             </p>
-            <dl className="t-small mt-2 grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 tabular-nums">
+            {/* Each label beside its value; a value too wide to share the
+                line (a huge amount, 200% text) moves under its label, which
+                keeps its words whole. */}
+            <dl className="t-small mt-2 space-y-1 tabular-nums">
               {measures(r).map(([label, value]) => (
-                <div key={label} className="contents">
-                  <dt className="text-muted-foreground">{label}</dt>
-                  <dd className="text-right">{value}</dd>
+                <div
+                  key={label}
+                  className="flex flex-wrap items-baseline justify-between gap-x-4"
+                >
+                  <dt className="grow basis-0 text-muted-foreground">
+                    {label}
+                  </dt>
+                  <dd className="ml-auto max-w-full text-right">{value}</dd>
                 </div>
               ))}
             </dl>

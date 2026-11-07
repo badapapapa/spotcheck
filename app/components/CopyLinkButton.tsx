@@ -10,7 +10,17 @@ import { serializeState, type PlannerState } from "@/lib/url-state.ts";
  * names every setting, start date included, so the recipient's "today"
  * never changes what they see.
  */
-export function CopyLinkButton({ state }: { state: PlannerState }) {
+export function CopyLinkButton({
+  state,
+  lastValid = false,
+}: {
+  state: PlannerState;
+  /**
+   * A field holds an entry that isn't valid yet: the link is to the last
+   * valid one (the plan the results are for), and says so (F09).
+   */
+  lastValid?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
   async function copy() {
     const url = `${window.location.origin}${window.location.pathname}?${serializeState(state, { complete: true })}`;
@@ -36,8 +46,14 @@ export function CopyLinkButton({ state }: { state: PlannerState }) {
       ) : (
         <LinkIcon aria-hidden className="size-4" />
       )}
-      {copied ? "Link copied" : "Copy link"}
-      {!copied && <span className="sr-only"> to this scenario</span>}
+      {copied
+        ? "Link copied"
+        : lastValid
+          ? "Copy link to that entry"
+          : "Copy link"}
+      {!copied && !lastValid && (
+        <span className="sr-only"> to this scenario</span>
+      )}
     </button>
   );
 }

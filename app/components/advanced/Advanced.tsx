@@ -114,6 +114,13 @@ export function Advanced() {
               {pastDeadline}
             </p>
           )}
+          {state.from && (
+            <p className="t-small mt-3" data-testid="switched-from">
+              Switched to USD from {state.from.currency}{" "}
+              {state.from.amount.toLocaleString("en-SG")} for Hedging; the
+              planner keeps that plan.
+            </p>
+          )}
         </section>
         <HedgingIntro />
       </div>
@@ -123,13 +130,15 @@ export function Advanced() {
           The {currency.name} is pegged 1:1 to the Singapore dollar, so there is
           no exchange rate to hedge: every conversion costs the same, plus your
           exchange fee. The planner shows it for every strategy.
+          <SwitchToUsd state={state} setState={setState} />
         </Notice>
       ) : (
         !rateSeries && (
           <Notice>
-            Forward and option pricing needs {scenario.currency} interest-rate
-            history, which SpotCheck only has for USD so far. Pick USD above to
-            see this page; the planner works for all 40 currencies.
+            Hedging prices USD only for now: forward and option pricing needs{" "}
+            {scenario.currency} interest-rate history, which SpotCheck only has
+            for USD. The planner works for all 40 currencies.
+            <SwitchToUsd state={state} setState={setState} />
           </Notice>
         )
       )}
@@ -160,6 +169,51 @@ export function Advanced() {
         </SectionBoundary>
       )}
     </>
+  );
+}
+
+/**
+ * Hedging with a currency it can't price: an explicit way to USD. The button
+ * says exactly what it prices (the same number, in US dollars: nothing is
+ * converted or rescaled), and the plan before the switch is kept in the
+ * address, so the planner's links still lead back to it.
+ */
+function SwitchToUsd({
+  state,
+  setState,
+}: {
+  state: PlannerState;
+  setState: (next: PlannerState) => void;
+}) {
+  const { amount } = state.scenario;
+  const shown = amount.toLocaleString("en-SG");
+  const origin = state.from ?? {
+    currency: state.scenario.currency,
+    amount,
+  };
+  return (
+    <span className="mt-4 block">
+      <button
+        type="button"
+        className="btn-secondary"
+        data-testid="switch-to-usd"
+        onClick={() =>
+          setState({
+            ...state,
+            scenario: { ...state.scenario, currency: "USD" },
+            // The first plan is the one to return to.
+            from: origin,
+          })
+        }
+      >
+        Switch to USD
+      </button>
+      <span className="t-small mt-2 block text-muted-foreground">
+        This prices USD {shown} instead: the same number, in US dollars. Your
+        plan on the planner stays {origin.currency}{" "}
+        {origin.amount.toLocaleString("en-SG")}.
+      </span>
+    </span>
   );
 }
 

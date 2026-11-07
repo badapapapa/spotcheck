@@ -13,7 +13,8 @@ type Variant = "top" | "bottom";
  */
 const TABS = [
   { href: "/", label: "Planner", Icon: ChartLine },
-  { href: "/advanced", label: "Hedging", Icon: ShieldCheck },
+  // Said before the click: Hedging prices USD only (F08).
+  { href: "/advanced", label: "Hedging (USD)", Icon: ShieldCheck },
   { href: "/how-it-works", label: "How it works", Icon: BookOpen },
 ] as const;
 

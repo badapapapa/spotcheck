@@ -214,9 +214,14 @@ export default function HowItWorks() {
           <Part id="about" title="About SpotCheck">
             <p>
               SpotCheck is a free, independent educational project for students
-              going on exchange. It has no accounts, sets no cookies and stores
-              nothing about you: your scenario lives only in the page&apos;s
-              address, which is how a copied link reproduces it.
+              going on exchange.
+            </p>
+            <p data-testid="privacy">
+              No account and no cookies. Your scenario lives in the page&apos;s
+              address, so anyone you share a link with sees its amount,
+              currency, dates and settings. Cloudflare Web Analytics counts page
+              visits without cookies; it records which page, not the scenario in
+              its address.
             </p>
             <p className="font-medium">{DISCLAIMER}</p>
             <p>

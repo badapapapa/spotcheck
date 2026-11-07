@@ -329,25 +329,52 @@ export function OutcomeTimeline({
 
   return (
     <div>
-      {/* The range shown, a familiar chart convention. Display only. */}
-      <div
-        role="group"
-        aria-label="Range shown on the chart"
-        className="segmented mb-3"
-        data-testid="ranges"
-      >
-        {RANGES.map((r) => (
-          <button
-            key={r.id}
-            type="button"
-            aria-pressed={range === r.id}
-            disabled={!rangeAvailable(result.startDates, r.id)}
-            onClick={() => chooseRange(r.id)}
-          >
-            {r.label}
-            <span className="sr-only"> ({r.spoken})</span>
-          </button>
-        ))}
+      {/* Which start dates the chart shows (a familiar chart convention),
+          and, above the chart where it is read first, that the summary
+          figures still use every period. Display only. */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <p id={`${id}-ranges`} className="t-small font-medium">
+          Start dates shown
+        </p>
+        <div
+          role="group"
+          aria-labelledby={`${id}-ranges`}
+          className="segmented"
+          data-testid="ranges"
+        >
+          {RANGES.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              aria-pressed={range === r.id}
+              disabled={!rangeAvailable(result.startDates, r.id)}
+              onClick={() => chooseRange(r.id)}
+            >
+              {r.label}
+              <span className="sr-only"> ({r.spoken})</span>
+            </button>
+          ))}
+        </div>
+        <p
+          className="t-small basis-full text-muted-foreground tabular-nums"
+          data-testid="range-note"
+        >
+          {range === "all" ? (
+            <>
+              All {result.windows.toLocaleString("en-SG")} periods, starting{" "}
+              {formatDate(result.startDates[from]!)} to{" "}
+              {formatDate(result.startDates[to]!)}.
+            </>
+          ) : (
+            <>
+              Periods starting {formatDate(result.startDates[from]!)} to{" "}
+              {formatDate(result.startDates[to]!)}:{" "}
+              {(to - from + 1).toLocaleString("en-SG")} of{" "}
+              {result.windows.toLocaleString("en-SG")}. Summary figures still
+              use all periods.
+            </>
+          )}
+        </p>
       </div>
       {/* The readout and the legend in one: the marked period's date, then
           each strategy, in the fixed order, with its cost that period.
@@ -550,16 +577,6 @@ export function OutcomeTimeline({
         </svg>
       </div>
 
-      {range !== "all" && (
-        <p
-          className="t-small mt-2 text-muted-foreground tabular-nums"
-          data-testid="range-note"
-        >
-          Showing periods starting {formatDate(result.startDates[from]!)} to{" "}
-          {formatDate(result.startDates[to]!)}. The results above use all{" "}
-          {result.windows.toLocaleString("en-SG")} periods.
-        </p>
-      )}
       {W < MONTHLY_BELOW && (
         <>
           {monthly && (
