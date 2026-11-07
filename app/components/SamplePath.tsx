@@ -33,6 +33,7 @@ import { AXIS_STROKE, AXIS_TICK, LINE_WIDTH } from "@/lib/chart-style.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { niceTicks } from "@/lib/ticks.ts";
 import { useCoarsePointer } from "@/lib/use-coarse-pointer.ts";
+import { scheduledDates } from "@/lib/scheduled.ts";
 import { useFit } from "@/lib/use-fit.ts";
 import { Breakable } from "./Breakable";
 import { ChartLegend, Marker, PointMark } from "./ChartLegend.tsx";
@@ -81,6 +82,11 @@ export const SamplePath = memo(function SamplePath({
   // the timeline) starts with no point, and the chart below is keyed by the
   // period, so Recharts' own cursor can't linger without a readout either.
   const [tapped, setTapped] = useState<{ start: string; i?: number }>();
+  // The date each conversion was scheduled for (F03): labels only.
+  const scheduled = useMemo(
+    () => scheduledDates(w, scenario.tranches),
+    [w, scenario.tranches],
+  );
   // The table if it fits beside the chart, else the phone blocks.
   const fit = useFit<HTMLDivElement>(
     `${w.start}:${w.results.lumpSum.totalSgd}:${today?.scale}`,
@@ -300,6 +306,7 @@ export const SamplePath = memo(function SamplePath({
                     <td className="py-2.5 pr-3 text-muted-foreground">
                       <Conversions
                         list={r.conversions}
+                        scheduled={scheduled[sid]}
                         formatRate={formatRate}
                       />
                     </td>
@@ -368,6 +375,7 @@ export const SamplePath = memo(function SamplePath({
                   </div>
                   <Conversions
                     list={r.conversions}
+                    scheduled={scheduled[sid]}
                     formatRate={formatRate}
                     className="mt-1"
                   />
@@ -390,23 +398,42 @@ export const SamplePath = memo(function SamplePath({
 });
 
 /** One conversion per line: its date, then its rate in a column of its own. */
+/**
+ * Each conversion's date and rate. Where the scheduled day had no published
+ * rate (a weekend or holiday), the date shown is the one whose rate was
+ * used, with the schedule under it, as in the Excel (F03).
+ */
 function Conversions({
   list,
+  scheduled,
   formatRate,
   className = "",
 }: {
   list: { date: string; rate: number }[];
+  /** The scheduled date of each conversion, in the same order. */
+  scheduled: string[];
   formatRate: (r: number) => string;
   className?: string;
 }) {
   return (
     <ul className={`text-muted-foreground ${className}`}>
-      {list.map((c) => (
-        <li key={c.date} className="grid grid-cols-[6.75rem_auto] gap-x-3">
-          <span className="whitespace-nowrap">{formatDate(c.date)}</span>
-          <span className="whitespace-nowrap">{formatRate(c.rate)}</span>
-        </li>
-      ))}
+      {list.map((c, i) => {
+        const planned = scheduled[i];
+        return (
+          <li key={c.date} className="grid grid-cols-[6.75rem_auto] gap-x-3">
+            <span className="whitespace-nowrap">{formatDate(c.date)}</span>
+            <span className="whitespace-nowrap">{formatRate(c.rate)}</span>
+            {planned && planned !== c.date && (
+              <span
+                className="col-span-2 text-annotation"
+                data-testid="scheduled-note"
+              >
+                (scheduled {formatDate(planned)}; the next published rate)
+              </span>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }

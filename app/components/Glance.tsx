@@ -3,6 +3,7 @@ import { STRATEGY_IDS, type StrategyId } from "@/engine/types.ts";
 import { formatSgdAt } from "@/lib/format.ts";
 import { signedDiff } from "@/lib/signed.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
+import { planInWords } from "@/lib/plan-words.ts";
 import { useFit } from "@/lib/use-fit.ts";
 import type { PlannerState } from "@/lib/url-state.ts";
 import { Breakable } from "./Breakable";
@@ -44,7 +45,6 @@ export function Glance({
   onToggle: (id: StrategyId) => void;
 }) {
   const lump = result.stats.lumpSum.summary.median;
-  const shown = `${state.scenario.currency} ${state.scenario.amount.toLocaleString("en-SG")}`;
   const fit = useFit<HTMLDivElement>(
     STRATEGY_IDS.map((id) => result.stats[id].summary.median).join(),
   );
@@ -61,7 +61,8 @@ export function Glance({
       </h2>
       {outdated ? (
         <p className="t-small mt-1 font-medium" data-testid="outdated">
-          Not current: these are for {shown}, your last valid entry.
+          Not current: these are for your last valid entry: {planInWords(state)}
+          .
         </p>
       ) : stale ? (
         <p
@@ -181,11 +182,23 @@ export function Glance({
       </p>
       <p className="t-small mt-2 font-medium">Past outcomes, not a forecast.</p>
       <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
-        <CopyLinkButton state={state} />
+        <CopyLinkButton state={state} lastValid={outdated} />
         <a href="#evidence" className="link inline-flex min-h-11 items-center">
           See the full comparison
         </a>
+        {/* Phones: the timeline is far below the evidence (F05). */}
+        <a
+          href="#explore"
+          className="link inline-flex min-h-11 items-center sm:hidden"
+          data-testid="explore-link"
+        >
+          Explore past periods
+        </a>
       </div>
+      {/* What a shared link shows (F07). */}
+      <p className="t-small mt-2 text-muted-foreground" data-testid="link-note">
+        The link includes this plan&apos;s amount, currency, dates and settings.
+      </p>
     </div>
   );
 }

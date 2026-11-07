@@ -32,7 +32,7 @@ test("the strike slider updates the URL", async ({ page }) => {
 
 test("other currencies get a USD-only notice", async ({ page }) => {
   await page.goto("/advanced?c=EUR");
-  await expect(page.getByText(/only has for USD so far/)).toBeVisible();
+  await expect(page.getByText(/Hedging prices USD only for now/)).toBeVisible();
 });
 
 test("the hedging headline states the forward's price", async ({ page }) => {

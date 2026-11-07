@@ -1,5 +1,34 @@
 import { describe, expect, it } from "vitest";
-import { formatSgd } from "../format.ts";
+import { formatSgd, formatSgdCompactTicks } from "../format.ts";
+
+describe("formatSgdCompactTicks", () => {
+  it("one unit per axis, from its largest tick", () => {
+    expect(formatSgdCompactTicks([1e12, 1.5e12, 2e12], 5e11)).toEqual([
+      "S$1.0T",
+      "S$1.5T",
+      "S$2.0T",
+    ]);
+    expect(formatSgdCompactTicks([1.5e9, 2e9], 5e8)).toEqual([
+      "S$1.5B",
+      "S$2.0B",
+    ]);
+    expect(formatSgdCompactTicks([18_000, 20_000, 22_000], 2000)).toEqual([
+      "S$18K",
+      "S$20K",
+      "S$22K",
+    ]);
+  });
+
+  it("decimals enough to keep neighbouring ticks apart", () => {
+    const t = formatSgdCompactTicks([1.2e12, 1.25e12, 1.3e12], 5e10);
+    expect(t).toEqual(["S$1.20T", "S$1.25T", "S$1.30T"]);
+    expect(new Set(t).size).toBe(3);
+  });
+
+  it("values under a thousand are left whole", () => {
+    expect(formatSgdCompactTicks([200, 400], 200)).toEqual(["S$200", "S$400"]);
+  });
+});
 
 describe("formatSgd", () => {
   it("shows whole dollars from S$100 up", () => {

@@ -25,7 +25,7 @@ async function settled(page: Page) {
 
 const rangeButton = (page: Page, label: string) =>
   page
-    .getByRole("group", { name: "Range shown on the chart" })
+    .getByRole("group", { name: "Start dates shown" })
     .getByRole("button", { name: new RegExp(`^${label} \\(`) });
 
 test.describe("F01: the BND peg", () => {

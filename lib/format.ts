@@ -19,6 +19,43 @@ export function formatSgd(
   return `${rounded < 0 ? "−" : ""}S$${s}`;
 }
 
+const COMPACT = [
+  { unit: 1e12, suffix: "T" },
+  { unit: 1e9, suffix: "B" },
+  { unit: 1e6, suffix: "M" },
+  { unit: 1e3, suffix: "K" },
+] as const;
+
+/**
+ * Axis ticks too long to sit side by side (a huge amount on a narrow
+ * screen), shortened: S$1.0T, S$1.5B, S$20K. One unit for the whole axis,
+ * from its largest tick, and the decimals the spacing (`step`) needs, so
+ * neighbouring ticks never read the same. The full values stay in the
+ * accessible text.
+ */
+export function formatSgdCompactTicks(ticks: number[], step: number): string[] {
+  const top = Math.max(...ticks.map(Math.abs));
+  const c = COMPACT.find((u) => top >= u.unit);
+  if (!c) return ticks.map((t) => formatSgd(t, { decimals: 0 }));
+  // 0.5T apart needs one decimal (1.0T, 1.5T); 2K apart needs none.
+  const inUnit = step / c.unit;
+  let decimals = 0;
+  while (
+    decimals < 3 &&
+    Math.abs(Math.round(inUnit * 10 ** decimals) - inUnit * 10 ** decimals) >
+      1e-6
+  )
+    decimals++;
+  return ticks.map((t) => {
+    const v = Number((t / c.unit).toFixed(decimals));
+    const s = Math.abs(v).toLocaleString("en-SG", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+    return `${v < 0 ? "−" : ""}S$${s}${c.suffix}`;
+  });
+}
+
 /**
  * Decimal places for every S$ figure in one scenario: whole dollars when the
  * scenario costs S$100 or more, cents when it costs less (15,000 VND is about

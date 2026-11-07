@@ -6,7 +6,8 @@
 // "Download" (it's large), while tests import it directly.
 
 import type ExcelJSType from "exceljs";
-import { indexOnOrAfter, trancheDates } from "@/engine/calendar.ts";
+import { indexOnOrAfter } from "@/engine/calendar.ts";
+import { scheduledDates } from "./scheduled.ts";
 import type { sampleWindow } from "@/engine/replay.ts";
 import { STRATEGY_IDS, type Scenario, type Series } from "@/engine/types.ts";
 import { DISCLAIMER } from "./site.ts";
@@ -115,7 +116,8 @@ export function buildWorkbook(
       style: { numFmt: DATE_FMT },
     },
     {
-      header: "Trade date (next available rate)",
+      // The same words as the period detail (F03).
+      header: "Rate date (next published rate)",
       key: "trade",
       width: 30,
       style: { numFmt: DATE_FMT },
@@ -137,12 +139,8 @@ export function buildWorkbook(
   for (const id of STRATEGY_IDS) {
     const result = w.results[id];
     const first = st.rowCount + 1;
-    const sched =
-      id === "tranches"
-        ? trancheDates(w.start, w.deadline, scenario.tranches)
-        : id === "wait"
-          ? [w.deadline]
-          : [w.start];
+    // The same schedule as the period detail shows (lib/scheduled.ts).
+    const sched = scheduledDates(w, scenario.tranches)[id];
     result.conversions.forEach((c, k) => {
       const r = st.rowCount + 1;
       let schedFormula: string;
@@ -156,10 +154,14 @@ export function buildWorkbook(
             ? "Start"
             : `Start+ROUND(${k}*(Deadline-Start)/(Tranches-1),0)`;
       } else {
-        // Target: first day in the window at or below the target, else the deadline.
-        schedFormula = "Start";
+        // Target: first day in the window at or below the target (a
+        // published rate, so it is its own schedule), else the deadline,
+        // at the next published rate.
         const inWindow = `${RD},">="&Start,${RD},"<="&Deadline`;
-        tradeFormula = `IF(COUNTIFS(${RV},"<="&TargetRate,${inWindow})>0,MINIFS(${RD},${RV},"<="&TargetRate,${inWindow}),${nextTrade("Deadline")})`;
+        const reached = `COUNTIFS(${RV},"<="&TargetRate,${inWindow})>0`;
+        const firstDay = `MINIFS(${RD},${RV},"<="&TargetRate,${inWindow})`;
+        schedFormula = `IF(${reached},${firstDay},Deadline)`;
+        tradeFormula = `IF(${reached},${firstDay},${nextTrade("Deadline")})`;
       }
       const unitsFormula = id === "tranches" ? "Amount/Tranches" : "Amount";
       st.addRow({

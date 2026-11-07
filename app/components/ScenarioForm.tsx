@@ -2,9 +2,9 @@
 
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
-import { addDays, daysBetween, rateAsOf } from "@/engine/calendar.ts";
+import { addDays, daysBetween } from "@/engine/calendar.ts";
 import type { ISODate } from "@/engine/types.ts";
-import { convertAmount } from "@/lib/convert.ts";
+import { convertBetween } from "@/lib/convert.ts";
 import {
   latestDeadline,
   MIN_WINDOW_DAYS,
@@ -161,11 +161,8 @@ export function ScenarioForm({
     let next = amount;
     try {
       const [a, b] = await Promise.all([loadFx(from), loadFx(code)]);
-      next = convertAmount(
-        amount,
-        rateAsOf(a, startDate).value,
-        rateAsOf(b, startDate).value,
-      );
+      // The same conversion as Hedging's "Switch to USD" (convertBetween).
+      next = convertBetween(amount, a, b, startDate).amount;
     } catch {
       // Rates unavailable (or the start is before this currency's data):
       // keep the number as typed rather than block the switch.

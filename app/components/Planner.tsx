@@ -40,7 +40,11 @@ import { describeReplay } from "@/lib/summary.ts";
 import { trendNote } from "@/lib/trend.ts";
 import { useLoad } from "@/lib/use-data.ts";
 import { usePlannerState } from "@/lib/use-planner-state.ts";
-import { serializeState, type PlannerState } from "@/lib/url-state.ts";
+import {
+  restoreOrigin,
+  serializeState,
+  type PlannerState,
+} from "@/lib/url-state.ts";
 import { ComparisonTable } from "./ComparisonTable";
 import { DistributionChart } from "./DistributionChart";
 import { Glance, GlanceProgress, HISTORICAL_CONTEXT } from "./Glance";
@@ -69,6 +73,11 @@ const SamplePath = lazy(() =>
  */
 export function Planner() {
   const [state, setState, today] = usePlannerState();
+  // Opened with Hedging's "Switch to USD" still in the address: the planner
+  // shows the plan from before the switch, as its links do (planQuery).
+  useEffect(() => {
+    if (state.from) setState(restoreOrigin(state));
+  }, [state, setState]);
   // A results section that failed is shown afresh for a new plan.
   const planKey = serializeState(state).toString();
   const { scenario } = state;
@@ -403,8 +412,11 @@ export function Planner() {
 
       {/* Exploration: every past period, then one in detail. */}
       <section
+        id="explore"
         aria-labelledby="explore-title"
-        className="bleed mt-16 bg-sunken py-12 lg:mt-24 lg:py-16"
+        // Clear of the phone summary bar (56px) when the glance's "Explore
+        // past periods" link jumps here.
+        className="bleed mt-16 scroll-mt-14 bg-sunken py-12 lg:mt-24 lg:py-16"
         data-stale={(result && (stale || formInvalid)) || undefined}
       >
         <div className="page">
@@ -427,13 +439,13 @@ export function Planner() {
             {/* The timeline's measured height at each width (range buttons,
               readout, legend, chart, and on phones the note and month
               buttons). */}
-            <div className="mt-8 min-h-[588px] sm:min-h-[560px] md:min-h-[476px] lg:min-h-[432px]">
+            <div className="mt-8 min-h-[644px] max-[370px]:min-h-[664px] sm:min-h-[588px] md:min-h-[504px] lg:min-h-[460px]">
               {result ? (
                 <Suspense
                   fallback={
                     <div
                       aria-hidden
-                      className="skeleton h-[588px] bg-paper sm:h-[560px] md:h-[476px] lg:h-[432px]"
+                      className="skeleton h-[644px] bg-paper max-[370px]:h-[664px] sm:h-[588px] md:h-[504px] lg:h-[460px]"
                     />
                   }
                 >
@@ -452,7 +464,7 @@ export function Planner() {
               ) : (
                 <div
                   aria-hidden
-                  className="skeleton h-[588px] bg-paper sm:h-[560px] md:h-[476px] lg:h-[432px]"
+                  className="skeleton h-[644px] bg-paper max-[370px]:h-[664px] sm:h-[588px] md:h-[504px] lg:h-[460px]"
                 />
               )}
             </div>
@@ -466,6 +478,7 @@ export function Planner() {
                   series={series}
                   planned={deferred}
                   rescaled={rescaled}
+                  outdated={formInvalid}
                 />
               ) : (
                 <div aria-hidden className="skeleton h-[34rem] bg-paper" />
@@ -626,6 +639,7 @@ function PeriodDetail({
   series,
   planned,
   rescaled,
+  outdated = false,
 }: {
   store: PeriodStore;
   windowsKey: string;
@@ -634,6 +648,8 @@ function PeriodDetail({
   /** The state the result was computed for. */
   planned: PlannerState;
   rescaled: string;
+  /** A field isn't valid yet: the export is of the last valid entry (F09). */
+  outdated?: boolean;
 }) {
   const index = useDeferredValue(
     usePeriod(store, windowsKey, result.startDates.length - 1),
@@ -688,7 +704,11 @@ function PeriodDetail({
           disabled={exporting}
         >
           <Download aria-hidden className="size-4" />
-          {exporting ? "Preparing…" : "Download Excel"}
+          {exporting
+            ? "Preparing…"
+            : outdated
+              ? "Download Excel for that entry"
+              : "Download Excel"}
           <span className="sr-only"> of this period</span>
         </button>
       </div>

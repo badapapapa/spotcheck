@@ -20,7 +20,57 @@ export type PlannerState = {
   volOverride?: number;
   /** Advanced tab: realised-volatility lookback in observations. */
   volLookback: VolLookback;
+  /**
+   * The plan before Hedging's "Switch to USD": links back to the planner
+   * restore it (see planQuery), so switching never changes the plan.
+   */
+  from?: PlanOrigin;
 };
+
+/** A currency and amount, written `from=JPY.500000` in the query. */
+export type PlanOrigin = { currency: string; amount: number };
+
+/** `from=JPY.500000`, validated like the fields it stands for. */
+export function parseOrigin(raw: string | null): PlanOrigin | undefined {
+  const m = raw?.match(/^([A-Za-z]{3})\.(\d+(?:\.\d+)?)$/);
+  if (!m) return undefined;
+  const currency = m[1]!.toUpperCase();
+  const amount = Number(m[2]);
+  if (!findCurrency(currency)) return undefined;
+  if (!(amount >= LIMITS.amount.min && amount <= LIMITS.amount.max))
+    return undefined;
+  return { currency, amount };
+}
+
+/** The plan as it was before "Switch to USD", for the planner. */
+export function restoreOrigin(state: PlannerState): PlannerState {
+  if (!state.from) return state;
+  const { from, ...rest } = state;
+  return {
+    ...rest,
+    scenario: {
+      ...state.scenario,
+      currency: from.currency,
+      amount: from.amount,
+    },
+  };
+}
+
+/**
+ * The query for a link to the planner: the plan as it was before Hedging's
+ * "Switch to USD", if there was a switch.
+ */
+export function planQuery(query: string): string {
+  const params = new URLSearchParams(query);
+  const origin = parseOrigin(params.get("from"));
+  if (!params.has("from")) return query;
+  params.delete("from");
+  if (origin) {
+    params.set("c", origin.currency);
+    params.set("a", String(origin.amount));
+  }
+  return params.toString();
+}
 
 /** Realised-volatility lookbacks offered, in trading days. */
 export const VOL_LOOKBACKS = [60, 90, 250] as const;
@@ -121,6 +171,7 @@ export function parseState(
     volLookback:
       VOL_LOOKBACKS.find((n) => String(n) === params.get("vl")) ??
       DEFAULTS.volLookback,
+    from: parseOrigin(params.get("from")),
   };
 }
 
@@ -152,5 +203,6 @@ export function serializeState(
   if (state.volOverride !== undefined) p.set("v", pct(state.volOverride));
   if (complete || state.volLookback !== DEFAULTS.volLookback)
     p.set("vl", String(state.volLookback));
+  if (state.from) p.set("from", `${state.from.currency}.${state.from.amount}`);
   return p;
 }

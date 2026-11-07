@@ -11,6 +11,7 @@ import { toContinuous } from "@/engine/rates.ts";
 import { realisedVol } from "@/engine/stats.ts";
 import type { Series } from "@/engine/types.ts";
 import { computeHedges } from "@/lib/compute.ts";
+import { convertBetween } from "@/lib/convert.ts";
 import { hedgeIssue, latestStart, startDateIssue } from "@/lib/coverage.ts";
 import { loadFx, loadRate, loadSora } from "@/lib/data.ts";
 import { formatDate } from "@/lib/dates.ts";
@@ -114,6 +115,13 @@ export function Advanced() {
               {pastDeadline}
             </p>
           )}
+          {state.from && (
+            <p className="t-small mt-3" data-testid="switched-from">
+              Switched to USD from {state.from.currency}{" "}
+              {state.from.amount.toLocaleString("en-SG")} for Hedging; the
+              planner keeps that plan.
+            </p>
+          )}
         </section>
         <HedgingIntro />
       </div>
@@ -123,13 +131,15 @@ export function Advanced() {
           The {currency.name} is pegged 1:1 to the Singapore dollar, so there is
           no exchange rate to hedge: every conversion costs the same, plus your
           exchange fee. The planner shows it for every strategy.
+          <SwitchToUsd state={state} setState={setState} />
         </Notice>
       ) : (
         !rateSeries && (
           <Notice>
-            Forward and option pricing needs {scenario.currency} interest-rate
-            history, which SpotCheck only has for USD so far. Pick USD above to
-            see this page; the planner works for all 40 currencies.
+            Hedging prices USD only for now: forward and option pricing needs{" "}
+            {scenario.currency} interest-rate history, which SpotCheck only has
+            for USD. The planner works for all 40 currencies.
+            <SwitchToUsd state={state} setState={setState} />
           </Notice>
         )
       )}
@@ -160,6 +170,75 @@ export function Advanced() {
         </SectionBoundary>
       )}
     </>
+  );
+}
+
+/**
+ * Hedging with a currency it can't price: an explicit way to USD. The amount
+ * is converted exactly as the currency picker converts it (convertBetween),
+ * and the button says the result before the click. The plan before the
+ * switch is kept in the address, so the planner's links still lead back to
+ * it.
+ */
+function SwitchToUsd({
+  state,
+  setState,
+}: {
+  state: PlannerState;
+  setState: (next: PlannerState) => void;
+}) {
+  const { currency, amount, startDate } = state.scenario;
+  const origin = state.from ?? { currency, amount };
+  const rates = useLoad(`switch:${currency}`, () =>
+    Promise.all([loadFx(currency), loadFx("USD")]),
+  );
+  const usd = (() => {
+    if (rates.status !== "ready") return undefined;
+    try {
+      return convertBetween(amount, rates.data[0], rates.data[1], startDate);
+    } catch {
+      // No rate on or before the start date (as the picker, no conversion).
+      return undefined;
+    }
+  })();
+  const unavailable =
+    rates.status === "error" || (rates.status === "ready" && !usd);
+  const at = usd?.latest
+    ? "at the latest rate"
+    : usd && `at the rate on ${formatDate(usd.rateDate)}`;
+  return (
+    <span className="mt-4 block">
+      <button
+        type="button"
+        // The label names the result, so it may need two lines on a phone.
+        className="btn-secondary h-auto min-h-11 py-2 text-left whitespace-normal"
+        data-testid="switch-to-usd"
+        disabled={!usd}
+        onClick={() =>
+          usd &&
+          setState({
+            ...state,
+            scenario: {
+              ...state.scenario,
+              currency: "USD",
+              amount: usd.amount,
+            },
+            // The first plan is the one to return to.
+            from: origin,
+          })
+        }
+      >
+        {usd
+          ? `Switch to USD (about USD ${usd.amount.toLocaleString("en-SG")} ${at})`
+          : unavailable
+            ? "Switch to USD (rates unavailable)"
+            : "Switch to USD…"}
+      </button>
+      <span className="t-small mt-2 block text-muted-foreground">
+        Your plan on the planner stays {origin.currency}{" "}
+        {origin.amount.toLocaleString("en-SG")}.
+      </span>
+    </span>
   );
 }
 

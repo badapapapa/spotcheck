@@ -4,9 +4,15 @@ import { useState } from "react";
 import type { ReplayResult } from "@/engine/replay.ts";
 import type { Summary } from "@/engine/stats.ts";
 import { STRATEGY_IDS } from "@/engine/types.ts";
-import { formatPercent, formatSgd, formatSgdAt } from "@/lib/format.ts";
+import {
+  formatPercent,
+  formatSgd,
+  formatSgdAt,
+  formatSgdCompactTicks,
+} from "@/lib/format.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { niceTicks, sgdTickDecimals } from "@/lib/ticks.ts";
+import { textWidth } from "@/lib/text-width.ts";
 import { useWidth } from "@/lib/use-width.ts";
 
 const ROW_H = 52;
@@ -88,9 +94,23 @@ export function RangeChart({
   const [ref, measured] = useWidth<HTMLElement>();
   const W = Math.max(280, measured);
   const stacked = W < STACK_BELOW;
-  // Wide: names in a left column, medians in a right column, bars between.
+  // Whole dollars unless the scenario itself costs under S$100.
+  const scale = Math.max(...rows.map((r) => r.summary.median));
+  const sgd = (v: number) => formatSgdAt(v, scale);
+  const name = (r: RangeRow) => (stacked ? (r.shortLabel ?? r.label) : r.label);
+  const medianText = (r: RangeRow) => `median ${sgd(r.summary.median)}`;
+  const widest = (texts: string[], px: number, weight?: number) =>
+    Math.max(...texts.map((t) => textWidth(t, px, weight)));
+  const nameW = widest(rows.map(name), 14, 500);
+  const medianW = widest(rows.map(medianText), 14);
+  // Narrow: a name and its median share a line while they fit; a huge
+  // amount puts every median under its name instead, so no row looks
+  // different from the others.
+  const medianBelow = stacked && nameW + medianW + 16 > W;
+  // Wide: names in a left column, medians in a right column wide enough
+  // for the longest median, bars between.
   const left = stacked ? 0 : 168;
-  const right = stacked ? 0 : 112;
+  const right = stacked ? 0 : Math.max(112, Math.ceil(medianW) + 8);
   const all = rows.map((r) => r.summary);
   const lo = Math.min(...all.map((s) => s.min));
   const hi = Math.max(...all.map((s) => s.max));
@@ -100,14 +120,32 @@ export function RangeChart({
   const ticks = axis.ticks;
   const domain = axis.domain;
   const tickDecimals = sgdTickDecimals(axis);
-  // Whole dollars unless the scenario itself costs under S$100.
-  const scale = Math.max(...rows.map((r) => r.summary.median));
-  const sgd = (v: number) => formatSgdAt(v, scale);
   const plotL = left + 8;
   const plotR = W - right - 8;
   const x = (v: number) =>
     plotL + ((v - domain[0]) / (domain[1] - domain[0])) * (plotR - plotL);
-  const rowH = stacked ? ROW_H + 12 : ROW_H;
+  // Where a tick label sits: anchored at its end near the chart's edges,
+  // centred elsewhere (as drawn below).
+  const anchor = (px: number) =>
+    px < 40 ? "start" : px > W - 40 ? "end" : "middle";
+  const span = (px: number, w: number): [number, number] => {
+    const a = anchor(px);
+    return a === "start"
+      ? [px, px + w]
+      : a === "end"
+        ? [px - w, px]
+        : [px - w / 2, px + w / 2];
+  };
+  // Full tick labels while none touches its neighbour (12px apart); compact
+  // ones (S$1.5T) when they would, with the full value kept as the label's
+  // accessible name.
+  const fullTicks = ticks.map((t) => formatSgd(t, { decimals: tickDecimals }));
+  const spans = ticks.map((t, k) => span(x(t), textWidth(fullTicks[k]!, 12)));
+  const compact = spans.some((s, k) => k > 0 && spans[k - 1]![1] + 12 > s[0]);
+  const tickLabels = compact
+    ? formatSgdCompactTicks(ticks, axis.step)
+    : fullTicks;
+  const rowH = stacked ? ROW_H + 12 + (medianBelow ? 20 : 0) : ROW_H;
   const H = TOP + rows.length * rowH + AXIS_H;
   const shown = rows.find((r) => r.id === active);
 
@@ -123,7 +161,7 @@ export function RangeChart({
         role="group"
         aria-label={label}
       >
-        {ticks.map((t) => (
+        {ticks.map((t, k) => (
           <g key={t}>
             <line
               x1={x(t)}
@@ -136,20 +174,22 @@ export function RangeChart({
             <text
               x={x(t)}
               y={H - 8}
-              textAnchor={
-                x(t) < 40 ? "start" : x(t) > W - 40 ? "end" : "middle"
-              }
+              textAnchor={anchor(x(t))}
               className="fill-muted-foreground text-chart tabular-nums"
+              aria-label={compact ? fullTicks[k] : undefined}
             >
-              {formatSgd(t, { decimals: tickDecimals })}
+              {tickLabels[k]}
             </text>
           </g>
         ))}
         {rows.map((row, i) => {
           const { id, summary: s } = row;
           const y0 = TOP + i * rowH;
-          const yBar = stacked ? y0 + 42 : y0 + rowH / 2;
+          const yBar = stacked
+            ? y0 + 42 + (medianBelow ? 20 : 0)
+            : y0 + rowH / 2;
           const yText = stacked ? y0 + 18 : yBar + 5;
+          const yMedian = medianBelow ? yText + 20 : yText;
           const point = s.max - s.min < (domain[1] - domain[0]) * 0.002;
           const dim = active !== null && active !== undefined && active !== id;
           return (
@@ -207,16 +247,16 @@ export function RangeChart({
                 y={yText}
                 className={`${dim ? "fill-[var(--muted)]" : "fill-[var(--ink)]"} text-sm font-medium`}
               >
-                {stacked ? (row.shortLabel ?? row.label) : row.label}
+                {name(row)}
               </text>
               <text
                 aria-hidden
-                x={W}
-                y={yText}
-                textAnchor="end"
+                x={medianBelow ? 0 : W}
+                y={yMedian}
+                textAnchor={medianBelow ? "start" : "end"}
                 className={`${dim ? "fill-[var(--muted)]" : "fill-[var(--ink)]"} text-sm tabular-nums`}
               >
-                median {sgd(s.median)}
+                {medianText(row)}
               </text>
               <g
                 opacity={dim ? 0.3 : 1}

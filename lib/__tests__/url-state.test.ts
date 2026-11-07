@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { parseState, serializeState } from "../url-state.ts";
+import {
+  parseOrigin,
+  parseState,
+  planQuery,
+  restoreOrigin,
+  serializeState,
+} from "../url-state.ts";
 import { defaultDeadline, formatDate, todayInSingapore } from "../dates.ts";
 
 const TODAY = "2026-10-17";
@@ -95,5 +101,63 @@ describe("dates", () => {
       TODAY,
     );
     expect(s.scenario.deadline).toBe("2029-10-31");
+  });
+});
+
+describe("the plan before Hedging's Switch to USD (F08)", () => {
+  it("parses a valid from=JPY.500000 and rejects anything else", () => {
+    expect(parseOrigin("JPY.500000")).toEqual({
+      currency: "JPY",
+      amount: 500000,
+    });
+    expect(parseOrigin("eur.8000.5")).toEqual({
+      currency: "EUR",
+      amount: 8000.5,
+    });
+    for (const bad of [
+      null,
+      "",
+      "XYZ.12",
+      "JPY",
+      "JPY.",
+      "JPY.-5",
+      "JPY.0",
+      "JPY.1e13",
+      "JPY.5000000000000",
+    ])
+      expect(parseOrigin(bad)).toBeUndefined();
+  });
+
+  it("round-trips through the URL", () => {
+    const q =
+      "c=USD&a=500000&s=2026-10-17&d=2027-03-01&k=4&sp=1&t=3&from=JPY.500000";
+    const s = parseState(new URLSearchParams(q), TODAY);
+    expect(s.from).toEqual({ currency: "JPY", amount: 500000 });
+    expect(serializeState(s).get("from")).toBe("JPY.500000");
+  });
+
+  it("links to the planner carry the plan from before the switch", () => {
+    const q = "c=USD&a=3000&s=2026-10-17&d=2027-03-01&from=JPY.500000";
+    const p = new URLSearchParams(planQuery(q));
+    expect(p.get("c")).toBe("JPY");
+    expect(p.get("a")).toBe("500000");
+    expect(p.has("from")).toBe(false);
+    expect(p.get("d")).toBe("2027-03-01");
+    // Without a switch, the query is left exactly as it was.
+    expect(planQuery("c=USD&a=3000")).toBe("c=USD&a=3000");
+    // A bad one is dropped, the plan kept.
+    expect(planQuery("c=USD&a=3000&from=nope")).toBe("c=USD&a=3000");
+  });
+
+  it("restoreOrigin puts the plan back and forgets the switch", () => {
+    const s = parseState(
+      new URLSearchParams("c=USD&a=3000&from=JPY.500000"),
+      TODAY,
+    );
+    const r = restoreOrigin(s);
+    expect(r.scenario.currency).toBe("JPY");
+    expect(r.scenario.amount).toBe(500000);
+    expect(r.from).toBeUndefined();
+    expect(serializeState(r).has("from")).toBe(false);
   });
 });
