@@ -1,6 +1,8 @@
 import type { Summary } from "@/engine/stats.ts";
 import { formatPercent, formatSgdAt } from "@/lib/format.ts";
 import { signedDiff } from "@/lib/signed.ts";
+import { useFit } from "@/lib/use-fit.ts";
+import { Breakable } from "./Breakable";
 
 export type ComparisonRow = {
   id: string;
@@ -73,14 +75,13 @@ export function ComparisonTable({
         const fixed = sgd(r.summary.p5) === sgd(r.summary.p95);
         return (
           <>
-            <span className="whitespace-nowrap">
+            <Breakable>
               {fixed ? `${sgd(r.summary.p5)} ` : `${sgd(r.summary.p5)}–`}
-            </span>
-            {/* Breaks here on narrow screens, never mid-number. */}
+            </Breakable>
+            {/* Breaks here on narrow screens; inside a figure only when
+                that figure alone is too wide. */}
             <wbr />
-            <span className="whitespace-nowrap">
-              {fixed ? "(fixed)" : sgd(r.summary.p95)}
-            </span>
+            <Breakable>{fixed ? "(fixed)" : sgd(r.summary.p95)}</Breakable>
           </>
         );
       })(),
@@ -98,6 +99,12 @@ export function ComparisonTable({
       : []),
   ];
   const dim = (id: string) => (active && active !== id) || undefined;
+  // A figure as text may wrap after its commas if it alone is too wide.
+  const show = (value: React.ReactNode) =>
+    typeof value === "string" ? <Breakable>{value}</Breakable> : value;
+  const fit = useFit<HTMLDivElement>(
+    rows.map((r) => `${r.id}:${r.summary.median}:${r.summary.max}`).join(),
+  );
   const swatch = (color: string) => (
     <span
       aria-hidden
@@ -107,8 +114,9 @@ export function ComparisonTable({
   );
 
   return (
-    <>
-      <table className="hidden w-full text-ui tabular-nums sm:table">
+    // The table from 640px if it fits, else the blocks (lib/use-fit.ts).
+    <div ref={fit} className="fit">
+      <table className="fit-table w-full text-ui tabular-nums">
         <caption className="sr-only">{caption}</caption>
         <thead className="text-left text-muted-foreground">
           <tr className="t-small bg-sunken">
@@ -151,7 +159,7 @@ export function ComparisonTable({
                   key={label}
                   className={`px-2 py-3 text-right ${i === all.length - 1 ? "pr-3" : ""}`}
                 >
-                  {value}
+                  {show(value)}
                 </td>
               ))}
             </tr>
@@ -160,7 +168,7 @@ export function ComparisonTable({
       </table>
 
       {/* Phones: one block per option, the same measures in the same order. */}
-      <ul className="border-t sm:hidden" aria-label={caption}>
+      <ul className="fit-blocks border-t" aria-label={caption}>
         {rows.map((r) => (
           <li
             key={r.id}
@@ -180,13 +188,13 @@ export function ComparisonTable({
               {measures(r).map(([label, value]) => (
                 <div key={label} className="contents">
                   <dt className="text-muted-foreground">{label}</dt>
-                  <dd className="text-right">{value}</dd>
+                  <dd className="text-right">{show(value)}</dd>
                 </div>
               ))}
             </dl>
           </li>
         ))}
       </ul>
-    </>
+    </div>
   );
 }

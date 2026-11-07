@@ -55,7 +55,9 @@ function Tabs({
       className={
         variant === "top"
           ? "hidden h-full items-stretch gap-1 lg:flex"
-          : "fixed inset-x-0 bottom-0 z-30 grid h-14 grid-cols-3 border-t bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden"
+          : // Three equal columns that can shrink, so a label wraps (200%
+            // text) instead of pushing the page sideways.
+            "fixed inset-x-0 bottom-0 z-30 grid min-h-14 grid-cols-[repeat(3,minmax(0,1fr))] border-t bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden"
       }
     >
       {TABS.map(({ href, label, Icon }) => {
@@ -76,7 +78,7 @@ function Tabs({
                       ? "border-accent font-medium text-ink"
                       : "border-transparent text-muted-foreground hover:text-ink"
                   }`
-                : `flex flex-col items-center justify-center gap-0.5 text-annotation font-medium ${
+                : `flex min-w-0 flex-col items-center justify-center gap-0.5 text-center text-annotation font-medium ${
                     active ? "text-accent" : "text-muted-foreground"
                   }`
             }

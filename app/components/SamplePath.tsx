@@ -33,6 +33,8 @@ import { AXIS_STROKE, AXIS_TICK, LINE_WIDTH } from "@/lib/chart-style.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
 import { niceTicks } from "@/lib/ticks.ts";
 import { useCoarsePointer } from "@/lib/use-coarse-pointer.ts";
+import { useFit } from "@/lib/use-fit.ts";
+import { Breakable } from "./Breakable";
 import { ChartLegend, Marker, PointMark } from "./ChartLegend.tsx";
 
 export type Window = ReturnType<typeof sampleWindow>;
@@ -79,6 +81,10 @@ export const SamplePath = memo(function SamplePath({
   // the timeline) starts with no point, and the chart below is keyed by the
   // period, so Recharts' own cursor can't linger without a readout either.
   const [tapped, setTapped] = useState<{ start: string; i?: number }>();
+  // The table if it fits beside the chart, else the phone blocks.
+  const fit = useFit<HTMLDivElement>(
+    `${w.start}:${w.results.lumpSum.totalSgd}:${today?.scale}`,
+  );
   const at = tapped?.start === w.start ? tapped.i : undefined;
   const setAt = (i: number | undefined) => setTapped({ start: w.start, i });
 
@@ -127,7 +133,7 @@ export const SamplePath = memo(function SamplePath({
 
   return (
     <div>
-      <div className="grid gap-8 lg:grid-cols-12 lg:gap-6">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-12 lg:gap-6">
         <div className="min-w-0 lg:col-span-7">
           <div
             className="h-72 w-full"
@@ -250,9 +256,9 @@ export const SamplePath = memo(function SamplePath({
           )}
         </div>
 
-        <div className="min-w-0 lg:col-span-5">
-          {/* Laptops and tablets: a table. */}
-          <table className="t-small hidden w-full tabular-nums sm:table">
+        <div ref={fit} className="fit min-w-0 lg:col-span-5">
+          {/* Laptops and tablets: a table, if it fits (lib/use-fit.ts). */}
+          <table className="fit-table t-small w-full tabular-nums">
             <caption className="sr-only">
               Conversions made by each strategy in this period
             </caption>
@@ -298,14 +304,18 @@ export const SamplePath = memo(function SamplePath({
                       />
                     </td>
                     <td className="py-2.5 pr-3 text-right">
-                      {formatSgdAt(r.totalSgd, w.results.lumpSum.totalSgd)}
+                      <Breakable>
+                        {formatSgdAt(r.totalSgd, w.results.lumpSum.totalSgd)}
+                      </Breakable>
                     </td>
                     {today && (
                       <td
                         className="py-2.5 pr-3 text-right"
                         data-testid={`detail-today-${sid}`}
                       >
-                        {formatSgdAt(today.costs[sid], today.scale)}
+                        <Breakable>
+                          {formatSgdAt(today.costs[sid], today.scale)}
+                        </Breakable>
                       </td>
                     )}
                   </tr>
@@ -317,7 +327,7 @@ export const SamplePath = memo(function SamplePath({
           {/* Phones: one block per strategy, the costs beside its name and
               its conversions under it, date and rate in two columns. */}
           <ul
-            className="t-small border-t tabular-nums sm:hidden"
+            className="fit-blocks t-small border-t tabular-nums"
             aria-label="Conversions made by each strategy in this period"
           >
             {STRATEGY_IDS.map((sid) => {
@@ -334,7 +344,12 @@ export const SamplePath = memo(function SamplePath({
                       <div>
                         <dt className="sr-only">Cost then</dt>
                         <dd>
-                          {formatSgdAt(r.totalSgd, w.results.lumpSum.totalSgd)}{" "}
+                          <Breakable>
+                            {formatSgdAt(
+                              r.totalSgd,
+                              w.results.lumpSum.totalSgd,
+                            )}
+                          </Breakable>{" "}
                           then
                         </dd>
                       </div>
@@ -342,8 +357,10 @@ export const SamplePath = memo(function SamplePath({
                         <div className="text-muted-foreground">
                           <dt className="sr-only">At {rescaled}</dt>
                           <dd>
-                            {formatSgdAt(today.costs[sid], today.scale)} at{" "}
-                            {rescaled}
+                            <Breakable>
+                              {formatSgdAt(today.costs[sid], today.scale)}
+                            </Breakable>{" "}
+                            at {rescaled}
                           </dd>
                         </div>
                       )}
