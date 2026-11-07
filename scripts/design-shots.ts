@@ -211,13 +211,22 @@ const SHOTS: Record<string, Shot> = {
       .getByText(/only has for USD|USD only/)
       .first()
       .waitFor();
+    // Until its rates load, the switch button has no amount yet (PR G).
+    await page.waitForFunction(
+      () =>
+        !document
+          .querySelector('[data-testid="switch-to-usd"]')
+          ?.hasAttribute("disabled"),
+    );
     await page.waitForTimeout(500);
     await viewport(page, name("g-hedging-jpy"));
-    await section(
-      page,
-      name("g-hedging-notice"),
-      "main p:has(svg.text-caution)",
-    );
+    // An element shot: the notice sits below lazy content that can still
+    // settle, so a clip measured beforehand can miss it.
+    await page.locator('main p:has([data-testid="switch-to-usd"])').screenshot({
+      path: name("g-hedging-notice"),
+      type: "jpeg",
+      quality: 72,
+    });
     await page.goto(`${base}/how-it-works`);
     await page.evaluate(() => document.fonts.ready);
     await section(page, name("g-about"), "#about");

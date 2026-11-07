@@ -23,7 +23,7 @@ From the external QA review, after PR F. Copy and display only: no engine, data 
   - Under Copy link: "The link includes this plan's amount, currency, dates and settings."
 - **F08:**
   - Nav (top and tab bar) reads "Hedging (USD)", spoken as "Hedging, USD only". The Hedging lede's planner link and the planner's own links say the same where they point to Hedging.
-  - On Hedging with another currency: a "Switch to USD" button that says exactly what it does, "Price USD 500,000 instead, the same number in US dollars". It never converts or rescales silently.
+  - On Hedging with another currency: a "Switch to USD" button. (Changed at review: it converts the amount exactly as the currency picker does and names the result, "Switch to USD (about USD 3,160 at the rate on 16 Oct 2026)".)
   - The planner links on Hedging then go back to the original plan (JPY 500,000). The original is kept in the address as `from=JPY.500000`.
 - **F06:** above the chart, a group labelled "Start dates shown", and next to it the visible range: "30 Dec 2024 – 30 Dec 2025: 261 of 6,912 periods. Summary figures still use all periods." For All: "All 6,912 periods, 4 Jan 1999 – 30 Dec 2025." The note under the chart goes.
 - **F09:** not current: "Not current: these are for your last valid entry: USD 15,000 by 1 Aug 2027, from 17 Oct 2026, 6 conversions, 0.5% fee, 2% target." Copy link reads "Copy link to that entry" and Excel "Download Excel for that entry" while it applies.

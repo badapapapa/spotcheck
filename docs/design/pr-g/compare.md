@@ -16,11 +16,11 @@ What was checked on `main` first:
 | ![](before/g-about-375-light.jpg) | ![](after/g-about-375-light.jpg) |
 | ![](before/g-about-1440-dark.jpg) | ![](after/g-about-1440-dark.jpg) |
 
-The note under Copy link, and the error screens' "Nothing was saved.", are in the glance pairs below. The page-level error screen has no screenshot, because nothing can trigger it on demand.
+The note under Copy link, and the error screens' "Nothing was saved.", are in the glance pairs below. About no longer repeats the disclaimer; the footer keeps it. The page-level error screen has no screenshot, because nothing can trigger it on demand.
 
 ## F08: Hedging is USD only
 
-The nav reads "Hedging (USD)". With another currency, Switch to USD says what it prices and keeps the plan for the planner.
+The nav reads "Hedging (USD)". With another currency, Switch to USD converts the amount exactly as the currency picker does, says the result first ("about USD 3,160 at the rate on 16 Oct 2026"; the label wraps on phones), and keeps the original plan for the planner.
 
 | Before                                     | After                                     |
 | ------------------------------------------ | ----------------------------------------- |
@@ -71,8 +71,8 @@ On phones, the axis ticks are compact (S$1T) and each median sits under its name
 
 | Check                             | Result                                                                                                                                                                               |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `npm run check`                   | 575 tests passed                                                                                                                                                                     |
-| Playwright                        | 709 passed, 111 skipped by project, 0 failed                                                                                                                                         |
+| `npm run check`                   | 577 tests passed                                                                                                                                                                     |
+| Playwright                        | 717 passed, 111 skipped by project, 0 failed                                                                                                                                         |
 | New tests against `main`'s build  | 20 of 27 fail. The 7 that pass guard behaviour that was already right: storing nothing, a bad `from` ignored, the range chart at normal amounts, and the F05 link hidden on desktop. |
 | axe (WCAG A/AA)                   | 0 violations: Planner, Planner at 1Y, Hedging, Hedging with JPY, How it works, 404, BND, EUR 1e12; at 375 and 1366; both themes                                                      |
 | Parity against `main` (same data) | 0 differences in 146 checks: 5 currencies, each at All/1Y/5Y/10Y, plus USD Hedging. The new "(scheduled …)" labels are set aside; every figure is identical.                         |
