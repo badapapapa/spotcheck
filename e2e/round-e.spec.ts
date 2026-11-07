@@ -29,7 +29,8 @@ async function openTimeline(page: Page) {
   const slider = page.getByRole("slider", { name: "Start of the period" });
   await slider.scrollIntoViewIfNeeded();
   await expect(slider).toBeVisible();
-  const ranges = page.getByRole("group", { name: "Range shown on the chart" });
+  // PR G (F06): the group is named by its visible label.
+  const ranges = page.getByRole("group", { name: "Start dates shown" });
   const attr = async (name: string) => Number(await slider.getAttribute(name));
   return {
     slider,
@@ -84,7 +85,10 @@ test("range buttons: a labelled group, All pressed by default", async ({
     );
   }
   expect(await t.min()).toBe(0);
-  await expect(page.getByTestId("range-note")).toHaveCount(0);
+  // PR G (F06): the scope is stated above the chart for All too.
+  await expect(page.getByTestId("range-note")).toHaveText(
+    /^All [\d,]+ periods, starting \d{1,2} \w{3} \d{4} to \d{1,2} \w{3} \d{4}\.$/,
+  );
 });
 
 test("a range changes the chart only: every result stays the same", async ({
@@ -112,7 +116,7 @@ test("a range changes the chart only: every result stays the same", async ({
   expect(await t.xTicks()).not.toBe(allX);
   expect(await t.yTicks()).not.toBe(allY);
   await expect(page.getByTestId("range-note")).toHaveText(
-    /^Showing periods starting \d{1,2} \w{3} \d{4} to \d{1,2} \w{3} \d{4}\. The results above use all [\d,]+ periods\.$/,
+    /^Periods starting \d{1,2} \w{3} \d{4} to \d{1,2} \w{3} \d{4}: [\d,]+ of [\d,]+\. Summary figures still use all periods\.$/,
   );
   // The glance, the comparison, the summary and the period detail: as before.
   expect(await restOfPage(page)).toBe(before);
