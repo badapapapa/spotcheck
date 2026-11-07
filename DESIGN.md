@@ -213,6 +213,11 @@ Figures never tween through invented intermediate values; they change in one ste
 - **Tablets (640–1023):** one column at a wider measure; the evidence strip shows two figures per row.
 - **Laptops (≥ 1024):** the asymmetric layouts described in section 4 switch on. The header nav appears.
 - **Wide screens:** content stops at 1200px; charts never stretch beyond it.
+- **Huge amounts and 200% text:** the page never scrolls sideways at any width from 320px, for any amount from 1 to 10^12 (`e2e/round-f.spec.ts`).
+  - A money figure stays whole while it fits, and wraps after a thousands separator only when it alone is wider than its box (`Breakable`). Inside a table that isn't stacked it never breaks.
+  - The comparison and period-detail tables show their stacked phone blocks whenever the table would be wider than its box, at any screen width. The glance table stacks each strategy's name above its two figures (`lib/use-fit.ts`).
+  - Grid columns can shrink (`minmax(0, 1fr)`). Value rows drop the value below its label only when they can't share a line. The header and the tab bar wrap their labels.
+- **Errors:** a results section that fails shows its own message with Try again, in place of that section only, and clears when the plan changes, so the converter stays usable (`SectionBoundary`). Chart axes treat a range smaller than rounding noise as flat (`lib/ticks.ts`).
 
 ## 10. History
 

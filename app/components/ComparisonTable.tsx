@@ -48,8 +48,10 @@ export function ComparisonTable({
   // scenario itself costs under S$100).
   const scale = Math.max(...rows.map((r) => r.summary.median));
   const sgd = (v: number) => formatSgdAt(v, scale);
+  // A money figure may wrap after its commas, only if it alone is too wide.
+  const money = (text: string) => <Breakable>{text}</Breakable>;
   const measures = (r: ComparisonRow): [string, React.ReactNode][] => [
-    ["Median", sgd(r.summary.median)],
+    ["Median", money(sgd(r.summary.median))],
     ...(withReference
       ? ([
           [
@@ -57,13 +59,15 @@ export function ComparisonTable({
             // From the rounded medians, so it agrees with the figures shown.
             r.vsReference === undefined
               ? "–"
-              : signedDiff(
-                  r.summary.median,
-                  r.summary.median - r.vsReference,
-                  scale,
+              : money(
+                  signedDiff(
+                    r.summary.median,
+                    r.summary.median - r.vsReference,
+                    scale,
+                  ),
                 ),
           ],
-        ] as [string, string][])
+        ] as [string, React.ReactNode][])
       : []),
     [
       "Middle 90%",
@@ -75,18 +79,20 @@ export function ComparisonTable({
         const fixed = sgd(r.summary.p5) === sgd(r.summary.p95);
         return (
           <>
-            <Breakable>
-              {fixed ? `${sgd(r.summary.p5)} ` : `${sgd(r.summary.p5)}–`}
-            </Breakable>
+            {fixed ? (
+              <>{money(sgd(r.summary.p5))} </>
+            ) : (
+              money(`${sgd(r.summary.p5)}–`)
+            )}
             {/* Breaks here on narrow screens; inside a figure only when
                 that figure alone is too wide. */}
             <wbr />
-            <Breakable>{fixed ? "(fixed)" : sgd(r.summary.p95)}</Breakable>
+            {money(fixed ? "(fixed)" : sgd(r.summary.p95))}
           </>
         );
       })(),
     ],
-    ["Most expensive past period", sgd(r.summary.max)],
+    ["Most expensive past period", money(sgd(r.summary.max))],
     ...(withReference
       ? ([
           [
@@ -99,9 +105,6 @@ export function ComparisonTable({
       : []),
   ];
   const dim = (id: string) => (active && active !== id) || undefined;
-  // A figure as text may wrap after its commas if it alone is too wide.
-  const show = (value: React.ReactNode) =>
-    typeof value === "string" ? <Breakable>{value}</Breakable> : value;
   const fit = useFit<HTMLDivElement>(
     rows.map((r) => `${r.id}:${r.summary.median}:${r.summary.max}`).join(),
   );
@@ -159,7 +162,7 @@ export function ComparisonTable({
                   key={label}
                   className={`px-2 py-3 text-right ${i === all.length - 1 ? "pr-3" : ""}`}
                 >
-                  {show(value)}
+                  {value}
                 </td>
               ))}
             </tr>
@@ -188,7 +191,7 @@ export function ComparisonTable({
               {measures(r).map(([label, value]) => (
                 <div key={label} className="contents">
                   <dt className="text-muted-foreground">{label}</dt>
-                  <dd className="text-right">{show(value)}</dd>
+                  <dd className="text-right">{value}</dd>
                 </div>
               ))}
             </dl>

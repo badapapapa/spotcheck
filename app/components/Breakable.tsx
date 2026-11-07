@@ -7,11 +7,16 @@ import { Fragment } from "react";
  * sideways. The inline block keeps it whole while it fits, so a range still
  * breaks at its dash. `<wbr>` adds no characters, so the figure still reads,
  * copies and is spoken as one number.
+ *
+ * In a table it never breaks (`.figure` in globals.css): a table would
+ * narrow a column to use the break even when the figure fits. A table too
+ * wide for its figures switches to its stacked layout instead
+ * (lib/use-fit.ts), where they may wrap.
  */
 export function Breakable({ children }: { children: string }) {
   const parts = children.split(/(?<=,)/);
   return (
-    <span className="inline-block max-w-full">
+    <span className="figure">
       {parts.map((part, i) => (
         <Fragment key={i}>
           {i > 0 && <wbr />}

@@ -455,6 +455,24 @@
   .fit[data-measuring] > .fit-table {
     display: table;
   }
+  /* A figure (Breakable): whole while it fits, wrapping after a comma only
+     when it alone is wider than its box. */
+  .figure {
+    display: inline-block;
+    max-width: 100%;
+  }
+  /* A figure in a table that isn't stacked is plain unbreakable text, as
+     before Breakable: its inline block and percentage max-width would let
+     the table narrow the column (see Breakable). */
+  .fit:not([data-stacked]) table .figure {
+    display: inline;
+    max-width: none;
+    white-space: nowrap;
+  }
+  /* Chrome breaks at <wbr> even in nowrap text; out of layout, it can't. */
+  .fit:not([data-stacked]) table .figure wbr {
+    display: none;
+  }
   /* The glance table when its three columns don't fit (a huge amount, or
      200% text): each strategy's name on its own line, its median and its
      difference under it. The table keeps explicit ARIA roles, so it is
