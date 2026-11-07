@@ -8,7 +8,7 @@ import { STRATEGY_IDS, type StrategyId } from "@/engine/types.ts";
 import { formatDate } from "@/lib/dates.ts";
 import { formatSgd, formatSgdAt } from "@/lib/format.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
-import { niceTicks, sgdTickDecimals } from "@/lib/ticks.ts";
+import { isFlat, niceTicks, sgdTickDecimals } from "@/lib/ticks.ts";
 import { stepMonth } from "@/lib/periods.ts";
 import {
   clampTo,
@@ -19,6 +19,7 @@ import {
   type RangeId,
 } from "@/lib/ranges.ts";
 import { useWidth } from "@/lib/use-width.ts";
+import { Breakable } from "./Breakable";
 import { LineMark } from "./ChartLegend";
 
 // Right padding keeps the latest period's marker off the plot's edge.
@@ -142,13 +143,16 @@ export function OutcomeTimeline({
       }
     // Fitted to the data with a 5% margin, not stretched to whole tick
     // steps, so the lines fill the chart; round ticks inside that range.
-    // A flat history (the BND peg: every period costs the same) has no
-    // range to fit, so it gets a small band; a zero-height domain would
-    // divide by zero and draw nothing (NaN paths).
+    // A flat history (the BND peg: every period costs the same, give or
+    // take rounding noise) has no range to fit, so it gets a small band
+    // around its middle; fitting to the noise would divide by almost zero.
     const span = (hi - lo) * scale;
-    const pad =
-      span > 0 ? span * 0.05 : Math.max(Math.abs(lo * scale) * 0.01, 1);
-    const domain: [number, number] = [lo * scale - pad, hi * scale + pad];
+    const mid = ((lo + hi) / 2) * scale;
+    const flat = isFlat(lo * scale, hi * scale);
+    const pad = flat ? Math.max(Math.abs(mid) * 0.01, 1) : span * 0.05;
+    const domain: [number, number] = flat
+      ? [mid - pad, mid + pad]
+      : [lo * scale - pad, hi * scale + pad];
     const nice = niceTicks(lo * scale, hi * scale, 6);
     return {
       ...nice,
@@ -380,7 +384,7 @@ export function OutcomeTimeline({
                   className="text-ink tabular-nums"
                   data-testid={`readout-${id}`}
                 >
-                  {formatSgdAt(cost(id, shown), scale)}
+                  <Breakable>{formatSgdAt(cost(id, shown), scale)}</Breakable>
                 </span>
               </span>
             </button>

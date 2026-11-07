@@ -60,7 +60,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Phones: the header stays at the top, so its disclaimer is always
             in view (the planner's summary bar covers it, with its own). */}
         <header className="header-bar sticky top-0 z-40 border-b bg-paper lg:static">
-          <div className="header-inner page flex h-14 items-center justify-between gap-3 lg:h-16 lg:gap-6">
+          {/* 56px tall, or taller only if 200% text pushes the disclaimer
+              onto a line of its own (it must never leave the screen). */}
+          <div className="header-inner page flex min-h-14 flex-wrap items-center justify-between gap-x-3 lg:h-16 lg:flex-nowrap lg:gap-6">
             <div className="flex h-full items-center gap-10">
               <Wordmark />
               <Suspense fallback={<SiteNavFallback variant="top" />}>
@@ -69,7 +71,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </div>
             {/* Visible at every width (CLAUDE.md rule 3); compact on phones. */}
             <p
-              className="text-right text-annotation text-muted-foreground lg:text-sm"
+              className="min-w-0 text-right text-annotation text-muted-foreground lg:text-sm"
               data-testid="header-disclaimer"
             >
               Historical data, not advice

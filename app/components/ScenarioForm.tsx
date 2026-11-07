@@ -18,6 +18,7 @@ import { formatSgdAt } from "@/lib/format.ts";
 import { formatNumberText, readNumberField } from "@/lib/number-input.ts";
 import { todayCost } from "@/lib/today-cost.ts";
 import { LIMITS, serializeState, type PlannerState } from "@/lib/url-state.ts";
+import { Breakable } from "./Breakable";
 import { CurrencyPicker } from "./CurrencyPicker";
 import { HelpTip } from "./HelpTip";
 
@@ -382,7 +383,7 @@ export function ScenarioForm({
           the currency picker. */}
       <p
         // Its own gap: the form's space-y sets each child's bottom margin.
-        className="mb-2 flex items-center gap-2 text-sm text-muted-foreground sm:mb-4"
+        className="mb-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground sm:mb-4"
         data-testid="direction"
       >
         You pay <span className="code-pill">SGD</span>
@@ -394,7 +395,7 @@ export function ScenarioForm({
       {/* Two groups so a phone wraps "by [date]" onto its own line, never
           mid-group; wider screens keep the sentence on one line. */}
       <p className="t-data-m flex flex-wrap items-center gap-x-2.5 gap-y-2 text-ink">
-        <span className="flex flex-wrap items-center gap-2 whitespace-nowrap">
+        <span className="flex max-w-full min-w-0 flex-wrap items-center gap-2 whitespace-nowrap">
           I need
           <input
             {...field("amount")}
@@ -413,7 +414,7 @@ export function ScenarioForm({
             type="text"
             autoComplete="off"
             spellCheck={false}
-            className="field-chip text-right tabular-nums"
+            className="field-chip max-w-full text-right tabular-nums"
             // Grows with the number so the sentence stays tidy.
             style={{
               width: `calc(${Math.max(4, draft.amount.length) + 0.5}ch + 1.75rem)`,
@@ -422,7 +423,7 @@ export function ScenarioForm({
           <CurrencyPicker value={currency} onChange={changeCurrency} />
         </span>
         <span
-          className={`flex items-center gap-2 whitespace-nowrap ${
+          className={`flex max-w-full min-w-0 flex-wrap items-center gap-2 whitespace-nowrap ${
             chips ? "" : "max-sm:basis-full"
           }`}
         >
@@ -442,7 +443,7 @@ export function ScenarioForm({
             min={deadlineMin}
             max={deadlineMax}
             // Sized to the date it shows, so the sentence fits on one line.
-            className="field-chip w-[calc(9.2em+1.75rem)] tabular-nums"
+            className="field-chip w-[calc(9.2em+1.75rem)] max-w-full tabular-nums"
           />
         </span>
       </p>
@@ -475,7 +476,9 @@ export function ScenarioForm({
         // on the start date (equal to the All at once result). Same height
         // loaded or not.
         <div className="border-t pt-3 sm:pt-4">
-          <div className="flex items-baseline justify-between gap-4">
+          {/* Wraps only when a huge figure (or 200% text) can't fit beside
+              its label; the figure then keeps to the right. */}
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4">
             <p className="t-label" data-testid="convert-when">
               {noCost
                 ? "Converting it all"
@@ -488,7 +491,9 @@ export function ScenarioForm({
                 className={`t-data-m tabular-nums ${invalid ? "text-muted-foreground" : ""}`}
                 data-testid="today-cost"
               >
-                {formatSgdAt(cost.withSpread, cost.withSpread)}
+                <Breakable>
+                  {formatSgdAt(cost.withSpread, cost.withSpread)}
+                </Breakable>
               </p>
             ) : (
               // Invisible text of the same shape, so the row has the same
@@ -509,7 +514,10 @@ export function ScenarioForm({
                 `For ${s.currency} ${formatNumberText(s.amount)}, your last valid entry`
               ) : (
                 <>
-                  {formatSgdAt(cost.mid, cost.withSpread)} at mid rate
+                  <Breakable>
+                    {formatSgdAt(cost.mid, cost.withSpread)}
+                  </Breakable>{" "}
+                  at mid rate
                   <HelpTip term="the mid rate" inline>
                     The midpoint between the prices banks buy and sell a
                     currency at, before any fees. Every rate in SpotCheck is a

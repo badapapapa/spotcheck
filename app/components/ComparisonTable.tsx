@@ -1,6 +1,8 @@
 import type { Summary } from "@/engine/stats.ts";
 import { formatPercent, formatSgdAt } from "@/lib/format.ts";
 import { signedDiff } from "@/lib/signed.ts";
+import { useFit } from "@/lib/use-fit.ts";
+import { Breakable } from "./Breakable";
 
 export type ComparisonRow = {
   id: string;
@@ -46,8 +48,10 @@ export function ComparisonTable({
   // scenario itself costs under S$100).
   const scale = Math.max(...rows.map((r) => r.summary.median));
   const sgd = (v: number) => formatSgdAt(v, scale);
+  // A money figure may wrap after its commas, only if it alone is too wide.
+  const money = (text: string) => <Breakable>{text}</Breakable>;
   const measures = (r: ComparisonRow): [string, React.ReactNode][] => [
-    ["Median", sgd(r.summary.median)],
+    ["Median", money(sgd(r.summary.median))],
     ...(withReference
       ? ([
           [
@@ -55,13 +59,15 @@ export function ComparisonTable({
             // From the rounded medians, so it agrees with the figures shown.
             r.vsReference === undefined
               ? "–"
-              : signedDiff(
-                  r.summary.median,
-                  r.summary.median - r.vsReference,
-                  scale,
+              : money(
+                  signedDiff(
+                    r.summary.median,
+                    r.summary.median - r.vsReference,
+                    scale,
+                  ),
                 ),
           ],
-        ] as [string, string][])
+        ] as [string, React.ReactNode][])
       : []),
     [
       "Middle 90%",
@@ -73,19 +79,20 @@ export function ComparisonTable({
         const fixed = sgd(r.summary.p5) === sgd(r.summary.p95);
         return (
           <>
-            <span className="whitespace-nowrap">
-              {fixed ? `${sgd(r.summary.p5)} ` : `${sgd(r.summary.p5)}–`}
-            </span>
-            {/* Breaks here on narrow screens, never mid-number. */}
+            {fixed ? (
+              <>{money(sgd(r.summary.p5))} </>
+            ) : (
+              money(`${sgd(r.summary.p5)}–`)
+            )}
+            {/* Breaks here on narrow screens; inside a figure only when
+                that figure alone is too wide. */}
             <wbr />
-            <span className="whitespace-nowrap">
-              {fixed ? "(fixed)" : sgd(r.summary.p95)}
-            </span>
+            {money(fixed ? "(fixed)" : sgd(r.summary.p95))}
           </>
         );
       })(),
     ],
-    ["Most expensive past period", sgd(r.summary.max)],
+    ["Most expensive past period", money(sgd(r.summary.max))],
     ...(withReference
       ? ([
           [
@@ -98,6 +105,9 @@ export function ComparisonTable({
       : []),
   ];
   const dim = (id: string) => (active && active !== id) || undefined;
+  const fit = useFit<HTMLDivElement>(
+    rows.map((r) => `${r.id}:${r.summary.median}:${r.summary.max}`).join(),
+  );
   const swatch = (color: string) => (
     <span
       aria-hidden
@@ -107,8 +117,9 @@ export function ComparisonTable({
   );
 
   return (
-    <>
-      <table className="hidden w-full text-ui tabular-nums sm:table">
+    // The table from 640px if it fits, else the blocks (lib/use-fit.ts).
+    <div ref={fit} className="fit">
+      <table className="fit-table w-full text-ui tabular-nums">
         <caption className="sr-only">{caption}</caption>
         <thead className="text-left text-muted-foreground">
           <tr className="t-small bg-sunken">
@@ -160,7 +171,7 @@ export function ComparisonTable({
       </table>
 
       {/* Phones: one block per option, the same measures in the same order. */}
-      <ul className="border-t sm:hidden" aria-label={caption}>
+      <ul className="fit-blocks border-t" aria-label={caption}>
         {rows.map((r) => (
           <li
             key={r.id}
@@ -187,6 +198,6 @@ export function ComparisonTable({
           </li>
         ))}
       </ul>
-    </>
+    </div>
   );
 }

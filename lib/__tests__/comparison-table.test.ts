@@ -43,8 +43,11 @@ const RESULTS: [string, ReplayResult][] = [
   ["BND (peg)", scenario("BND", 290, 6)],
 ];
 
+// <wbr> (a figure's break points, see Breakable) adds no text, so it goes
+// without leaving a space, as in the browser's own text.
 const text = (html: string) =>
   html
+    .replace(/<wbr\/?>/g, "")
     .replace(/<[^>]+>/g, " ")
     .replace(/&[a-z]+;|&#\d+;/g, " ")
     .replace(/\s+/g, " ");
@@ -88,11 +91,18 @@ function glance(r: ReplayResult) {
     }),
   );
 }
-/** A row's markup with its content stripped: what's left is its styling. */
+/**
+ * A row's markup with its content stripped: what's left is its styling.
+ * A figure's <wbr> break points are content too: their number follows the
+ * figure's digits (S$950 has none, S$19,255 one).
+ */
 const shape = (row: string) =>
-  row.replace(/style="[^"]*"/g, "").replace(/>[^<]*</g, "><");
+  row
+    .replace(/<wbr\/?>/g, "")
+    .replace(/style="[^"]*"/g, "")
+    .replace(/>[^<]*</g, "><");
 const bodyRows = (html: string) =>
-  [...html.matchAll(/<tbody>([\s\S]*?)<\/tbody>/g)].flatMap((b) =>
+  [...html.matchAll(/<tbody\b[^>]*>([\s\S]*?)<\/tbody>/g)].flatMap((b) =>
     [...b[1]!.matchAll(/<tr\b[^>]*>[\s\S]*?<\/tr>/g)].map((m) => m[0]),
   );
 

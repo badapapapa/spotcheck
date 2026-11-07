@@ -27,7 +27,7 @@ import {
 import { trendNote } from "@/lib/trend.ts";
 import { useLoad } from "@/lib/use-data.ts";
 import { usePlannerState } from "@/lib/use-planner-state.ts";
-import type { PlannerState } from "@/lib/url-state.ts";
+import { serializeState, type PlannerState } from "@/lib/url-state.ts";
 import { Info } from "lucide-react";
 import { lazy, Suspense, useCallback } from "react";
 import { ComparisonTable } from "../ComparisonTable";
@@ -35,6 +35,7 @@ import { HISTORICAL_CONTEXT } from "../Glance";
 import { RangeChart } from "../DistributionChart";
 import { LoadError } from "../LoadError";
 import { ScenarioForm, type DateIssue } from "../ScenarioForm";
+import { SectionBoundary } from "../SectionBoundary";
 import { ForwardPanel } from "./ForwardPanel";
 // The option panel is the only part of this page that draws with Recharts
 // (110 KB gzipped). Loading it just after the page keeps that library out
@@ -145,7 +146,18 @@ export function Advanced() {
         </div>
       )}
       {loaded && !issue && (
-        <Panels data={loaded} state={state} setState={setState} today={today} />
+        // If a panel throws, the converter above still works.
+        <SectionBoundary
+          what="the hedges"
+          resetKey={serializeState(state).toString()}
+        >
+          <Panels
+            data={loaded}
+            state={state}
+            setState={setState}
+            today={today}
+          />
+        </SectionBoundary>
       )}
     </>
   );

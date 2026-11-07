@@ -3,7 +3,9 @@ import { STRATEGY_IDS, type StrategyId } from "@/engine/types.ts";
 import { formatSgdAt } from "@/lib/format.ts";
 import { signedDiff } from "@/lib/signed.ts";
 import { STRATEGY_STYLE } from "@/lib/strategy-style.ts";
+import { useFit } from "@/lib/use-fit.ts";
 import type { PlannerState } from "@/lib/url-state.ts";
+import { Breakable } from "./Breakable";
 import { CopyLinkButton } from "./CopyLinkButton";
 
 /** The context line that sits next to every set of historical results. */
@@ -43,6 +45,9 @@ export function Glance({
 }) {
   const lump = result.stats.lumpSum.summary.median;
   const shown = `${state.scenario.currency} ${state.scenario.amount.toLocaleString("en-SG")}`;
+  const fit = useFit<HTMLDivElement>(
+    STRATEGY_IDS.map((id) => result.stats[id].summary.median).join(),
+  );
   return (
     // Results that aren't current keep their place, but their figures turn
     // muted (still 4.5:1, unlike the opacity this replaced) and the line
@@ -75,72 +80,93 @@ export function Glance({
           </span>
         </p>
       )}
-      <table className="mt-5 w-full tabular-nums">
-        <caption className="sr-only">
-          Median historical cost of each strategy
-        </caption>
-        <thead className="t-label text-left">
-          <tr className="border-b">
-            <th scope="col" className="pb-2 font-medium">
-              Strategy
-            </th>
-            <th scope="col" className="pb-2 text-right font-medium">
-              Median
-            </th>
-            <th scope="col" className="pb-2 pl-3 text-right font-medium">
-              {/* Two short lines on narrow phones, so the names fit on one line. */}
-              <span className="max-[25rem]:block">vs all</span>{" "}
-              <span className="max-[25rem]:block">at once</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {STRATEGY_IDS.map((id) => {
-            const median = result.stats[id].summary.median;
-            const dim = active !== null && active !== id;
-            return (
-              <tr
-                key={id}
-                className="border-b transition-colors duration-150"
-                data-dimmed={dim || undefined}
+      {/* Three columns while they fit; stacked (name, then its two figures)
+          for a huge amount or 200% text (lib/use-fit.ts). The explicit
+          roles keep it a table for screen readers when stacked. */}
+      <div ref={fit} className="fit glance-fit mt-5">
+        <table role="table" className="w-full tabular-nums">
+          <caption className="sr-only">
+            Median historical cost of each strategy
+          </caption>
+          <thead role="rowgroup" className="t-label text-left">
+            <tr role="row" className="border-b">
+              <th role="columnheader" scope="col" className="pb-2 font-medium">
+                Strategy
+              </th>
+              <th
+                role="columnheader"
+                scope="col"
+                className="pb-2 text-right font-medium"
               >
-                <th scope="row" className="text-left font-normal">
-                  <button
-                    type="button"
-                    aria-pressed={pinned === id}
-                    onClick={() => onToggle(id)}
-                    onMouseEnter={() => onHover(id)}
-                    onMouseLeave={() => onHover(null)}
-                    onFocus={() => onHover(id)}
-                    onBlur={() => onHover(null)}
-                    className="-ml-2 flex min-h-12 w-full items-center gap-2.5 rounded-sm px-2 text-left hover:bg-sunken aria-pressed:bg-sunken"
+                Median
+              </th>
+              <th
+                role="columnheader"
+                scope="col"
+                className="pb-2 pl-3 text-right font-medium"
+              >
+                {/* Two short lines on narrow phones, so the names fit on one line. */}
+                <span className="max-[25rem]:block">vs all</span>{" "}
+                <span className="max-[25rem]:block">at once</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody role="rowgroup">
+            {STRATEGY_IDS.map((id) => {
+              const median = result.stats[id].summary.median;
+              const dim = active !== null && active !== id;
+              return (
+                <tr
+                  key={id}
+                  role="row"
+                  className="border-b transition-colors duration-150"
+                  data-dimmed={dim || undefined}
+                >
+                  <th
+                    role="rowheader"
+                    scope="row"
+                    className="text-left font-normal"
                   >
-                    <span
-                      aria-hidden
-                      className="mark size-2.5 shrink-0 rounded-full"
-                      style={{ background: STRATEGY_STYLE[id].color }}
-                    />
-                    {STRATEGY_STYLE[id].label}
-                  </button>
-                </th>
-                <td className="t-data-m text-right">
-                  {formatSgdAt(median, lump)}
-                </td>
-                <td className="t-small pl-3 text-right text-muted-foreground">
-                  {id === "lumpSum" ? (
-                    <span>
-                      <span aria-hidden>–</span>
-                      <span className="sr-only">the reference</span>
-                    </span>
-                  ) : (
-                    signedDiff(median, lump, lump)
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                    <button
+                      type="button"
+                      aria-pressed={pinned === id}
+                      onClick={() => onToggle(id)}
+                      onMouseEnter={() => onHover(id)}
+                      onMouseLeave={() => onHover(null)}
+                      onFocus={() => onHover(id)}
+                      onBlur={() => onHover(null)}
+                      className="-ml-2 flex min-h-12 w-full items-center gap-2.5 rounded-sm px-2 text-left hover:bg-sunken aria-pressed:bg-sunken"
+                    >
+                      <span
+                        aria-hidden
+                        className="mark size-2.5 shrink-0 rounded-full"
+                        style={{ background: STRATEGY_STYLE[id].color }}
+                      />
+                      {STRATEGY_STYLE[id].label}
+                    </button>
+                  </th>
+                  <td role="cell" className="t-data-m text-right">
+                    <Breakable>{formatSgdAt(median, lump)}</Breakable>
+                  </td>
+                  <td
+                    role="cell"
+                    className="t-small pl-3 text-right text-muted-foreground"
+                  >
+                    {id === "lumpSum" ? (
+                      <span>
+                        <span aria-hidden>–</span>
+                        <span className="sr-only">the reference</span>
+                      </span>
+                    ) : (
+                      <Breakable>{signedDiff(median, lump, lump)}</Breakable>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       <p className="t-small mt-3 text-muted-foreground" data-testid="vs-key">
         vs all at once: negative = cost less than converting all at once.
       </p>

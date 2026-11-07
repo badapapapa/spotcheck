@@ -40,7 +40,7 @@ import { describeReplay } from "@/lib/summary.ts";
 import { trendNote } from "@/lib/trend.ts";
 import { useLoad } from "@/lib/use-data.ts";
 import { usePlannerState } from "@/lib/use-planner-state.ts";
-import type { PlannerState } from "@/lib/url-state.ts";
+import { serializeState, type PlannerState } from "@/lib/url-state.ts";
 import { ComparisonTable } from "./ComparisonTable";
 import { DistributionChart } from "./DistributionChart";
 import { Glance, GlanceProgress, HISTORICAL_CONTEXT } from "./Glance";
@@ -48,6 +48,7 @@ import { DataNote } from "./DataNote";
 import { LoadError } from "./LoadError";
 import { ScenarioForm, type DateIssue } from "./ScenarioForm";
 import { ScenarioLink } from "./ScenarioLink";
+import { SectionBoundary } from "./SectionBoundary";
 import { StrategyGuide } from "./StrategyGuide";
 
 // Both sit well below the first screen, and SamplePath brings in the chart
@@ -68,6 +69,8 @@ const SamplePath = lazy(() =>
  */
 export function Planner() {
   const [state, setState, today] = usePlannerState();
+  // A results section that failed is shown afresh for a new plan.
+  const planKey = serializeState(state).toString();
   const { scenario } = state;
   const currency = findCurrency(scenario.currency)!;
   const fx = useLoad(`fx:${scenario.currency}`, () =>
@@ -241,19 +244,21 @@ export function Planner() {
             {outcome.error}. Try a shorter period.
           </p>
         ) : result ? (
-          <div className="fade-in">
-            <Glance
-              result={result}
-              state={state}
-              pegged={currency.peggedToSgd === true}
-              stale={stale}
-              outdated={formInvalid}
-              active={active}
-              pinned={pinned}
-              onHover={setActive}
-              onToggle={toggle}
-            />
-          </div>
+          <SectionBoundary what="the results" resetKey={planKey}>
+            <div className="fade-in">
+              <Glance
+                result={result}
+                state={state}
+                pegged={currency.peggedToSgd === true}
+                stale={stale}
+                outdated={formInvalid}
+                active={active}
+                pinned={pinned}
+                onHover={setActive}
+                onToggle={toggle}
+              />
+            </div>
+          </SectionBoundary>
         ) : (
           <GlanceProgress periods={periodsToCheck} />
         )}
@@ -293,105 +298,107 @@ export function Planner() {
             <DataNote code={scenario.currency} className="mt-3" />
           </div>
         </div>
-        <div className="mt-10">
-          {result ? (
-            // Not current (a newer set is on its way, or a field isn't valid
-            // yet): the figures turn muted in place, as in the glance.
-            <div
-              className="space-y-8"
-              data-stale={stale || formInvalid || undefined}
-              aria-busy={stale || undefined}
-            >
-              <DistributionChart
-                result={result}
-                active={active}
-                onActive={setActive}
-                onToggle={toggle}
-              />
-              <div>
-                <ComparisonTable
-                  caption="SGD cost of each strategy across comparable past periods"
-                  rowHeader="Strategy"
+        <SectionBoundary what="the comparison" resetKey={planKey}>
+          <div className="mt-10">
+            {result ? (
+              // Not current (a newer set is on its way, or a field isn't valid
+              // yet): the figures turn muted in place, as in the glance.
+              <div
+                className="space-y-8"
+                data-stale={stale || formInvalid || undefined}
+                aria-busy={stale || undefined}
+              >
+                <DistributionChart
+                  result={result}
                   active={active}
                   onActive={setActive}
-                  reference="all at once"
-                  rows={STRATEGY_IDS.map((id) => ({
-                    id,
-                    vsReference:
-                      id === "lumpSum"
-                        ? undefined
-                        : result.stats[id].summary.median -
-                          result.stats.lumpSum.summary.median,
-                    cheaperShare:
-                      id === "lumpSum"
-                        ? undefined
-                        : result.stats[id].beatLumpSum,
-                    label: STRATEGY_STYLE[id].label,
-                    note: STRATEGY_STYLE[id].subtitle,
-                    color: STRATEGY_STYLE[id].color,
-                    summary: result.stats[id].summary,
-                  }))}
+                  onToggle={toggle}
                 />
-              </div>
-              {/* Laptops: the sentences on the left, how to read the table
+                <div>
+                  <ComparisonTable
+                    caption="SGD cost of each strategy across comparable past periods"
+                    rowHeader="Strategy"
+                    active={active}
+                    onActive={setActive}
+                    reference="all at once"
+                    rows={STRATEGY_IDS.map((id) => ({
+                      id,
+                      vsReference:
+                        id === "lumpSum"
+                          ? undefined
+                          : result.stats[id].summary.median -
+                            result.stats.lumpSum.summary.median,
+                      cheaperShare:
+                        id === "lumpSum"
+                          ? undefined
+                          : result.stats[id].beatLumpSum,
+                      label: STRATEGY_STYLE[id].label,
+                      note: STRATEGY_STYLE[id].subtitle,
+                      color: STRATEGY_STYLE[id].color,
+                      summary: result.stats[id].summary,
+                    }))}
+                  />
+                </div>
+                {/* Laptops: the sentences on the left, how to read the table
                   and what shaped the history on the right (a column that was
                   empty). Phones: the notes first, the sentences folded. */}
-              <div className="grid gap-8 lg:grid-cols-12 lg:gap-6">
-                <div
-                  className="t-small space-y-3 text-muted-foreground lg:col-span-5 lg:col-start-8 lg:row-start-1"
-                  data-testid="reading-notes"
-                >
-                  <p>
-                    <span className="font-medium text-ink">
-                      Median vs all at once:
-                    </span>{" "}
-                    the difference from converting it all{" "}
-                    {ctx ? convertWhen(ctx) : "today"}; negative = cost less.{" "}
-                    <span className="font-medium text-ink">Middle 90%:</span>{" "}
-                    from low to high, the range 90% of past periods fell in.{" "}
-                    <span className="font-medium text-ink">
-                      Most expensive past period:
-                    </span>{" "}
-                    the highest cost in this history.{" "}
-                    <span className="font-medium text-ink">
-                      Cheaper than all at once:
-                    </span>{" "}
-                    the share of past periods that cost less. It is a share of
-                    past periods, not a probability.
-                  </p>
-                  {trend && <p data-testid="trend-note">{trend}</p>}
-                  <p className="font-medium text-ink">
-                    {HISTORICAL_CONTEXT}{" "}
-                    <ScenarioLink href="/how-it-works" className="link">
-                      How the history is tested
-                    </ScenarioLink>
-                  </p>
+                <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-12 lg:gap-6">
+                  <div
+                    className="t-small space-y-3 text-muted-foreground lg:col-span-5 lg:col-start-8 lg:row-start-1"
+                    data-testid="reading-notes"
+                  >
+                    <p>
+                      <span className="font-medium text-ink">
+                        Median vs all at once:
+                      </span>{" "}
+                      the difference from converting it all{" "}
+                      {ctx ? convertWhen(ctx) : "today"}; negative = cost less.{" "}
+                      <span className="font-medium text-ink">Middle 90%:</span>{" "}
+                      from low to high, the range 90% of past periods fell in.{" "}
+                      <span className="font-medium text-ink">
+                        Most expensive past period:
+                      </span>{" "}
+                      the highest cost in this history.{" "}
+                      <span className="font-medium text-ink">
+                        Cheaper than all at once:
+                      </span>{" "}
+                      the share of past periods that cost less. It is a share of
+                      past periods, not a probability.
+                    </p>
+                    {trend && <p data-testid="trend-note">{trend}</p>}
+                    <p className="font-medium text-ink">
+                      {HISTORICAL_CONTEXT}{" "}
+                      <ScenarioLink href="/how-it-works" className="link">
+                        How the history is tested
+                      </ScenarioLink>
+                    </p>
+                  </div>
+                  <PlainWords
+                    lines={describeReplay(
+                      result,
+                      deferred.scenario,
+                      deferred.targetBelowSpot,
+                      ctx,
+                    )}
+                  />
                 </div>
-                <PlainWords
-                  lines={describeReplay(
-                    result,
-                    deferred.scenario,
-                    deferred.targetBelowSpot,
-                    ctx,
-                  )}
-                />
               </div>
-            </div>
-          ) : fx.status === "error" || issue ? (
-            <p className="text-muted-foreground">
-              The comparison appears here once{" "}
-              {issue
-                ? "the plan has a start date the data covers"
-                : "the rate history loads"}
-              .
-            </p>
-          ) : (
-            <div aria-hidden className="space-y-8">
-              <div className="skeleton h-[244px]" />
-              <div className="skeleton h-56" />
-            </div>
-          )}
-        </div>
+            ) : fx.status === "error" || issue ? (
+              <p className="text-muted-foreground">
+                The comparison appears here once{" "}
+                {issue
+                  ? "the plan has a start date the data covers"
+                  : "the rate history loads"}
+                .
+              </p>
+            ) : (
+              <div aria-hidden className="space-y-8">
+                <div className="skeleton h-[244px]" />
+                <div className="skeleton h-56" />
+              </div>
+            )}
+          </div>
+        </SectionBoundary>
       </section>
 
       {/* Exploration: every past period, then one in detail. */}
@@ -416,53 +423,55 @@ export function Planner() {
               </p>
             </div>
           </div>
-          {/* The timeline's measured height at each width (range buttons,
+          <SectionBoundary what="these charts" resetKey={planKey}>
+            {/* The timeline's measured height at each width (range buttons,
               readout, legend, chart, and on phones the note and month
               buttons). */}
-          <div className="mt-8 min-h-[588px] sm:min-h-[560px] md:min-h-[476px] lg:min-h-[432px]">
-            {result ? (
-              <Suspense
-                fallback={
-                  <div
-                    aria-hidden
-                    className="skeleton h-[588px] bg-paper sm:h-[560px] md:h-[476px] lg:h-[432px]"
+            <div className="mt-8 min-h-[588px] sm:min-h-[560px] md:min-h-[476px] lg:min-h-[432px]">
+              {result ? (
+                <Suspense
+                  fallback={
+                    <div
+                      aria-hidden
+                      className="skeleton h-[588px] bg-paper sm:h-[560px] md:h-[476px] lg:h-[432px]"
+                    />
+                  }
+                >
+                  <Timeline
+                    store={periods}
+                    windowsKey={windowsKey}
+                    result={result}
+                    amount={deferred.scenario.amount}
+                    active={active}
+                    pinned={pinned}
+                    onActive={setActive}
+                    onToggle={toggle}
+                    rescaled={rescaled}
                   />
-                }
-              >
-                <Timeline
+                </Suspense>
+              ) : (
+                <div
+                  aria-hidden
+                  className="skeleton h-[588px] bg-paper sm:h-[560px] md:h-[476px] lg:h-[432px]"
+                />
+              )}
+            </div>
+
+            <div className="mt-10 border-t pt-8">
+              {result && series ? (
+                <PeriodDetail
                   store={periods}
                   windowsKey={windowsKey}
                   result={result}
-                  amount={deferred.scenario.amount}
-                  active={active}
-                  pinned={pinned}
-                  onActive={setActive}
-                  onToggle={toggle}
+                  series={series}
+                  planned={deferred}
                   rescaled={rescaled}
                 />
-              </Suspense>
-            ) : (
-              <div
-                aria-hidden
-                className="skeleton h-[588px] bg-paper sm:h-[560px] md:h-[476px] lg:h-[432px]"
-              />
-            )}
-          </div>
-
-          <div className="mt-10 border-t pt-8">
-            {result && series ? (
-              <PeriodDetail
-                store={periods}
-                windowsKey={windowsKey}
-                result={result}
-                series={series}
-                planned={deferred}
-                rescaled={rescaled}
-              />
-            ) : (
-              <div aria-hidden className="skeleton h-[34rem] bg-paper" />
-            )}
-          </div>
+              ) : (
+                <div aria-hidden className="skeleton h-[34rem] bg-paper" />
+              )}
+            </div>
+          </SectionBoundary>
         </div>
       </section>
 
