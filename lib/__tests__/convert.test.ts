@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { convertAmount, roundSignificant } from "../convert.ts";
+import { rateAsOf } from "@/engine/calendar.ts";
+import { loadFx, loadUsd } from "@/engine/__tests__/helpers.ts";
+import { convertAmount, convertBetween, roundSignificant } from "../convert.ts";
 
 describe("roundSignificant", () => {
   it("keeps 3 significant figures", () => {
@@ -32,5 +34,28 @@ describe("convertAmount", () => {
 
   it("never goes below the form's minimum of 1 unit", () => {
     expect(convertAmount(15_000, VND, USD)).toBe(1); // S$0.73 is 0.57 USD
+  });
+});
+
+describe("convertBetween (the picker's and Hedging's Switch to USD)", () => {
+  const jpy = loadFx("JPY");
+  const usd = loadUsd();
+
+  it("uses both rates as of the start date, then convertAmount's rounding", () => {
+    const r = convertBetween(500_000, jpy, usd, "2026-10-17");
+    const a = rateAsOf(jpy, "2026-10-17").value;
+    const b = rateAsOf(usd, "2026-10-17").value;
+    expect(r.amount).toBe(convertAmount(500_000, a, b));
+    // JPY 500,000 is a few thousand US dollars, not 500,000.
+    expect(r.amount).toBeGreaterThan(2_000);
+    expect(r.amount).toBeLessThan(5_000);
+    expect(r.latest).toBe(false);
+    expect(r.rateDate <= "2026-10-17").toBe(true);
+  });
+
+  it("a start on or after the newest rate converts at the latest rate", () => {
+    const r = convertBetween(500_000, jpy, usd, "2099-01-01");
+    expect(r.latest).toBe(true);
+    expect(r.rateDate).toBe(usd.dates.at(-1));
   });
 });

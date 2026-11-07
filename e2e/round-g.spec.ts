@@ -62,22 +62,36 @@ test.describe("F08: Hedging is USD only", () => {
     ).toBeVisible();
   });
 
-  test("Switch to USD says what it prices and keeps the plan for the planner", async ({
+  test("Switch to USD converts as the currency picker does, says the result, and keeps the plan for the planner", async ({
     page,
   }) => {
-    await page.goto(
-      "/advanced?c=JPY&a=500000&s=2026-10-17&d=2027-03-01&k=4&sp=1&t=3",
-    );
+    const plan = "s=2026-10-17&d=2027-03-01&k=4&sp=1&t=3";
+    // What the currency picker makes of JPY 500,000 in USD.
+    await page.goto(`/?c=JPY&a=500000&${plan}`);
+    await page.getByLabel("Currency you need").click();
+    await page
+      .getByPlaceholder("Country, currency or code")
+      .fill("United States");
+    await page.getByRole("option", { name: /\bUSD\b/ }).click();
+    const amount = page.getByLabel("Amount needed (USD)");
+    await expect(amount).not.toHaveValue("500,000");
+    const picked = await amount.inputValue();
+
+    await page.goto(`/advanced?c=JPY&a=500000&${plan}`);
     await expect(
       page.getByText(/Hedging prices USD only for now/),
     ).toBeVisible();
+    const button = page.getByTestId("switch-to-usd");
+    // The result, before the click, with the rate it uses.
+    await expect(button).toHaveText(
+      // 17 Oct 2026 is a Saturday: the rate before it, as the picker uses.
+      `Switch to USD (about USD ${picked} at the rate on 16 Oct 2026)`,
+    );
     await expect(
-      page.getByText(
-        "This prices USD 500,000 instead: the same number, in US dollars. Your plan on the planner stays JPY 500,000.",
-      ),
+      page.getByText("Your plan on the planner stays JPY 500,000."),
     ).toBeVisible();
-    await page.getByTestId("switch-to-usd").click();
-    await expect(page.getByLabel("Amount needed (USD)")).toHaveValue("500,000");
+    await button.click();
+    await expect(page.getByLabel("Amount needed (USD)")).toHaveValue(picked);
     await expect(page.getByTestId("switched-from")).toContainText(
       "Switched to USD from JPY 500,000",
     );
@@ -94,6 +108,34 @@ test.describe("F08: Hedging is USD only", () => {
     await planner.click();
     await expect(page.getByLabel("Amount needed (JPY)")).toHaveValue("500,000");
     await expect(page).not.toHaveURL(/from=/);
+  });
+
+  test("the switch's long label wraps instead of widening the page", async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({
+      viewport: { width: 320, height: 700 },
+      isMobile: true,
+      hasTouch: true,
+    });
+    const page = await ctx.newPage();
+    await page.goto(
+      "/advanced?c=JPY&a=500000&s=2026-10-17&d=2027-03-01&k=4&sp=1&t=3",
+    );
+    await expect(page.getByTestId("switch-to-usd")).toBeEnabled();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(320);
+    await ctx.close();
+  });
+
+  test("a plan starting today converts at the latest rate", async ({
+    page,
+  }) => {
+    await page.goto("/advanced?c=JPY&a=500000");
+    await expect(page.getByTestId("switch-to-usd")).toHaveText(
+      /^Switch to USD \(about USD \d{1,3}(,\d{3})* at the latest rate\)$/,
+    );
   });
 
   test("the planner opened with a switch in the address shows the original plan", async ({

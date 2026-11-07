@@ -218,7 +218,7 @@ Figures never tween through invented intermediate values; they change in one ste
   - The comparison and period-detail tables show their stacked phone blocks whenever the table would be wider than its box, at any screen width. The glance table stacks each strategy's name above its two figures (`lib/use-fit.ts`).
   - Grid columns can shrink (`minmax(0, 1fr)`). Value rows drop the value below its label only when they can't share a line. The header and the tab bar wrap their labels.
 - **Saying what is shown (PR G):**
-  - The nav reads "Hedging (USD)". On Hedging with another currency, "Switch to USD" says what it prices (the same number, in US dollars; nothing is converted) and keeps the plan from before the switch in the address (`from=JPY.500000`), so the planner's links still lead back to it.
+  - The nav reads "Hedging (USD)". On Hedging with another currency, "Switch to USD" converts the amount exactly as the currency picker does and names the result ("about USD 3,160 at the rate on 16 Oct 2026") and keeps the plan from before the switch in the address (`from=JPY.500000`), so the planner's links still lead back to it.
   - Results that aren't current name the whole last valid entry, and Copy link and Excel say they are for "that entry".
   - Under Copy link: what the link includes. About: no account or cookies, what a shared link shows, and that Cloudflare Web Analytics records the page, not the scenario.
   - Phones: "Explore past periods" after the glance's links jumps to the timeline, clear of the summary bar.

@@ -4,7 +4,6 @@ import { ScenarioLink } from "../components/ScenarioLink";
 import meta from "@/data/meta.json";
 import { CURRENCIES } from "@/engine/currencies.ts";
 import { formatDate } from "@/lib/dates.ts";
-import { DISCLAIMER } from "@/lib/site";
 import { METHOD } from "../components/Methodology";
 import { HISTORICAL_CONTEXT } from "../components/Glance";
 import { StrategyGuide } from "../components/StrategyGuide";
@@ -223,7 +222,6 @@ export default function HowItWorks() {
               visits without cookies; it records which page, not the scenario in
               its address.
             </p>
-            <p className="font-medium">{DISCLAIMER}</p>
             <p>
               <ScenarioLink
                 href="/"
