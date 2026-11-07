@@ -7,6 +7,7 @@
 // changes on every edit.
 
 import { useSyncExternalStore } from "react";
+import { planQuery } from "./url-state.ts";
 
 let current: string | null = null;
 const listeners = new Set<() => void>();
@@ -33,7 +34,12 @@ export function useScenarioQuery(): string {
   return useSyncExternalStore(subscribe, snapshot, () => "");
 }
 
-/** `href` with the current scenario attached, for links between pages. */
+/**
+ * `href` with the current scenario attached, for links between pages. A
+ * link to the planner carries the plan as it was before Hedging's "Switch
+ * to USD" (planQuery).
+ */
 export function withScenario(href: string, query: string): string {
-  return query ? `${href}?${query}` : href;
+  const q = href === "/" ? planQuery(query) : query;
+  return q ? `${href}?${q}` : href;
 }

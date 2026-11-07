@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
 import { loadUsd } from "@/engine/__tests__/helpers.ts";
 import { sampleWindow } from "@/engine/replay.ts";
+import { scheduledDates } from "../scheduled.ts";
 import { buildWorkbook } from "../xlsx.ts";
 
 const scenario = {
@@ -83,5 +84,54 @@ describe("Excel export", async () => {
 
   it("asks spreadsheet apps to recalculate on open", () => {
     expect(wb.calcProperties.fullCalcOnLoad).toBe(true);
+  });
+});
+
+describe("Excel export: scheduled and rate dates (F03)", async () => {
+  const fx = loadUsd();
+  // A period whose tranches include Sat 21 Mar 2026 (rate of Mon 23 Mar).
+  const w = sampleWindow(fx, scenario, "2026-01-22", { targetBelowSpot: 0.02 });
+  const wb = buildWorkbook(ExcelJS, fx, scenario, 0.02, w);
+  const back = new ExcelJS.Workbook();
+  await back.xlsx.load(await wb.xlsx.writeBuffer());
+  const st = back.getWorksheet("Strategies")!;
+  const iso = (v: unknown) =>
+    ((v as ExcelJS.CellFormulaValue).result as Date).toISOString().slice(0, 10);
+
+  it("names both dates as the period detail does", () => {
+    expect(st.getCell("B1").value).toBe("Scheduled date");
+    expect(st.getCell("C1").value).toBe("Rate date (next published rate)");
+  });
+
+  it("lists each conversion's schedule and the date whose rate was used", () => {
+    const rows: [string, string][] = [];
+    st.eachRow((row, n) => {
+      if (n === 1) return;
+      const b = row.getCell(2).value;
+      if (b && typeof b === "object" && "formula" in b)
+        rows.push([iso(b), iso(row.getCell(3).value)]);
+    });
+    const expected = (
+      ["lumpSum", "tranches", "wait", "target"] as const
+    ).flatMap((id) => {
+      const sched = scheduledDates(w, scenario.tranches)[id];
+      return w.results[id].conversions.map(
+        (c, i) => [sched[i]!, c.date] as [string, string],
+      );
+    });
+    expect(rows).toEqual(expected);
+    expect(rows).toContainEqual(["2026-03-21", "2026-03-23"]);
+  });
+
+  it("target rate's schedule is the deadline when it wasn't reached", () => {
+    const formulas: string[] = [];
+    st.eachRow((row) => {
+      const b = row.getCell(2).value;
+      if (b && typeof b === "object" && "formula" in b && b.formula)
+        formulas.push(b.formula);
+    });
+    expect(formulas.at(-1)).toMatch(
+      /^IF\(COUNTIFS\(.*\)>0,MINIFS\(.*\),Deadline\)$/,
+    );
   });
 });
