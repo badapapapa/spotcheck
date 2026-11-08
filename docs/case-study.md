@@ -1,14 +1,14 @@
-# SpotCheck: a case study (draft)
+# SpotCheck: a case study
 
 ## The problem
 
-Every semester, thousands of NUS, NTU and SMU students go on exchange and need a known amount of foreign currency by a known date. The question they ask each other in Telegram groups is always the same: _convert now, spread it out, or wait?_ Most answers are anecdotes about one lucky or unlucky month.
+Students going on exchange need a known amount of foreign currency by a known date, which raises a simple question: _convert now, spread it out, or wait?_ One lucky or unlucky month can't answer it.
 
-SpotCheck answers a better question: _how would each of those approaches have played out across every comparable period in the last 27 years?_ It shows the trade-off (a lower average versus a narrower range of outcomes) without telling anyone what to do.
+SpotCheck answers a better question: _how would each of those approaches have played out across every comparable period since 1999?_ It shows the trade-off (a lower average versus a narrower range of outcomes) without telling anyone what to do.
 
 ## What I built
 
-- A **planner** that replays four strategies over every historical window starting on a trading day (about 7,000 for a 9-month plan) for any of 40 currencies, with a distribution chart, a generated summary and a window-by-window explorer.
+- A **planner** that replays four strategies over every historical window starting on a trading day (about 6,900 for a 10-month plan) for any of 40 currencies, with a distribution chart, a generated summary and a window-by-window explorer.
 - A **hedging tab** that prices forwards (covered interest parity) and options (Garman-Kohlhagen) for the same scenario, with live Greeks, and compares hedged and unhedged outcomes historically.
 - A **data pipeline** that keeps 40 FX series, daily SORA and the US fed funds rate up to date with a daily GitHub Actions job, validated before every commit.
 
@@ -20,7 +20,7 @@ The site is static (no server, no accounts, no cookies) and costs nothing to run
 
 **Look-ahead bias.** Every decision on day _d_ may only use data up to _d_. The engine makes this structural: `rateAsOf` (on or before) for decisions and `rateOn` (next available) for trades. Option volatility comes from the observations strictly before the pricing date, and the forward's rates from the window ending on it. Tests alter every value after _d_ and assert that nothing decided by _d_ changes.
 
-**Overlapping windows.** 7,000 windows that start a day apart are not 7,000 independent experiments. The summary says how many non-overlapping windows the history really contains (about 35 for a 9-month plan), and the methodology says the percentages describe one history, not probabilities.
+**Overlapping windows.** About 6,900 windows that start a day apart are not 6,900 independent experiments. The summary says how many non-overlapping windows the history really contains (about 34 for a 10-month plan), and the methodology says the percentages describe one history, not probabilities.
 
 ## Trading days, and a smoothed source
 
@@ -36,7 +36,7 @@ The plan was to compound daily SORA myself (MAS's published compounded rates onl
 - An **independent Python notebook** (numpy, scipy) reimplements compounding, the strategies and GK pricing from the formulas, not from my code, and writes fixtures the TypeScript must match. It caught a bug, in the _notebook_: my first Python draft compounded each calendar day separately instead of applying a weekend rate once as simple interest. The TS engine was already right, since it matched MAS. An independent check is only useful if you're prepared for either side to be wrong.
 - Property tests for pricing (put-call parity, monotonicity, delta bounds, Greeks vs finite differences) and a textbook reference value.
 - The Excel export's formulas were recalculated by an independent formula engine after changing the inputs, to show they are live and match the engine.
-- Playwright smoke tests on mobile and desktop; Lighthouse mobile scores 94–96 for performance and 100 for accessibility.
+- 577 Vitest unit tests, and 828 Playwright cases over phone, desktop, a German locale and a Los Angeles time zone (717 run and pass; the other 111 don't apply to that configuration). Lighthouse mobile scores 94–99 for performance and 100 for accessibility.
 
 ## Performance
 
@@ -47,6 +47,4 @@ The replay is about 80 ms on a laptop but became a 1.3-second main-thread task o
 - Implied volatility, if a free source appears; realised volatility from blended mid rates understates what a bank would charge.
 - Forward-looking term rates (e.g. SGS T-bills) in place of backward-compounded overnight rates.
 - Interest-rate data for more currencies, so the hedging tab isn't USD-only.
-- Real user numbers from the first exchange cohort, and changes driven by their feedback.
-
-_Add: number of users, feedback quotes, and the launch link once live._
+- Feedback from students going on exchange, and changes driven by it.

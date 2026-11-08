@@ -1,98 +1,62 @@
 # SpotCheck
 
-**See how converting your exchange money would have played out.**
+**A free web app that replays how different ways of converting SGD into a foreign currency would have played out, for students going on exchange.**
 
-SpotCheck is a free web app for students going on exchange who need a lump of foreign currency by a known date (say USD 15,000 for a US semester starting August 2027). It replays four simple ways of converting SGD over every comparable period since 1999 and shows the range of outcomes. A hedging tab prices forwards and options with interest-rate parity and Garman-Kohlhagen.
+**Live:** https://spotcheck-fx.pages.dev
 
-> **Live site:** https://spotcheck-fx.pages.dev
->
 > Educational tool using historical mid-market rates. Not financial advice. Past rates don't predict future ones.
 
-![SpotCheck planner](docs/images/planner.png)
+![Planner: a USD 15,000 plan, with the median cost of four strategies across 6,920 comparable past periods](docs/design/pr-g/after/planner-top-1440-light.jpg)
+
+| Timeline of every past period                                                                                                                     | Hedging: USD forwards and options                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| ![Timeline: what each strategy would have cost for plans starting on each day since 1999](docs/design/pr-g/after/planner-timeline-1440-light.jpg) | ![Hedging tab: the forward rate for the same plan](docs/design/pr-g/after/hedging-top-1440-light.jpg) |
 
 ## What it does
 
-- **Planner.** Pick a currency (40 used by NUS, NTU and SMU exchange destinations), amount, start date, deadline, number of conversions and your bank's spread. SpotCheck runs four strategies (all at once, equal tranches, wait until the deadline, target rate with a deadline fallback) over every historical window that starts on a trading day (about 7,000 for a 9-month plan) and shows the median, middle 90% and extremes, plus a plain-English summary and a slider to inspect any single window.
-- **Hedging tab.** Today's forward (spot, forward points, the SORA and fed-funds rates behind it), an option pricer with a strike slider, payoff chart and live Greeks, and a historical comparison of unhedged vs forward vs option.
-- **How it works.** The four strategies in plain terms, the method, the data sources and what the results can't tell you, on one page.
-- **Shareable.** The whole scenario lives in the URL. No accounts, no cookies, no data stored.
-- **Auditable.** Download any historical window as an `.xlsx` whose cost cells are live formulas.
+- **Four strategies, replayed.** All at once, equal tranches, wait until the deadline, and a target rate with a deadline fallback, each run over every comparable past period since 1999 (about 6,900 periods for a 10-month plan). The result is the median, the middle 90% and the extremes for each.
+- **40 currencies against SGD.** 36 go back to January 1999; BRL, CNY, ILS and INR go back to January 2000.
+- **USD forward and option pricing.** Forwards by covered interest parity on SORA and fed funds. Call options by Garman-Kohlhagen, with a strike slider, payoff chart and Greeks. A historical comparison of unhedged, forward and option costs.
+- **Shareable and auditable.** The whole scenario lives in the URL. No accounts, cookies or stored data. Any past period downloads as an `.xlsx` whose cost cells are live formulas.
 
-## How the engine works
-
-Everything is in [`engine/`](engine): pure TypeScript with no React, network, clock or randomness (a test enforces this). FX is always SGD per 1 foreign unit; rates are decimals; time is ACT/365.
-
-**Strategies.** Each conversion costs `units × rate × (1 + spread)` at the first available rate on or after its date. Equal tranches are spaced evenly in calendar days, start to deadline inclusive. The target strategy converts the first day the rate is at or below the target, otherwise on the deadline.
-
-**Historical replay.** For every start date _d_ with a full window after it, run every strategy from _d_ to _d + L_. To compare a 1999 window (1.70 SGD/USD) with a 2024 one (1.34), each window's cost is divided by its own starting spot, then multiplied by today's spot and the user's amount: _"if the coming months move the way that window did, this is what you'd pay."_
-
-**Compounded SORA** (the MAS method), with _rᵢ_ the rate for business day _i_, _nᵢ_ the days it applies and _N_ the window length:
+## How it's built
 
 ```
-r = ( Π (1 + rᵢ·nᵢ / 365) − 1 ) × 365 / N
+Frankfurter / MAS / FRED → daily GitHub Actions job → validated JSON in data/ → static site → engine in a Web Worker
 ```
 
-**Forwards** (covered interest parity, simple interest):
+| Part            | Detail                                                                                                                                                                                    |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Front end       | Next.js 16 static export, TypeScript (strict), Tailwind CSS, Recharts. No server and no database.                                                                                         |
+| Engine          | [`engine/`](engine) is pure TypeScript with no React, network, clock or randomness ([enforced by a test](engine/__tests__/purity.test.ts)). It runs in a Web Worker, off the main thread. |
+| Data validation | Zod schemas plus sanity checks (date order, gaps, outsized moves, rate bounds) at fetch time and in CI. The browser parses every file through Zod too.                                    |
+| Data pipeline   | A GitHub Actions job runs daily, writes nothing if any file fails validation, and commits new rates to `data/`. A nightly CI run then re-tests the site against them.                     |
+| Hosting         | Cloudflare Pages, on free tiers only. No secrets: FRED data comes from its public CSV; an optional FRED API key would live only in GitHub Actions secrets.                                |
 
-```
-F = S₀ × (1 + r_SGD·T) / (1 + r_USD·T)
-```
+Rates come from the [ECB euro reference rates](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html) and central-bank mid rates via [Frankfurter](https://frankfurter.dev/), [MAS](https://eservices.mas.gov.sg/Statistics/dir/DomesticInterestRates.aspx) (SORA) and [FRED](https://fred.stlouisfed.org/series/DFF) (fed funds, Board of Governors of the Federal Reserve System).
 
-with _r_ the overnight rate compounded over the tenor-length window ending on the pricing date (SORA for SGD; fed funds, ACT/360, for USD).
+## How it's tested
 
-**Options** (Garman-Kohlhagen call on the foreign currency, continuously compounded rates):
+| What                                 | How                                                                                                                                                                                                                                           |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit tests                           | 577 Vitest tests. Engine coverage above 99% of statements (90% enforced).                                                                                                                                                                     |
+| End-to-end                           | 828 Playwright cases over phone, desktop, a German locale and a Los Angeles time zone. 717 run and pass; the other 111 need a mouse, keyboard or touch screen that configuration lacks, or cover one configuration only.                      |
+| Accessibility                        | axe-core (WCAG A/AA) on every page, in light and dark, at phone and desktop widths: 0 violations. Run by hand, not in CI.                                                                                                                     |
+| Independent re-implementation parity | [`notebooks/crosscheck.ipynb`](notebooks/crosscheck.ipynb) re-implements compounding, the strategies and option pricing in Python and writes fixtures. The TypeScript engine matches them to 1e-12 on compounding and 1e-9 on strategy costs. |
+| Published-figure check               | The compounding reproduces every compounded SORA value MAS has published since August 2020 (over 4,000) to within about 0.01 bp, which is MAS's own rounding.                                                                                 |
+| Advisory-wording safeguards          | [A list of banned patterns](tests/advisory-patterns.ts) runs over generated sentences and every rendered page, so advice or verdict wording fails the tests.                                                                                  |
+| Security                             | A strict [Content-Security-Policy](public/_headers) and related headers, a gitleaks secret scan in CI, and GitHub Actions pinned to commit SHAs.                                                                                              |
 
-```
-C  = S₀·e^(−r_f·T)·N(d₁) − K·e^(−r_d·T)·N(d₂)
-d₁ = [ ln(S₀/K) + (r_d − r_f + σ²/2)·T ] / (σ√T),   d₂ = d₁ − σ√T
-```
+Counts as of November 2026.
 
-σ is the realised volatility of log returns between consecutive trading observations over the 250 (or 60/90) trading days **before** the pricing date, annualised with √252 (user-overridable). The normal CDF is Hart's double-precision approximation.
+## Limitations
 
-**No look-ahead.** Decisions on day _d_ only see data up to _d_: `rateAsOf` for decisions, `rateOn` for trades, volatility and rates from before _d_. Tests alter every value after _d_ and assert nothing decided by _d_ changes.
+- **Historical, not a forecast.** It shows what past periods would have cost, rescaled to the latest rate. It says nothing about what rates will do next.
+- **Mid-market rates.** Real bank and money-changer rates add a spread on top. The planner adds a fee you enter; hedging prices use past rates and realised volatility, with no dealer margin, so they aren't quotes. Twelve currencies come from blended mid rates, whose daily volatility may be understated.
+- **USD-only hedging.** Forwards and options price USD against SGD. Other currencies can be replayed on the planner only.
 
-## Testing
+## More
 
-| What                    | How                                                                                                                                                                   |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit tests (150+)       | Vitest; engine coverage ~99% (90% enforced)                                                                                                                           |
-| MAS back-check          | Our compounding reproduces **all 4,600+ compounded SORA values MAS has published since Aug 2020** within 0.0101 bp                                                    |
-| Independent cross-check | [`notebooks/crosscheck.ipynb`](notebooks/crosscheck.ipynb) reimplements compounding, strategies and GK (scipy) and writes fixtures; TS matches to 1e-12 / 1e-9 / 1e-6 |
-| Pricing properties      | Put-call parity (1e-10), monotonic in σ and S, delta bounds, Greeks vs finite differences, textbook reference C = 0.07505                                             |
-| Data validation         | Zod schemas + sanity checks (ascending dates, gaps, ±30% moves, rate bounds) on every file, in CI and in the browser                                                  |
-| End-to-end              | Playwright on mobile and desktop: planner, hedging tab, URL round-trip, xlsx download                                                                                 |
-| Lighthouse (mobile)     | Performance 94–96, accessibility 100, best practices 100, SEO 100                                                                                                     |
+[How it works](https://spotcheck-fx.pages.dev/how-it-works) (the method in plain terms) · [Case study](docs/case-study.md) · [Design system](DESIGN.md)
 
-```bash
-npm install
-npm run check      # type-check, lint, unit tests + coverage, data validation
-npm run build      # static export to out/
-npm run e2e        # Playwright against out/
-npm run fetch-data # refresh data (FRED_API_KEY optional)
-```
-
-Requires Node.js 24.2 or later.
-
-## Architecture
-
-A daily GitHub Actions job fetches new data, validates it, and commits JSON files to `data/`. The site is a Next.js static export on Cloudflare Pages; the browser loads one currency's history (~70 KB gzipped) and runs the engine in a Web Worker. There is no server, no database and no secret outside GitHub Actions.
-
-```
-Frankfurter / MAS / FRED → scripts/fetch (daily, validated) → data/*.json → static site → engine in the browser
-```
-
-## Data sources
-
-- Exchange rates, one source per currency for its whole history:
-  - 27 currencies (USD, EUR, GBP, JPY, AUD, CNY, INR and others the ECB has published every working day since 1999, or since 13 Jan 2000 for BRL, CNY, ILS and INR): [European Central Bank euro foreign exchange reference rates](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html), retrieved via [Frankfurter](https://frankfurter.dev/). **SGD crosses are derived by SpotCheck as (SGD per EUR) ÷ (currency per EUR).**
-  - The other 12 (ARS, CLP, COP, ISK, KZT, MAD, MOP, PEN, RUB, SAR, TWD, VND): [Frankfurter](https://frankfurter.dev/) blended central-bank mid rates (daily volatility from these may be understated).
-- SGD interest rates: [MAS Domestic Interest Rates](https://eservices.mas.gov.sg/Statistics/dir/DomesticInterestRates.aspx), daily SORA from July 2005 and published compounded SORA.
-- USD interest rates: Board of Governors of the Federal Reserve System, Federal Funds Effective Rate (DFF), retrieved from [FRED](https://fred.stlouisfed.org/series/DFF), Federal Reserve Bank of St. Louis.
-
-## Project docs
-
-- [`SPOTCHECK_PLAN.md`](SPOTCHECK_PLAN.md): the build plan · [`CLAUDE.md`](CLAUDE.md): project rules
-- [`docs/phases/`](docs/phases): what was built in each phase, with test results and decisions
-- [`docs/case-study.md`](docs/case-study.md): the write-up
-
-Built with Next.js, TypeScript, Tailwind CSS, shadcn/ui, Recharts, Zod, ExcelJS, Vitest and Playwright.
+Run it locally with Node.js 24.2+: `npm ci`, then `npm run dev`. `npm run check` runs the type-check, lint, unit tests and data validation.
