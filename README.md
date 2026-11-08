@@ -31,7 +31,7 @@ Frankfurter / MAS / FRED → daily GitHub Actions job → validated JSON in data
 | Engine          | [`engine/`](engine) is pure TypeScript with no React, network, clock or randomness ([enforced by a test](engine/__tests__/purity.test.ts)). It runs in a Web Worker, off the main thread. |
 | Data validation | Zod schemas plus sanity checks (date order, gaps, outsized moves, rate bounds) at fetch time and in CI. The browser parses every file through Zod too.                                    |
 | Data pipeline   | A GitHub Actions job runs daily, writes nothing if any file fails validation, and commits new rates to `data/`. A nightly CI run then re-tests the site against them.                     |
-| Hosting         | Cloudflare Pages, on free tiers only. The one secret (a FRED API key) stays in GitHub Actions.                                                                                            |
+| Hosting         | Cloudflare Pages, on free tiers only. No secrets: FRED data comes from its public CSV; an optional FRED API key would live only in GitHub Actions secrets.                                |
 
 Rates come from the [ECB euro reference rates](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html) and central-bank mid rates via [Frankfurter](https://frankfurter.dev/), [MAS](https://eservices.mas.gov.sg/Statistics/dir/DomesticInterestRates.aspx) (SORA) and [FRED](https://fred.stlouisfed.org/series/DFF) (fed funds, Board of Governors of the Federal Reserve System).
 
