@@ -71,6 +71,10 @@ function Tabs({
             // URL would cause a request every time someone edits a field.
             prefetch={false}
             href={withScenario(href, query)}
+            // Bare until React takes over (lib/keep-scenario.ts). On every
+            // tab, not just the fallback: /how-it-works streams the real
+            // tabs into its static HTML, as bare as the fallback's.
+            data-keep-scenario=""
             aria-current={active ? "page" : undefined}
             className={
               variant === "top"
