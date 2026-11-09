@@ -36,7 +36,7 @@ The plan was to compound daily SORA myself (MAS's published compounded rates onl
 - An **independent Python notebook** (numpy, scipy) reimplements compounding, the strategies and GK pricing from the formulas, not from my code, and writes fixtures the TypeScript must match. It caught a bug, in the _notebook_: my first Python draft compounded each calendar day separately instead of applying a weekend rate once as simple interest. The TS engine was already right, since it matched MAS. An independent check is only useful if you're prepared for either side to be wrong.
 - Property tests for pricing (put-call parity, monotonicity, delta bounds, Greeks vs finite differences) and a textbook reference value.
 - The Excel export's formulas were recalculated by an independent formula engine after changing the inputs, to show they are live and match the engine.
-- 577 Vitest unit tests, and 828 Playwright cases over phone, desktop, a German locale and a Los Angeles time zone (717 run and pass; the other 111 don't apply to that configuration). Lighthouse mobile scores 94–99 for performance and 100 for accessibility.
+- 586 Vitest unit tests, and 928 Playwright cases over phone, desktop, a German locale and a Los Angeles time zone (799 run and pass; the other 129 don't apply to that configuration). Lighthouse mobile scores 94–99 for performance and 100 for accessibility.
 
 ## Performance
 
