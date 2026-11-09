@@ -5,16 +5,23 @@ import { parseState, SCENARIO_KEYS, serializeState } from "@/lib/url-state.ts";
 type Listener = (e: { target: unknown }) => void;
 
 /** Runs the inline script against a stand-in document and page URL. */
-function load(search: string) {
+function load(search: string, Params: unknown = URLSearchParams) {
   const added: { type: string; fn: Listener; capture: unknown }[] = [];
   const timers: (() => void)[] = [];
-  new Function("document", "location", "setTimeout", KEEP_SCENARIO_SCRIPT)(
+  new Function(
+    "document",
+    "location",
+    "setTimeout",
+    "URLSearchParams",
+    KEEP_SCENARIO_SCRIPT,
+  )(
     {
       addEventListener: (type: string, fn: Listener, capture: unknown) =>
         added.push({ type, fn, capture }),
     },
     { search },
     (fn: () => void) => timers.push(fn),
+    Params,
   );
   return { added, timers };
 }
@@ -66,6 +73,17 @@ describe("the inline script that keeps the scenario", () => {
     const a = link();
     clickOn("?c=USD&a=9000&from=JPY.500000&utm_source=x&vl=60", a);
     expect(a.search).toBe("c=USD&a=9000&vl=60");
+  });
+
+  it("works without URLSearchParams.size, which iOS 16 lacks", () => {
+    class Older extends URLSearchParams {
+      override get size(): number {
+        return undefined as unknown as number;
+      }
+    }
+    const a = link();
+    load("?a=9000", Older).added[0]!.fn(inside(a));
+    expect(a.search).toBe("a=9000");
   });
 
   it("leaves a link that already has a query alone", () => {

@@ -28,9 +28,11 @@ export const KEEP_SCENARIO_SCRIPT = `(function () {
     keys.forEach(function (k) {
       if (page.has(k)) kept.set(k, page.get(k));
     });
-    if (!kept.size) return;
+    // Not kept.size: it needs iOS 17, and undefined would end the script here.
+    var query = kept.toString();
+    if (!query) return;
     var href = a.getAttribute("href");
-    a.search = kept.toString();
+    a.search = query;
     // Put it back once the browser has read it: after a Cmd-click this page
     // stays open, and React expects to find the href it rendered.
     setTimeout(function () {
