@@ -193,10 +193,10 @@ test.describe("B4: smaller accessibility fixes", () => {
     page,
   }) => {
     await page.goto(`/?${Q}`);
-    const names = await page
-      .locator("summary", { hasText: "More detail" })
-      .allTextContents();
-    expect(names).toEqual([
+    // Waits: the toggles render client-side, after the load event.
+    await expect(
+      page.locator("summary", { hasText: "More detail" }),
+    ).toHaveText([
       "More detailLess detail: All at once",
       "More detailLess detail: Equal tranches",
       "More detailLess detail: Wait until deadline",
