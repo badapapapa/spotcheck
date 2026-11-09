@@ -175,6 +175,24 @@ export function parseState(
   };
 }
 
+/**
+ * The query keys that describe a scenario, for lib/keep-scenario.ts. Not
+ * `from`: that one is only meaningful to the planner's links (see planQuery),
+ * which need React to rewrite it.
+ */
+export const SCENARIO_KEYS = [
+  "c",
+  "a",
+  "s",
+  "d",
+  "k",
+  "sp",
+  "t",
+  "ks",
+  "v",
+  "vl",
+] as const;
+
 /** Rounds away float noise from percentage conversions (0.5 not 0.49999…). */
 const pct = (fraction: number) => String(Number((fraction * 100).toFixed(4)));
 

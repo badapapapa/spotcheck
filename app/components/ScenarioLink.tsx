@@ -19,6 +19,8 @@ export function ScenarioLink({
     <Link
       href={withScenario(href, query)}
       prefetch={false}
+      // Bare until React takes over (lib/keep-scenario.ts).
+      data-keep-scenario=""
       className={className}
     >
       {children}

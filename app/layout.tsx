@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans, Newsreader } from "next/font/google";
 import meta from "@/data/meta.json";
 import { formatDate } from "@/lib/dates.ts";
+import { KEEP_SCENARIO_SCRIPT } from "@/lib/keep-scenario.ts";
 import { DISCLAIMER, SITE_NAME, TAGLINE } from "@/lib/site";
 import { Suspense } from "react";
 import { SiteNav, SiteNavFallback } from "./components/SiteNav";
@@ -54,6 +55,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${serif.variable} ${body.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        {/* First in the body, so it is listening before any link can be
+            clicked (see lib/keep-scenario.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: KEEP_SCENARIO_SCRIPT }} />
         <a href="#main" className="skip-link btn-primary">
           Skip to content
         </a>
