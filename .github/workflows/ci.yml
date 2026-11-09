@@ -64,12 +64,24 @@ jobs:
       # The CLI is used directly rather than gitleaks-action: the action only
       # scans the pushed commit range, which fails on a repo's first push and
       # skips history. The repo is small, so scanning everything is cheap.
+      #
+      # The tarball is cached, not the extracted binary, because GITLEAKS_SHA256
+      # is the tarball's hash: the check below runs on every job, cache hit or
+      # not. Only the download is skipped, so a release-download outage can't
+      # fail the scan once the cache exists.
+      - name: Restore gitleaks tarball from cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/gitleaks_${{ env.GITLEAKS_VERSION }}_linux_x64.tar.gz
+          key: gitleaks-${{ env.GITLEAKS_VERSION }}-${{ env.GITLEAKS_SHA256 }}
       - name: Install gitleaks (checksum-verified)
         working-directory: ${{ runner.temp }}
         run: |
           base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
-          curl -sSfLO --retry 3 --retry-delay 5 "${base}/${tarball}"
+          if [ ! -f "${tarball}" ]; then
+            curl -sSfLO --retry 3 --retry-delay 5 "${base}/${tarball}"
+          fi
           echo "${GITLEAKS_SHA256}  ${tarball}" | sha256sum -c -
           tar -xzf "${tarball}" gitleaks
       - name: Scan git history
