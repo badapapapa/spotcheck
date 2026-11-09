@@ -5,8 +5,8 @@ export const SITE_NAME = "SpotCheck";
 
 export const SITE_URL = "https://spotcheck-fx.pages.dev";
 
-export const TAGLINE =
-  "See how converting your exchange money would have played out.";
+export const PLANNER_DESCRIPTION =
+  "See how four ways of converting SGD for your exchange would have played out, replayed over every comparable past period since 1999. Historical data, not advice.";
 
 export const DISCLAIMER =
   "Educational tool using historical mid-market rates. Not financial advice. Past rates don't predict future ones.";
