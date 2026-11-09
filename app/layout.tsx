@@ -4,7 +4,12 @@ import meta from "@/data/meta.json";
 import { formatDate } from "@/lib/dates.ts";
 import { KEEP_SCENARIO_SCRIPT } from "@/lib/keep-scenario.ts";
 import { pageMetadata } from "@/lib/page-metadata.ts";
-import { DISCLAIMER, SITE_NAME, SITE_URL, TAGLINE } from "@/lib/site";
+import {
+  DISCLAIMER,
+  PLANNER_DESCRIPTION,
+  SITE_NAME,
+  SITE_URL,
+} from "@/lib/site";
 import { Suspense } from "react";
 import { SiteNav, SiteNavFallback } from "./components/SiteNav";
 import { Wordmark } from "./components/Wordmark";
@@ -40,7 +45,7 @@ export const metadata: Metadata = {
   // The planner's own: app/page.tsx sets none, so it uses these.
   ...pageMetadata({
     title: `${SITE_NAME}: what difference does your exchange strategy make?`,
-    description: TAGLINE,
+    description: PLANNER_DESCRIPTION,
     path: "/",
   }),
   // iPhone/iPad home-screen icon (also served at the conventional path).
