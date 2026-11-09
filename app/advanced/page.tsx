@@ -2,10 +2,14 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Advanced } from "../components/advanced/Advanced";
 import { ScenarioLink } from "../components/ScenarioLink";
+import { pageMetadata } from "@/lib/page-metadata.ts";
+import { HEDGING_DESCRIPTION } from "@/lib/site";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Hedging: forwards and options | SpotCheck",
-};
+  description: HEDGING_DESCRIPTION,
+  path: "/advanced",
+});
 
 export default function AdvancedPage() {
   return (

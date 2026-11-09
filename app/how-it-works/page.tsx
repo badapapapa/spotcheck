@@ -4,16 +4,18 @@ import { ScenarioLink } from "../components/ScenarioLink";
 import meta from "@/data/meta.json";
 import { CURRENCIES } from "@/engine/currencies.ts";
 import { formatDate } from "@/lib/dates.ts";
+import { pageMetadata } from "@/lib/page-metadata.ts";
 import { METHOD } from "../components/Methodology";
 import { HISTORICAL_CONTEXT } from "../components/Glance";
 import { StrategyGuide } from "../components/StrategyGuide";
 import { TimingDiagram } from "../components/TimingDiagram";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "How it works | SpotCheck",
   description:
     "The four strategies, how SpotCheck replays them against past exchange rates, where the data comes from and what the results can't tell you.",
-};
+  path: "/how-it-works",
+});
 
 const method = (id: string) => METHOD.find((m) => m.id === id)!;
 

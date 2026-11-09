@@ -3,7 +3,8 @@ import { IBM_Plex_Sans, Newsreader } from "next/font/google";
 import meta from "@/data/meta.json";
 import { formatDate } from "@/lib/dates.ts";
 import { KEEP_SCENARIO_SCRIPT } from "@/lib/keep-scenario.ts";
-import { DISCLAIMER, SITE_NAME, TAGLINE } from "@/lib/site";
+import { pageMetadata } from "@/lib/page-metadata.ts";
+import { DISCLAIMER, SITE_NAME, SITE_URL, TAGLINE } from "@/lib/site";
 import { Suspense } from "react";
 import { SiteNav, SiteNavFallback } from "./components/SiteNav";
 import { Wordmark } from "./components/Wordmark";
@@ -33,8 +34,15 @@ const body = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  title: `${SITE_NAME}: what difference does your exchange strategy make?`,
-  description: TAGLINE,
+  // Turns the relative image and page paths into the absolute URLs that link
+  // previews need.
+  metadataBase: new URL(SITE_URL),
+  // The planner's own: app/page.tsx sets none, so it uses these.
+  ...pageMetadata({
+    title: `${SITE_NAME}: what difference does your exchange strategy make?`,
+    description: TAGLINE,
+    path: "/",
+  }),
   // iPhone/iPad home-screen icon (also served at the conventional path).
   icons: { apple: "/apple-touch-icon.png" },
 };
