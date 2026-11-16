@@ -33,6 +33,6 @@ export const KNOWN_ANOMALIES: readonly KnownAnomaly[] = [
     series: "SGD-BRL",
     date: "2026-10-26",
     kind: "jump",
-    note: "The real sold off after the presidential runoff (ECB rate: −9.5% against SGD, with USD and MXN flat), reported at over 12% intraday, then partly rebounded the next day. Sources: https://aljazeera.com/economy/2026/10/26/brazils-real-sinks-after-lulas-re-election-victory and https://tradingeconomics.com/brazil/currency/news/595076. Raised by the data-quality detector; added 16 Nov 2026.",
+    note: "Real move: post-runoff sell-off; Al Jazeera reports the real fell 12% against the US dollar in spot trading on 26 Oct 2026, with a partial rebound reported after. Sources: https://aljazeera.com/economy/2026/10/26/brazils-real-sinks-after-lulas-re-election-victory and https://tradingeconomics.com/brazil/currency/news/595076. Raised by the data-quality detector (ECB rate −9.5% against SGD, USD and MXN flat); added 16 Nov 2026.",
   },
 ];

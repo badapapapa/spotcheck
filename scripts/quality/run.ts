@@ -8,8 +8,8 @@
 // Which days it judges: the week up to the last check again, then every
 // day after it. Series publish on different days (the ECB a day after the
 // blended rates), and a day judged again once its next day is known can be
-// confirmed as a spike; a re-judged day replaces its own flag. With no
-// earlier check, the last 30 days.
+// confirmed as a spike. Re-judging may add or upgrade a flag, never remove
+// or downgrade an open one. With no earlier check, the last 30 days.
 
 import {
   readFileSync,
@@ -104,11 +104,20 @@ export function nightly(
       if (flag && !reviewed(code, flag.date)) raised.push(flag);
     });
 
-  // Earlier open flags, then this run's (a re-judged day replaces its old flag).
+  // Earlier open flags, then this run's. Re-judging may add a flag or
+  // upgrade one (soft to severe, or the same severity with the latest view
+  // of the day), but never removes or downgrades an open flag: a day that
+  // looks fine once its next day is in stays open until it is reviewed.
+  const rank = (f: QualityFlag) => (f.severity === "severe" ? 1 : 0);
   const open = new Map<string, QualityFlag>();
   for (const f of prev?.open ?? [])
     if (!reviewed(f.currency, f.date)) open.set(`${f.currency} ${f.date}`, f);
-  for (const f of raised) open.set(`${f.code} ${f.date}`, toRecord(f));
+  for (const f of raised) {
+    const key = `${f.code} ${f.date}`;
+    const next = toRecord(f);
+    const before = open.get(key);
+    if (!before || rank(next) >= rank(before)) open.set(key, next);
+  }
 
   return {
     file: {

@@ -132,4 +132,64 @@ describe("nightly", () => {
     // The day's whole move: the injected −10% and the day's own small move.
     expect(flag!.move).toBeCloseTo(values[390]! / values[389]! - 1, 12);
   });
+
+  it("keeps a flag open when the next day makes it look reverted", () => {
+    // Day X arrives with a large drop: a "move" on arrival.
+    const x = 380;
+    const values = inject(brl.values, x, {
+      kind: "spike",
+      size: 0.3,
+      up: false,
+    });
+    const cut = (n: number) =>
+      allFeatures([
+        ...clean
+          .slice(0, 3)
+          .map((s) => ({
+            ...s,
+            dates: s.dates.slice(0, n),
+            values: s.values.slice(0, n),
+          })),
+        { ...brl, dates: brl.dates.slice(0, n), values: values.slice(0, n) },
+      ]);
+    const night1 = nightly(cut(x + 1), undefined, { known: [] });
+    const first = night1.file.open.find((f) => f.date === brl.dates[x]);
+    expect(first).toBeDefined();
+    // Day X+1 takes it back: re-judged, X is still open (now as a spike).
+    const night2 = nightly(cut(x + 2), night1.file, { known: [] });
+    const again = night2.file.open.find((f) => f.date === brl.dates[x]);
+    expect(again).toBeDefined();
+    expect(again!.severity).toBe("soft");
+    // Nothing is ever raised for the day that takes it back.
+    expect(night2.file.open.map((f) => f.date)).not.toContain(brl.dates[x + 1]);
+  });
+
+  it("never downgrades an open flag", () => {
+    const x = 395;
+    const values = inject(brl.values, x, {
+      kind: "spike",
+      size: 0.1,
+      up: true,
+    });
+    const severe = {
+      currency: "BRL",
+      date: brl.dates[x]!,
+      kind: "unit" as const,
+      severity: "severe" as const,
+      move: 9,
+      z: null,
+      peerZ: null,
+      score: null,
+    };
+    const r = nightly(
+      withBrl(values),
+      { checkedThrough: brl.dates[x]!, open: [severe] },
+      { known: [] },
+    );
+    // Re-judged, the day now looks like a soft spike; the severe flag stays.
+    expect(r.raised.find((f) => f.date === brl.dates[x])?.severity).toBe(
+      "soft",
+    );
+    expect(r.file.open.find((f) => f.date === brl.dates[x])).toEqual(severe);
+  });
 });
