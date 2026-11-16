@@ -349,15 +349,42 @@ for (const q of SCENARIOS) {
 
     // The same fixed order everywhere a strategy list appears.
     const glance = page.getByRole("region", { name: "Comparison at a glance" });
-    expect(await glance.locator("tbody th").allTextContents()).toEqual(
+    expect(await glance.getByTestId("strategy-name").allTextContents()).toEqual(
       STRATEGY_NAMES,
     );
+    // A plain line under every name from 640px (phones show the names
+    // only); the pin button is still named by the strategy alone, with the
+    // line as its description.
+    const plain = glance.getByTestId("strategy-plain");
+    expect(await plain.allTextContents()).toEqual([
+      "all on the start date",
+      "convert in equal parts",
+      "all on the deadline",
+      "at the target, or the deadline",
+    ]);
+    const wide = page.viewportSize()!.width >= 640;
+    for (const line of await plain.all())
+      await (wide ? expect(line).toBeVisible() : expect(line).toBeHidden());
+    await expect(
+      glance.getByRole("button", { name: "Target rate", exact: true }),
+    ).toHaveAccessibleDescription("at the target, or the deadline");
     const chartRows = await page
       .getByRole("button", { name: /: median S\$/ })
       .evaluateAll((els) =>
         els.map((el) => el.getAttribute("aria-label")!.split(":")[0]),
       );
     expect(chartRows).toEqual(STRATEGY_NAMES);
+    // A row with no range is a labelled dot: always All at once, and any
+    // other with no range (every row for a pegged currency).
+    const fixedRows = await page
+      .getByRole("button", { name: /: median S\$[\d,.]+, fixed, no range$/ })
+      .evaluateAll((els) =>
+        els.map((el) => el.getAttribute("aria-label")!.split(":")[0]),
+      );
+    expect(fixedRows[0]).toBe("All at once");
+    await expect(
+      page.locator("#evidence").getByTestId("fixed-label"),
+    ).toHaveText(fixedRows.map(() => "fixed, no range"));
     const table = page.getByRole("table", {
       name: "SGD cost of each strategy across comparable past periods",
     });

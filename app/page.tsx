@@ -11,8 +11,8 @@ export default function Home() {
           What difference does your exchange strategy make?
         </h1>
         <p className="t-lede mt-3 sm:mt-5">
-          How four ways of converting currency played out across past exchange
-          rates.
+          For students on exchange: how four ways of converting SGD played out
+          across past rates.
         </p>
       </div>
       {/* useSearchParams needs a Suspense boundary in a static export. The

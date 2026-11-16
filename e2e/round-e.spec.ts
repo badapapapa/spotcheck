@@ -66,7 +66,7 @@ const restOfPage = (page: Page) =>
     return main.textContent;
   });
 
-test("range buttons: a labelled group, All pressed by default", async ({
+test("range buttons: a labelled group, 5Y pressed by default", async ({
   page,
 }) => {
   const t = await openTimeline(page);
@@ -81,9 +81,15 @@ test("range buttons: a labelled group, All pressed by default", async ({
     await expect(b).toBeEnabled();
     await expect(b).toHaveAttribute(
       "aria-pressed",
-      label === "All" ? "true" : "false",
+      label === "5Y" ? "true" : "false",
     );
   }
+  // 5Y draws only recent periods; the summary still uses all of them.
+  expect(await t.min()).toBeGreaterThan(0);
+  await expect(page.getByTestId("range-note")).toHaveText(
+    /^Periods starting \d{1,2} \w{3} \d{4} to \d{1,2} \w{3} \d{4}: [\d,]+ of [\d,]+\. Summary figures still use all periods\.$/,
+  );
+  await t.button("All").click();
   expect(await t.min()).toBe(0);
   // PR G (F06): the scope is stated above the chart for All too.
   await expect(page.getByTestId("range-note")).toHaveText(
@@ -103,7 +109,7 @@ test("a range changes the chart only: every result stays the same", async ({
 
   await t.button("1Y").click();
   await expect(t.button("1Y")).toHaveAttribute("aria-pressed", "true");
-  await expect(t.button("All")).toHaveAttribute("aria-pressed", "false");
+  await expect(t.button("5Y")).toHaveAttribute("aria-pressed", "false");
   // The latest period is inside every range, so the selection stays.
   expect(await t.now()).toBe(last);
   expect(await t.max()).toBe(last);
@@ -120,12 +126,12 @@ test("a range changes the chart only: every result stays the same", async ({
   );
   // The glance, the comparison, the summary and the period detail: as before.
   expect(await restOfPage(page)).toBe(before);
-  // Not in the URL, and All again on reload.
+  // Not in the URL, and 5Y again on reload.
   expect(page.url()).toContain(Q);
   expect(page.url()).not.toMatch(/[?&]r=/);
   await page.reload();
   const again = await openTimeline(page);
-  await expect(again.button("All")).toHaveAttribute("aria-pressed", "true");
+  await expect(again.button("5Y")).toHaveAttribute("aria-pressed", "true");
 });
 
 test("narrowing the range snaps a selection outside it to the nearest visible period", async ({
@@ -134,6 +140,7 @@ test("narrowing the range snaps a selection outside it to the nearest visible pe
 }) => {
   test.skip(isMobile, "keyboard");
   const t = await openTimeline(page);
+  await t.button("All").click();
   await t.slider.focus();
   await page.keyboard.press("Home");
   expect(await t.now()).toBe(0);

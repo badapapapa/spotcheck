@@ -77,7 +77,9 @@ type Month = {
  * the axis refits to them. Display only: the results and the selected
  * index always cover every period. Narrowing the range moves a
  * selection outside it to the nearest visible period. The range is view
- * state, like a pinned strategy: not in the URL, All again on reload.
+ * state, like a pinned strategy: not in the URL, 5Y again on reload. 5Y by
+ * default, so the recent past is readable at a glance; All is one click.
+ * The selection starts on the latest period, which every range shows.
  *
  * The chart is the one control for picking a period: a slider for the
  * keyboard, and drag (or tap) to scrub with a pointer, which updates the
@@ -99,7 +101,7 @@ export function OutcomeTimeline({
   const id = useId();
   const [ref, measured] = useWidth<HTMLDivElement>();
   const W = Math.max(280, measured);
-  const [chosen, setChosen] = useState<RangeId>("all");
+  const [chosen, setChosen] = useState<RangeId>("5y");
   // A range the history is too short for (after a currency change) is All.
   const range = rangeAvailable(result.startDates, chosen) ? chosen : "all";
   const { from, to } = useMemo(

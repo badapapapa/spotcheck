@@ -20,6 +20,8 @@ const TOP = 4;
 const AXIS_H = 28;
 /** Below this width, names sit above their bars instead of beside them. */
 const STACK_BELOW = 560;
+/** Beside a dot with no range (All at once is known on day one). */
+const FIXED_LABEL = "fixed, no range";
 
 export type RangeRow = {
   id: string;
@@ -191,6 +193,11 @@ export function RangeChart({
           const yText = stacked ? y0 + 18 : yBar + 5;
           const yMedian = medianBelow ? yText + 20 : yText;
           const point = s.max - s.min < (domain[1] - domain[0]) * 0.002;
+          // A dot with no range (All at once) is labelled, so it isn't read
+          // as a very narrow bar; left of the dot if it would run into the
+          // median column.
+          const fixedLeft =
+            x(s.median) + 10 + textWidth(FIXED_LABEL, 12) > plotR;
           const dim = active !== null && active !== undefined && active !== id;
           return (
             <g
@@ -202,7 +209,9 @@ export function RangeChart({
                 ? {
                     tabIndex: 0,
                     role: "button",
-                    "aria-label": `${row.label}: median ${sgd(s.median)}, 5th to 95th percentile ${sgd(s.p5)} to ${sgd(s.p95)}`,
+                    "aria-label": point
+                      ? `${row.label}: median ${sgd(s.median)}, ${FIXED_LABEL}`
+                      : `${row.label}: median ${sgd(s.median)}, 5th to 95th percentile ${sgd(s.p5)} to ${sgd(s.p95)}`,
                     onFocus: () => setActive(id),
                     onBlur: () => setActive(null),
                     onClick: () => onToggle(id),
@@ -249,6 +258,9 @@ export function RangeChart({
               >
                 {name(row)}
               </text>
+              {/* Not drawn (SVG ignores text outside <text>), but it keeps
+                  the visible words apart ("All at once median S$…"), so the
+                  row's name contains its visible text (WCAG 2.5.3). */}{" "}
               <text
                 aria-hidden
                 x={medianBelow ? 0 : W}
@@ -291,6 +303,20 @@ export function RangeChart({
                   strokeWidth={2}
                 />
               </g>
+              {/* Muted text, which never fades when the row dims. */}
+              {point && " "}
+              {point && (
+                <text
+                  aria-hidden
+                  x={fixedLeft ? x(s.median) - 10 : x(s.median) + 10}
+                  y={yBar + 4}
+                  textAnchor={fixedLeft ? "end" : "start"}
+                  className="fill-muted-foreground text-chart"
+                  data-testid="fixed-label"
+                >
+                  {FIXED_LABEL}
+                </text>
+              )}
             </g>
           );
         })}

@@ -33,6 +33,11 @@ test("the chart is a slider: arrows, Page Up/Down, Home and End", async ({
   const t = await open(page);
   const max = await t.max();
   expect(await t.value()).toBe(max); // the latest period by default
+  // Under All, Home reaches the very first period (5Y is the default range).
+  await page
+    .getByRole("group", { name: "Start dates shown" })
+    .getByRole("button", { name: /^All \(/ })
+    .click();
   await t.slider.focus();
 
   await page.keyboard.press("Home");

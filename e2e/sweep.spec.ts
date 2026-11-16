@@ -70,7 +70,7 @@ for (const q of SCENARIOS) {
 
     // Fixed order in the glance, and every row styled the same.
     const glance = page.getByRole("region", { name: "Comparison at a glance" });
-    expect(await glance.locator("tbody th").allTextContents()).toEqual(
+    expect(await glance.getByTestId("strategy-name").allTextContents()).toEqual(
       STRATEGY_NAMES,
     );
     // The classes of each row and its cells (the reference row's "–" has
