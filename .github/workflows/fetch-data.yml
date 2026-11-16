@@ -180,8 +180,13 @@ jobs:
             }' data/quality.json > clean.json
           count=$(jq '.open | length' clean.json)
           checked=$(jq -r '.checked' clean.json)
+          # Only an issue this job opened (author github-actions[bot], which gh
+          # reports as app/github-actions) counts: anyone can open an issue
+          # with this title on a public repo, and it must never be edited or
+          # closed by the bot.
           issue=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 200 \
-            --json number,title --jq "map(select(.title == env.TITLE)) | .[0].number // empty")
+            --json number,title,author \
+            --jq "map(select(.title == env.TITLE and .author.login == \"app/github-actions\" and .author.is_bot == true)) | .[0].number // empty")
           if [ "$count" -eq 0 ]; then
             if [ -n "$issue" ]; then
               gh issue close "$issue" --repo "$GITHUB_REPOSITORY" \
