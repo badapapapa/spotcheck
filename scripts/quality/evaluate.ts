@@ -458,6 +458,7 @@ function main() {
     `- **A bad print is mostly caught the night after it arrives,** when the next day takes it back: BRL 2000-02-11 is flagged ${rec[0]!.arrival ? "on arrival" : "one day late"}. Catching it on arrival needs the looser setting, which roughly doubles the soft flags.`,
     "- **Spikes under 2% are mostly missed;** most are within a normal day's range. Stale runs are already refused by the existing validation (no repeated rates except the peg), so the stale rule is a second line.",
     `- **The isolation forest adds little** beyond the rules (${fresh.filter((f) => f.kind === "outlier").length} of the ${fresh.length} flags, small moves in volatile weeks). It is kept as a cheap extra, and the sweep shows the totals without it.`,
+    "- **The forest's flags are the least stable part:** it samples from every day, so adding or removing a few days reshuffles its trees and moves scores near the threshold. The rule-based flags don't change that way. Re-judging never removes an open flag (scripts/quality/run.ts), so this can add a flag but not drop one.",
     "",
   );
   mkdirSync(join(import.meta.dirname, "..", "..", "docs", "quality"), {

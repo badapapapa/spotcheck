@@ -42,15 +42,15 @@ Every "upstream-error" entry caught: **yes**. The "jump" entries are real, revie
 
 ## (b) False alarms over the full history
 
-With the proposed thresholds: **89 flags** that aren't in `known-anomalies.ts` (4 more are listed entries), over 1082 series-years: **0.41 per currency per 5 years** on average. The busiest: ARS 20, KZT 16, IDR 9, TRY 8, MXN 4. By kind: outlier 13, move 46, spike 30.
+With the proposed thresholds: **85 flags** that aren't in `known-anomalies.ts` (4 more are listed entries), over 1082 series-years: **0.39 per currency per 5 years** on average. The busiest: ARS 20, KZT 15, TRY 8, IDR 7, MXN 5. By kind: move 46, outlier 9, spike 30.
 
 Threshold sweep (flags not in `known-anomalies.ts`):
 
 | Setting             | spike z / peer z | move z / peer z | forest score | Flags | Per currency per 5 years | BRL 2000-02-11 caught |
 | ------------------- | ---------------- | --------------- | ------------ | ----- | ------------------------ | --------------------- |
-| looser              | 5 / 5            | 12 / 12         | 0.76         | 197   | 0.91                     | spike                 |
-| proposed            | 6 / 6            | 20 / 20         | 0.78         | 89    | 0.41                     | spike                 |
-| stricter            | 8 / 8            | 30 / 30         | 0.8          | 39    | 0.18                     | spike                 |
+| looser              | 5 / 5            | 12 / 12         | 0.76         | 188   | 0.87                     | spike                 |
+| proposed            | 6 / 6            | 20 / 20         | 0.78         | 85    | 0.39                     | spike                 |
+| stricter            | 8 / 8            | 30 / 30         | 0.8          | 48    | 0.22                     | spike                 |
 | proposed, no forest | 6 / 6            | 20 / 20         | off          | 76    | 0.35                     | spike                 |
 
 Every flag the proposed thresholds raise, oldest first:
@@ -60,7 +60,6 @@ Every flag the proposed thresholds raise, oldest first:
 | 1999-04-06 | KZT      | move    | −8.5% (z -61.9, -76.9 against peers), not taken back                    |
 | 1999-04-07 | KZT      | move    | −11.1% (z -81.1, -106.9 against peers), not taken back                  |
 | 1999-04-09 | KZT      | move    | −6.5% (z -42.5, -59.2 against peers), not taken back                    |
-| 1999-04-13 | KZT      | outlier | +0.7%: unusual features (forest score 0.78; z 3.6, 10.0 against peers)  |
 | 1999-04-15 | KZT      | spike   | −1.8% (z -8.8, -12.1 against peers), taken back the next day            |
 | 1999-07-12 | COP      | move    | −8.7% (z -43.0, -90.9 against peers), not taken back                    |
 | 1999-11-23 | CLP      | spike   | +1.3% (z 6.1, 7.3 against peers), taken back the next day               |
@@ -68,7 +67,6 @@ Every flag the proposed thresholds raise, oldest first:
 | 2000-11-06 | PHP      | move    | +5.8% (z 21.1, 30.5 against peers), not taken back                      |
 | 2001-01-19 | PHP      | move    | +15.1% (z 47.8, 65.7 against peers), not taken back                     |
 | 2001-02-26 | TRY      | move    | +9.7% (z 20.2, 25.6 against peers), not taken back                      |
-| 2001-03-06 | MYR      | outlier | +0.9%: unusual features (forest score 0.79; z 4.2, 7.5 against peers)   |
 | 2001-03-30 | TRY      | spike   | +7.4% (z 14.1, 17.8 against peers), taken back the next day             |
 | 2001-04-03 | TRY      | move    | −11.3% (z -23.4, -30.6 against peers), not taken back                   |
 | 2001-04-06 | TRY      | spike   | +3.9% (z 7.4, 9.8 against peers), taken back the next day               |
@@ -96,29 +94,26 @@ Every flag the proposed thresholds raise, oldest first:
 | 2005-08-29 | IDR      | spike   | −2.3% (z -7.3, -9.1 against peers), taken back the next day             |
 | 2007-02-19 | THB      | spike   | −2.3% (z -9.7, -10.2 against peers), taken back the next day            |
 | 2008-09-16 | KRW      | spike   | −4.7% (z -11.0, -10.4 against peers), taken back the next day           |
-| 2008-09-19 | DKK      | outlier | −1.4%: unusual features (forest score 0.78; z -3.6, -7.9 against peers) |
-| 2008-09-19 | EUR      | outlier | −1.4%: unusual features (forest score 0.78; z -3.6, -8.5 against peers) |
-| 2008-10-10 | HUF      | outlier | −3.1%: unusual features (forest score 0.79; z -4.9, -7.9 against peers) |
+| 2008-10-10 | HUF      | outlier | −3.1%: unusual features (forest score 0.78; z -4.9, -7.9 against peers) |
 | 2008-10-10 | MXN      | move    | −9.9% (z -25.0, -27.5 against peers), not taken back                    |
-| 2008-10-10 | USD      | outlier | +0.8%: unusual features (forest score 0.78; z 3.0, 8.3 against peers)   |
 | 2008-10-15 | ISK      | move    | +29.7% (z 34.0, 38.7 against peers), not taken back                     |
 | 2008-10-23 | BRL      | spike   | −7.1% (z -8.6, -7.3 against peers), taken back the next day             |
 | 2008-10-27 | IDR      | move    | −6.6% (z -20.1, -25.8 against peers), not taken back                    |
 | 2008-12-09 | ISK      | spike   | +29.7% (z 29.8, 31.9 against peers), taken back the next day            |
+| 2008-12-18 | CHF      | outlier | +3.7%: unusual features (forest score 0.78; z 5.7, 5.5 against peers)   |
 | 2009-02-05 | KZT      | move    | −12.8% (z -54.5, -38.0 against peers), not taken back                   |
-| 2009-02-17 | IDR      | outlier | −2.2%: unusual features (forest score 0.78; z -4.6, -6.2 against peers) |
 | 2011-02-14 | VND      | move    | −5.7% (z -27.2, -28.7 against peers), not taken back                    |
+| 2011-08-09 | MXN      | outlier | −2.6%: unusual features (forest score 0.79; z -7.3, -5.3 against peers) |
 | 2011-08-10 | MXN      | spike   | +2.6% (z 7.3, 6.3 against peers), taken back the next day               |
-| 2011-11-24 | IDR      | outlier | −1.5%: unusual features (forest score 0.79; z -4.8, -7.7 against peers) |
 | 2011-11-25 | IDR      | outlier | +1.7%: unusual features (forest score 0.79; z 5.6, 7.8 against peers)   |
-| 2013-01-02 | IDR      | outlier | −1.4%: unusual features (forest score 0.79; z -5.0, -8.3 against peers) |
+| 2013-01-02 | IDR      | outlier | −1.4%: unusual features (forest score 0.78; z -5.0, -8.3 against peers) |
+| 2013-08-28 | INR      | outlier | −2.6%: unusual features (forest score 0.78; z -5.7, -5.4 against peers) |
 | 2013-09-25 | IDR      | spike   | −2.1% (z -7.3, -10.2 against peers), taken back the next day            |
 | 2013-10-18 | IDR      | spike   | −4.4% (z -14.3, -18.5 against peers), taken back the next day           |
 | 2013-11-22 | IDR      | spike   | +2.2% (z 6.6, 7.7 against peers), taken back the next day               |
 | 2014-01-24 | ARS      | move    | −11.8% (z -66.1, -68.6 against peers), not taken back                   |
 | 2014-02-12 | KZT      | move    | −10.0% (z -60.6, -67.4 against peers), not taken back                   |
 | 2014-02-13 | KZT      | move    | −6.4% (z -37.5, -43.9 against peers), not taken back                    |
-| 2014-12-03 | COP      | outlier | −1.3%: unusual features (forest score 0.78; z -4.8, -6.5 against peers) |
 | 2014-12-17 | RUB      | spike   | −4.8% (z -10.3, -8.3 against peers), taken back the next day            |
 | 2015-01-15 | CHF      | move    | +15.0% (z 45.3, 104.7 against peers), not taken back                    |
 | 2015-08-20 | KZT      | move    | −8.4% (z -39.8, -40.9 against peers), not taken back                    |
@@ -143,6 +138,7 @@ Every flag the proposed thresholds raise, oldest first:
 | 2022-03-01 | KZT      | move    | −3.9% (z -20.1, -22.1 against peers), not taken back                    |
 | 2022-03-07 | RUB      | move    | −8.3% (z -25.9, -20.9 against peers), not taken back                    |
 | 2022-05-30 | KZT      | spike   | −1.8% (z -7.6, -9.5 against peers), taken back the next day             |
+| 2022-05-30 | RUB      | outlier | −2.9%: unusual features (forest score 0.78; z -6.5, -5.4 against peers) |
 | 2023-08-15 | ARS      | move    | −17.8% (z -83.1, -68.8 against peers), not taken back                   |
 | 2025-04-15 | ARS      | move    | −10.2% (z -62.4, -48.0 against peers), not taken back                   |
 | 2025-05-05 | TWD      | move    | +3.3% (z 20.6, 23.4 against peers), not taken back                      |
@@ -153,10 +149,10 @@ Each row puts one kind of error into 300 randomly chosen days (seed 20261116) th
 
 | Injected          | Caught | Caught on arrival | Caught as                      |
 | ----------------- | ------ | ----------------- | ------------------------------ |
-| spike 1%          | 6.0%   | 0.0%              | spike 8, outlier 10            |
-| spike 2%          | 44.7%  | 0.0%              | spike 114, outlier 20          |
-| spike 5%          | 87.3%  | 30.3%             | spike 253, move 1, outlier 8   |
-| spike 10%         | 98.0%  | 79.0%             | spike 294                      |
+| spike 1%          | 5.7%   | 0.0%              | spike 6, outlier 11            |
+| spike 2%          | 44.7%  | 0.0%              | spike 116, outlier 18          |
+| spike 5%          | 87.3%  | 31.0%             | spike 253, move 1, outlier 8   |
+| spike 10%         | 97.7%  | 78.7%             | spike 292, move 1              |
 | spike 20%         | 100.0% | 98.0%             | spike 296, move 4              |
 | spike 50%         | 99.3%  | 99.3%             | spike 293, inverted 4, move 1  |
 | unit ×10 or ÷10   | 100.0% | 100.0%            | unit 300                       |
@@ -166,7 +162,7 @@ Each row puts one kind of error into 300 randomly chosen days (seed 20261116) th
 | stale 5 days      | 100.0% | 100.0%            | stale 300                      |
 | stale 10 days     | 100.0% | 100.0%            | stale 300                      |
 
-False-positive rate on 3,000 untouched days chosen at random: **0.03%** (1 flagged). Over the full history the proposed thresholds flag 0.03% of all days.
+False-positive rate on 3,000 untouched days chosen at random: **0.07%** (2 flagged). Over the full history the proposed thresholds flag 0.03% of all days.
 
 ## Reading the results
 
@@ -174,4 +170,5 @@ False-positive rate on 3,000 untouched days chosen at random: **0.03%** (1 flagg
 - **Soft flags are mostly real events:** crisis whipsaws and managed devaluations (ARS, KZT, TRY, ISK in 2008, CHF on 15 Jan 2015, March 2020). That is the cost of catching a quiet bad print like BRL 2000. They are for a person to look at, not to block on.
 - **A bad print is mostly caught the night after it arrives,** when the next day takes it back: BRL 2000-02-11 is flagged one day late. Catching it on arrival needs the looser setting, which roughly doubles the soft flags.
 - **Spikes under 2% are mostly missed;** most are within a normal day's range. Stale runs are already refused by the existing validation (no repeated rates except the peg), so the stale rule is a second line.
-- **The isolation forest adds little** beyond the rules (13 of the 89 flags, small moves in volatile weeks). It is kept as a cheap extra, and the sweep shows the totals without it.
+- **The isolation forest adds little** beyond the rules (9 of the 85 flags, small moves in volatile weeks). It is kept as a cheap extra, and the sweep shows the totals without it.
+- **The forest's flags are the least stable part:** it samples from every day, so adding or removing a few days reshuffles its trees and moves scores near the threshold. The rule-based flags don't change that way. Re-judging never removes an open flag (scripts/quality/run.ts), so this can add a flag but not drop one.

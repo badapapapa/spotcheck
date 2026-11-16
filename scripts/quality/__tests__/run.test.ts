@@ -143,13 +143,11 @@ describe("nightly", () => {
     });
     const cut = (n: number) =>
       allFeatures([
-        ...clean
-          .slice(0, 3)
-          .map((s) => ({
-            ...s,
-            dates: s.dates.slice(0, n),
-            values: s.values.slice(0, n),
-          })),
+        ...clean.slice(0, 3).map((s) => ({
+          ...s,
+          dates: s.dates.slice(0, n),
+          values: s.values.slice(0, n),
+        })),
         { ...brl, dates: brl.dates.slice(0, n), values: values.slice(0, n) },
       ]);
     const night1 = nightly(cut(x + 1), undefined, { known: [] });
