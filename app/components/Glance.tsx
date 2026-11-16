@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { ReplayResult } from "@/engine/replay.ts";
 import { STRATEGY_IDS, type StrategyId } from "@/engine/types.ts";
 import { formatSgdAt } from "@/lib/format.ts";
@@ -44,6 +45,7 @@ export function Glance({
   onHover: (id: StrategyId | null) => void;
   onToggle: (id: StrategyId) => void;
 }) {
+  const uid = useId();
   const lump = result.stats.lumpSum.summary.median;
   const fit = useFit<HTMLDivElement>(
     STRATEGY_IDS.map((id) => result.stats[id].summary.median).join(),
@@ -128,22 +130,43 @@ export function Glance({
                     scope="row"
                     className="text-left font-normal"
                   >
+                    {/* The name stays the button's accessible name (the
+                        line under it is its description), so the pin
+                        button reads "Equal tranches", as everywhere else. */}
                     <button
                       type="button"
                       aria-pressed={pinned === id}
+                      aria-describedby={`${uid}-${id}-plain`}
                       onClick={() => onToggle(id)}
                       onMouseEnter={() => onHover(id)}
                       onMouseLeave={() => onHover(null)}
                       onFocus={() => onHover(id)}
                       onBlur={() => onHover(null)}
-                      className="-ml-2 flex min-h-12 w-full items-center gap-2.5 rounded-sm px-2 text-left hover:bg-sunken aria-pressed:bg-sunken"
+                      // Name and line both fit the 48px row the name alone had,
+                      // so the results start no lower on a phone.
+                      className="-ml-2 flex min-h-12 w-full flex-col justify-center rounded-sm px-2 text-left hover:bg-sunken aria-pressed:bg-sunken"
                     >
+                      <span className="flex items-start gap-2.5">
+                        <span
+                          aria-hidden
+                          className="mark mt-1.5 size-2.5 shrink-0 rounded-full"
+                          style={{ background: STRATEGY_STYLE[id].color }}
+                        />
+                        <span data-testid="strategy-name">
+                          {STRATEGY_STYLE[id].label}
+                        </span>
+                      </span>
+                      {/* Under the name (the swatch's 10px and its 10px gap),
+                          from 640px: phones show the names only, so the
+                          results still start on the first screen. */}
                       <span
+                        id={`${uid}-${id}-plain`}
                         aria-hidden
-                        className="mark size-2.5 shrink-0 rounded-full"
-                        style={{ background: STRATEGY_STYLE[id].color }}
-                      />
-                      {STRATEGY_STYLE[id].label}
+                        className="t-small hidden pl-5 text-muted-foreground sm:block"
+                        data-testid="strategy-plain"
+                      >
+                        {STRATEGY_STYLE[id].plain}
+                      </span>
                     </button>
                   </th>
                   <td role="cell" className="t-data-m text-right">

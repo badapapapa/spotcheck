@@ -94,12 +94,14 @@ function glance(r: ReplayResult) {
 /**
  * A row's markup with its content stripped: what's left is its styling.
  * A figure's <wbr> break points are content too: their number follows the
- * figure's digits (S$950 has none, S$19,255 one).
+ * figure's digits (S$950 has none, S$19,255 one). So are the values of id
+ * references (each row's description has its own id); the attributes stay.
  */
 const shape = (row: string) =>
   row
     .replace(/<wbr\/?>/g, "")
     .replace(/style="[^"]*"/g, "")
+    .replace(/\b(id|aria-describedby)="[^"]*"/g, '$1=""')
     .replace(/>[^<]*</g, "><");
 const bodyRows = (html: string) =>
   [...html.matchAll(/<tbody\b[^>]*>([\s\S]*?)<\/tbody>/g)].flatMap((b) =>

@@ -289,7 +289,9 @@ test.describe("Range chart at huge amounts", () => {
     );
     await settled(page);
     await page.waitForTimeout(500);
-    const ticks = page.locator("#evidence figure svg text.text-chart");
+    const ticks = page.locator(
+      "#evidence figure svg text.text-chart:not([data-testid])",
+    );
     const labels = await ticks.allTextContents();
     for (const t of labels) expect(t).toMatch(/^S\$[\d.]+T$/);
     // The full value is the accessible name.
@@ -297,7 +299,7 @@ test.describe("Range chart at huge amounts", () => {
       els.map((e) => e.getAttribute("aria-label")),
     ))
       expect(name).toMatch(/^S\$\d,\d{3},\d{3},\d{3},\d{3}$/);
-    const t = await boxes(page, "text.text-chart");
+    const t = await boxes(page, "text.text-chart:not([data-testid])");
     for (let i = 1; i < t.length; i++)
       expect(t[i - 1]!.r).toBeLessThanOrEqual(t[i]!.l);
     // Each strategy's name above its median, not beside it.
@@ -323,7 +325,7 @@ test.describe("Range chart at huge amounts", () => {
     await settled(page);
     await page.waitForTimeout(500);
     for (const t of await page
-      .locator("#evidence figure svg text.text-chart")
+      .locator("#evidence figure svg text.text-chart:not([data-testid])")
       .allTextContents())
       expect(t).toMatch(/^S\$\d{1,3}(,\d{3})*$/);
     const names = await boxes(page, "text.font-medium");
