@@ -5,6 +5,7 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { CURRENCIES, fxFileName } from "../../engine/currencies.ts";
+import { QualityFileSchema } from "../../lib/quality.ts";
 import { DATA_DIR, readJson } from "./io.ts";
 import { KNOWN_ANOMALIES } from "./known-anomalies.ts";
 import { FX_SOURCES } from "./sources.ts";
@@ -85,6 +86,9 @@ if (import.meta.main === undefined) {
 if (import.meta.main) {
   const files = loadCommitted();
   readJson("meta.json", MetaFileSchema);
+  // The data-quality check's open flags (scripts/quality/run.ts).
+  if (!readJson("quality.json", QualityFileSchema))
+    throw new Error("data/quality.json is missing.");
   const { errors, warnings } = checkAll(files);
   console.log(
     `Checked ${files.fx.size} FX files, SORA and ${files.rates.size} rate file(s): ` +

@@ -32,6 +32,14 @@ export type Flag = {
   date: string;
   kind: FlagKind;
   severity: "severe" | "soft";
+  /** The day's move as a fraction (−0.095 = −9.5%). */
+  move: number;
+  /** Its z-scores, alone and against peers; null before a series has enough history. */
+  z: number | null;
+  peerZ: number | null;
+  /** The isolation forest's score, for an outlier flag; otherwise null. */
+  score: number | null;
+  /** The reason in words, for logs and reports. */
   why: string;
 };
 
@@ -49,10 +57,10 @@ export type Thresholds = {
 };
 
 /**
- * The thresholds docs/quality/evaluation.md proposes: under half a soft
- * flag per currency per 5 years over the whole history, with the listed
- * upstream error caught (the night after it arrives) and every synthetic
- * unit error caught on arrival.
+ * The thresholds the nightly check uses, chosen in docs/quality/evaluation.md:
+ * under half a soft flag per currency per 5 years over the whole history,
+ * with the listed upstream error caught (the night after it arrives) and
+ * every synthetic unit error caught on arrival.
  */
 export const PROPOSED: Thresholds = {
   spikeZ: 6,
@@ -132,15 +140,21 @@ export function flagDay(
 ): Flag | null {
   const f = days[i]!;
   if (i === 0) return null;
+  const finite = (x: number) => (Number.isFinite(x) ? x : null);
   const at = (
     kind: FlagKind,
     severity: Flag["severity"],
     why: string,
+    score: number | null = null,
   ): Flag => ({
     code,
     date: f.date,
     kind,
     severity,
+    move: Math.expm1(f.r),
+    z: finite(f.z),
+    peerZ: finite(f.peerZ),
+    score,
     why,
   });
   if (f.unitPower !== null)
@@ -191,6 +205,7 @@ export function flagDay(
         "outlier",
         "soft",
         `${pct(f.r)}: unusual features (forest score ${s.toFixed(2)}; z ${fmt(f.z)}, ${fmt(f.peerZ)} against peers)`,
+        s,
       );
   }
   return null;
