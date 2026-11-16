@@ -14,6 +14,7 @@
     "test": "vitest run --coverage",
     "check": "npm run typecheck && npm run lint && npm run test && npm run validate-data",
     "fetch-data": "node scripts/fetch/run.ts",
+    "quality": "node scripts/quality/run.ts",
     "validate-data": "node scripts/fetch/validate.ts",
     "e2e": "playwright test"
   },

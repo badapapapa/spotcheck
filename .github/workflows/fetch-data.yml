@@ -13,12 +13,15 @@ concurrency:
   group: fetch-data
   cancel-in-progress: false
 
-# Two jobs, so the token that can push never shares a job with npm or the
-# project's code. "build" installs packages and runs the fetchers, tests and
-# build with a read-only token. "commit" can push, but runs no npm and no
-# project code: it only accepts JSON files under data/. A compromised
-# dependency in "build" could at worst produce data that fails those checks
-# (or that nightly CI then tests); it can never push code or workflows.
+# Separate jobs, so a token that can write never shares a job with npm or
+# the project's code. "build" installs packages and runs the fetchers, the
+# data-quality check, tests and build with a read-only token. "commit" can
+# push, but runs no npm and no project code: it only accepts JSON files under
+# data/. "notify" can only write issues, and also runs no npm or project
+# code: it reads data/quality.json, checks every field with jq, and keeps one
+# issue in step with the open flags. A compromised dependency in "build"
+# could at worst produce data that fails those checks (or that nightly CI
+# then tests); it can never push code or workflows.
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -39,6 +42,11 @@ jobs:
       - run: npm run fetch-data
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      # The data-quality check (scripts/quality/run.ts) reads the rates and
+      # never changes them; it writes data/quality.json and the job summary.
+      # A severe flag (a unit error or an inverted rate) exits 1: nothing is
+      # committed and yesterday's data stays live. Soft flags don't block.
+      - run: npm run quality
       # The new data must pass everything the site depends on before it is
       # committed: type-check, lint, all unit tests, data validation (all part
       # of `npm run check`) and the production build. If any step fails, the
@@ -121,3 +129,82 @@ jobs:
           git add -- data
           git -c core.hooksPath=/dev/null commit -m "data: update $(TZ=Asia/Singapore date +%F)"
           git -c core.hooksPath=/dev/null push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:${GITHUB_REF_NAME}
+
+  # Keeps one issue, "Data quality: open flags", in step with
+  # data/quality.json: opened or updated while flags are open, closed when
+  # none are. No checkout and no npm or project code: the only input is the
+  # file from the build job, and jq keeps only fields that match a fixed
+  # shape (a three-letter code, an ISO date, a known kind, numbers), so
+  # nothing else in the file can reach the issue. The body is built here.
+  notify:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Download data
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: data
+          path: data
+      - name: Open, update or close the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: "Data quality: open flags"
+        run: |
+          set -euo pipefail
+          # A file that isn't the expected shape fails the job and leaves
+          # the issue alone, rather than reading as "no open flags".
+          if ! jq -e '(.checkedThrough | type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")) and (.open | type == "array")' \
+            data/quality.json > /dev/null; then
+            echo "::error::data/quality.json is not in the expected shape."
+            exit 1
+          fi
+          # Keep only well-formed flags, with only the expected fields.
+          jq -c '
+            def iso: type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}$");
+            def num: type == "number";
+            def numOrNull: . == null or type == "number";
+            {
+              checked: .checkedThrough,
+              open: [
+                .open[]
+                | select(type == "object")
+                | select(.currency | type == "string" and test("^[A-Z]{3}$"))
+                | select(.date | iso)
+                | select(.kind as $k | ["unit", "inverted", "spike", "move", "stale", "outlier"] | index($k) != null)
+                | select(.severity as $s | ["severe", "soft"] | index($s) != null)
+                | select((.move | num) and (.z | numOrNull) and (.peerZ | numOrNull) and (.score | numOrNull))
+                | {currency, date, kind, severity, move, z, peerZ, score}
+              ]
+            }' data/quality.json > clean.json
+          count=$(jq '.open | length' clean.json)
+          checked=$(jq -r '.checked' clean.json)
+          # Only an issue this job opened (author github-actions[bot], which gh
+          # reports as app/github-actions) counts: anyone can open an issue
+          # with this title on a public repo, and it must never be edited or
+          # closed by the bot.
+          issue=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 200 \
+            --json number,title,author \
+            --jq "map(select(.title == env.TITLE and .author.login == \"app/github-actions\" and .author.is_bot == true)) | .[0].number // empty")
+          if [ "$count" -eq 0 ]; then
+            if [ -n "$issue" ]; then
+              gh issue close "$issue" --repo "$GITHUB_REPOSITORY" \
+                --comment "No open flags as of ${checked}."
+            fi
+            echo "No open flags (checked through ${checked})."
+            exit 0
+          fi
+          jq -r '
+            def fixed(d): if . == null then "n/a" else (. * pow(10; d) | round / pow(10; d) | tostring) end;
+            "The nightly data-quality check has \(.open | length) open flag(s), checked through \(.checked).\n\n"
+            + "| Currency | Date | Kind | Severity | Move | z | Peer z | Forest score |\n"
+            + "|---|---|---|---|---|---|---|---|\n"
+            + ([.open[] | "| \(.currency) | \(.date) | \(.kind) | \(.severity) | \(.move * 100 | fixed(1))% | \(.z | fixed(1)) | \(.peerZ | fixed(1)) | \(.score | fixed(2)) |"] | join("\n"))
+            + "\n\nTo close a flag, add its day to `scripts/fetch/known-anomalies.ts` in a PR: `jump` if the move is real, `upstream-error` if the source published a bad rate (see `docs/quality/flag-handling.md`). This issue is updated each night."
+          ' clean.json > body.md
+          if [ -n "$issue" ]; then
+            gh issue edit "$issue" --repo "$GITHUB_REPOSITORY" --body-file body.md
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body-file body.md
+          fi

@@ -1,9 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans, Newsreader } from "next/font/google";
 import meta from "@/data/meta.json";
+import quality from "@/data/quality.json";
 import { formatDate } from "@/lib/dates.ts";
 import { KEEP_SCENARIO_SCRIPT } from "@/lib/keep-scenario.ts";
 import { pageMetadata } from "@/lib/page-metadata.ts";
+import { QualityFileSchema } from "@/lib/quality.ts";
+import { qualityNote } from "@/lib/quality-note.ts";
 import {
   DISCLAIMER,
   PLANNER_DESCRIPTION,
@@ -62,6 +65,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   const ratesTo = formatDate(meta.series["SGD-USD"]?.last ?? "");
+  // The nightly data-quality check (lib/quality.ts), parsed at build time.
+  const dataChecks = qualityNote(QualityFileSchema.parse(quality));
   return (
     <html
       lang="en"
@@ -111,6 +116,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <p className="t-small font-medium">{DISCLAIMER}</p>
               <p className="t-small mt-3 text-muted-foreground">
                 Rates up to {ratesTo}. Updated each working day.
+              </p>
+              <p
+                className="t-small mt-1 text-muted-foreground"
+                data-testid="data-checks"
+              >
+                {dataChecks}
               </p>
             </div>
             <div className="lg:col-span-6 lg:col-start-7">
