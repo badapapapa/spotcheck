@@ -4,15 +4,9 @@ import meta from "@/data/meta.json";
 import quality from "@/data/quality.json";
 import { formatDate } from "@/lib/dates.ts";
 import { KEEP_SCENARIO_SCRIPT } from "@/lib/keep-scenario.ts";
-import { pageMetadata } from "@/lib/page-metadata.ts";
 import { QualityFileSchema } from "@/lib/quality.ts";
 import { qualityNote } from "@/lib/quality-note.ts";
-import {
-  DISCLAIMER,
-  PLANNER_DESCRIPTION,
-  SITE_NAME,
-  SITE_URL,
-} from "@/lib/site";
+import { DISCLAIMER, SITE_URL } from "@/lib/site";
 import { Suspense } from "react";
 import { SiteNav, SiteNavFallback } from "./components/SiteNav";
 import { Wordmark } from "./components/Wordmark";
@@ -45,12 +39,8 @@ export const metadata: Metadata = {
   // Turns the relative image and page paths into the absolute URLs that link
   // previews need.
   metadataBase: new URL(SITE_URL),
-  // The planner's own: app/page.tsx sets none, so it uses these.
-  ...pageMetadata({
-    title: `${SITE_NAME}: what difference does your exchange strategy make?`,
-    description: PLANNER_DESCRIPTION,
-    path: "/",
-  }),
+  // Each page sets its own title, canonical URL and previews (app/page.tsx
+  // for the planner), so the 404 page inherits none of them.
   // iPhone/iPad home-screen icon (also served at the conventional path).
   icons: { apple: "/apple-touch-icon.png" },
 };

@@ -4,6 +4,7 @@
 //
 // Next.js inlines a few scripts in every page (its bootstrap and the
 // server-rendered payload) and the layout adds one (lib/keep-scenario.ts).
+// The planner's JSON-LD is a data block, not a script, so it gets no hash.
 // Their text changes with every build and with the data, so the hashes are
 // computed from out/ after each build, never written by hand.
 //
@@ -28,10 +29,56 @@ const CSP = "Content-Security-Policy";
 export const MAX_RULES = 100;
 export const MAX_LINE = 2000;
 
-/** The text of every inline <script> (one without a src attribute). */
+/**
+ * The type attributes whose inline scripts the browser checks against
+ * script-src: JavaScript (no type, or a JavaScript MIME type), modules,
+ * import maps and speculation rules (HTML's "prepare the script element").
+ */
+const CHECKED_TYPES = new Set([
+  "",
+  "module",
+  "importmap",
+  "speculationrules",
+  ...[
+    "application/ecmascript",
+    "application/javascript",
+    "application/x-ecmascript",
+    "application/x-javascript",
+    "text/ecmascript",
+    "text/javascript",
+    "text/javascript1.0",
+    "text/javascript1.1",
+    "text/javascript1.2",
+    "text/javascript1.3",
+    "text/javascript1.4",
+    "text/javascript1.5",
+    "text/jscript",
+    "text/livescript",
+    "text/x-ecmascript",
+    "text/x-javascript",
+  ],
+]);
+
+/**
+ * Whether a <script> with these attributes is checked against script-src.
+ * Any other type is a data block (the planner's application/ld+json): the
+ * browser never runs it, so it needs no hash, and leaving it out means its
+ * hash can never allow a script with the same text.
+ */
+export function isCheckedScript(attrs: string): boolean {
+  const type = /\btype\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(attrs);
+  if (!type) return true;
+  const value = (type[1] ?? type[2] ?? type[3] ?? "").trim().toLowerCase();
+  return CHECKED_TYPES.has(value);
+}
+
+/**
+ * The text of every inline <script> (one without a src attribute) that
+ * the browser checks against script-src.
+ */
 export function inlineScripts(html: string): string[] {
   return [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)]
-    .filter((m) => !/\bsrc\s*=/i.test(m[1]!))
+    .filter((m) => !/\bsrc\s*=/i.test(m[1]!) && isCheckedScript(m[1]!))
     .map((m) => m[2]!);
 }
 

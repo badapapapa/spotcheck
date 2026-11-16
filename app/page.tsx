@@ -1,25 +1,41 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
+import { pageMetadata } from "@/lib/page-metadata.ts";
+import { PLANNER_DESCRIPTION, TITLES } from "@/lib/site";
+import { jsonLd, WEB_APPLICATION } from "@/lib/structured-data.ts";
 import { Planner, PlannerFallback } from "./components/Planner";
+
+export const metadata: Metadata = pageMetadata({
+  title: TITLES.planner,
+  description: PLANNER_DESCRIPTION,
+  path: "/",
+});
 
 export default function Home() {
   return (
-    <div className="layout pt-4 sm:pt-10 lg:pt-16">
-      {/* The question is static, outside the planner's Suspense boundary, so
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(WEB_APPLICATION) }}
+      />
+      <div className="layout pt-4 sm:pt-10 lg:pt-16">
+        {/* The question is static, outside the planner's Suspense boundary, so
           it paints before any script runs and is never re-rendered. */}
-      <div className="col-main lg:row-start-1">
-        <h1 className="t-display">
-          What difference does your exchange strategy make?
-        </h1>
-        <p className="t-lede mt-3 sm:mt-5">
-          For students on exchange: how four ways of converting SGD played out
-          across past rates.
-        </p>
-      </div>
-      {/* useSearchParams needs a Suspense boundary in a static export. The
+        <div className="col-main lg:row-start-1">
+          <h1 className="t-display">
+            What difference does your exchange strategy make?
+          </h1>
+          <p className="t-lede mt-3 sm:mt-5">
+            For students on exchange: how four ways of converting SGD played out
+            across past rates.
+          </p>
+        </div>
+        {/* useSearchParams needs a Suspense boundary in a static export. The
           fallback has the planner's shape, so nothing jumps when it loads. */}
-      <Suspense fallback={<PlannerFallback />}>
-        <Planner />
-      </Suspense>
-    </div>
+        <Suspense fallback={<PlannerFallback />}>
+          <Planner />
+        </Suspense>
+      </div>
+    </>
   );
 }

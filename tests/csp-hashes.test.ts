@@ -7,6 +7,7 @@ import {
   buildHeaders,
   hashSource,
   inlineScripts,
+  isCheckedScript,
   MAX_LINE,
   routesFor,
   withHashes,
@@ -27,6 +28,42 @@ describe("inlineScripts", () => {
       '<body><SCRIPT type="module">\n two()\n</SCRIPT><script async src=b.js></script>' +
       "<script></script></body>";
     expect(inlineScripts(html)).toEqual(["one()", "\n two()\n", ""]);
+  });
+
+  it("leaves out data blocks such as JSON-LD, which never run", () => {
+    const html =
+      '<script type="application/ld+json">{"@type":"WebApplication"}</script>' +
+      "<script type='text/javascript'>three()</script>" +
+      '<script type="application/json" id=x>{}</script><script>four()</script>';
+    expect(inlineScripts(html)).toEqual(["three()", "four()"]);
+  });
+});
+
+describe("isCheckedScript", () => {
+  it("checks JavaScript, modules, import maps and speculation rules", () => {
+    for (const attrs of [
+      "",
+      " async",
+      ' type=""',
+      ' type=" Text/JavaScript "',
+      " type=application/javascript",
+      " type='module'",
+      ' type="importmap"',
+      ' type="speculationrules"',
+      ' type="text/javascript1.5"',
+    ])
+      expect(isCheckedScript(attrs), attrs).toBe(true);
+  });
+
+  it("treats any other type as a data block", () => {
+    for (const attrs of [
+      ' type="application/ld+json"',
+      " type=application/json",
+      ' type="text/plain"',
+      // Not a JavaScript MIME type as written: the browser doesn't run it.
+      ' type="text/javascript; charset=utf-8"',
+    ])
+      expect(isCheckedScript(attrs), attrs).toBe(false);
   });
 });
 

@@ -1,8 +1,11 @@
-// Title, description and link-preview tags for one page.
+// Title, description, canonical URL and link-preview tags for one page.
 //
 // A page's own title doesn't reach a preview tag inherited from the layout,
 // so each page sets all of them together. A shared link always shows this
 // fixed image: the scenario in its query string never reaches a preview.
+// The canonical URL is the page's path without any scenario, so every
+// shared scenario link counts as the one page for search engines; the
+// layout's metadataBase makes it absolute.
 
 import type { Metadata } from "next";
 import { SITE_NAME } from "./site.ts";
@@ -26,6 +29,7 @@ export function pageMetadata({
   return {
     title,
     description,
+    alternates: { canonical: path },
     openGraph: {
       type: "website",
       siteName: SITE_NAME,

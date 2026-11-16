@@ -3,10 +3,10 @@ import { Suspense } from "react";
 import { Advanced } from "../components/advanced/Advanced";
 import { ScenarioLink } from "../components/ScenarioLink";
 import { pageMetadata } from "@/lib/page-metadata.ts";
-import { HEDGING_DESCRIPTION } from "@/lib/site";
+import { HEDGING_DESCRIPTION, TITLES } from "@/lib/site";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Hedging: forwards and options | SpotCheck",
+  title: TITLES.hedging,
   description: HEDGING_DESCRIPTION,
   path: "/advanced",
 });
