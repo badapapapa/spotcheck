@@ -47,6 +47,16 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
+      # Traces of retried tests (playwright.config.ts), only when the run
+      # fails: the evidence for a flake. Kept 7 days.
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-traces
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
 
   gitleaks:
     name: Secret scan (gitleaks)

@@ -5,7 +5,13 @@ export default defineConfig({
   testDir: "e2e",
   timeout: 30_000,
   retries: process.env.CI ? 1 : 0,
-  use: { baseURL: "http://localhost:4173" },
+  use: {
+    baseURL: "http://localhost:4173",
+    // In CI, a test that fails once is retried with a trace (each action,
+    // the DOM, network and console), so a flake comes with evidence. The
+    // traces are uploaded only when a run fails (.github/workflows/ci.yml).
+    trace: process.env.CI ? "on-first-retry" : "off",
+  },
   projects: [
     { name: "mobile", use: { ...devices["Pixel 7"] } },
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
