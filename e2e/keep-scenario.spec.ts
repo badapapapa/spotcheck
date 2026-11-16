@@ -124,6 +124,36 @@ for (const { label, viewport } of WIDTHS) {
       }
     }
 
+    // The moment just after hydration: React's links are still bare, and a
+    // tap reaches Next's <Link>, which would navigate client-side to its own
+    // bare href. A document listener that takes over every link click, as
+    // React's does, stands in for it here, so the moment is held open
+    // instead of being a race. The script must stop the event and let the
+    // browser follow the rewritten href.
+    for (const { name: linkName, from, link, to } of LINKS) {
+      const which =
+        linkName === "the tab"
+          ? label === "desktop"
+            ? "the top nav"
+            : "the bottom bar"
+          : linkName;
+      test(`${which} keeps the scenario even with a handler like Next's Link`, async ({
+        page,
+      }) => {
+        await openBeforeReact(page, from);
+        await expect(link(page)).toHaveAttribute("href", to);
+        await page.evaluate(() =>
+          document.addEventListener("click", (e) => {
+            if ((e.target as Element).closest?.("a")) e.preventDefault();
+          }),
+        );
+        await expectFollowedWithScenario(
+          await inThisTab((l) => l.click())(page, link(page)),
+          to,
+        );
+      });
+    }
+
     // The real tabs, streamed into the static HTML, rather than the fallback.
     test("a tab on How it works keeps the scenario", async ({ page }) => {
       await openBeforeReact(page, `/how-it-works?${Q}`);
@@ -175,3 +205,35 @@ test("once React has taken over, the links are left to it", async ({
   await expect(page.getByLabel("Amount needed (USD)")).toHaveValue("9,000");
   expect(documents).toEqual([]);
 });
+
+for (const { label, viewport } of WIDTHS)
+  test.describe(`once React has taken over, at ${label}`, () => {
+    test.use({ viewport });
+    test.beforeEach(({ isMobile }) => {
+      test.skip(label === "desktop" && isMobile, "phones are narrow");
+    });
+
+    // The fix above must not slow normal navigation: with the real hrefs in,
+    // every tab switch is still Next's client-side navigation, never a full
+    // page load. (The top nav on laptops, the bottom bar on phones.)
+    test("every tab switch is a client-side navigation", async ({ page }) => {
+      await page.goto(`/?${Q}`);
+      const nav = page.locator('nav[aria-label="Sections"]:visible');
+      const tab = (name: string) =>
+        nav.getByRole("link", { name, exact: true });
+      await expect(tab("Hedging (USD)")).toHaveAttribute("href", /a=9000/);
+      const documents: string[] = [];
+      page.on("request", (r) => {
+        if (r.resourceType() === "document") documents.push(r.url());
+      });
+      await tab("Hedging (USD)").click();
+      await expect(page).toHaveURL(/\/advanced\?.*a=9000/);
+      await expect(page.getByLabel("Amount needed (USD)")).toHaveValue("9,000");
+      await tab("How it works").click();
+      await expect(page).toHaveURL(/\/how-it-works\?.*a=9000/);
+      await tab("Planner").click();
+      await expect(page).toHaveURL(/\/\?.*a=9000/);
+      await expect(page.getByLabel("Amount needed (USD)")).toHaveValue("9,000");
+      expect(documents).toEqual([]);
+    });
+  });
