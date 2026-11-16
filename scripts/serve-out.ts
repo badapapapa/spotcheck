@@ -39,15 +39,22 @@ createServer((req, res) => {
   if (existsSync(`${path}.html`)) path = `${path}.html`;
   else if (existsSync(path) && statSync(path).isDirectory())
     path = join(path, "index.html");
+  // Like Cloudflare Pages: an unknown path gets 404.html with status 404,
+  // under the headers its own path matches (only /*).
+  let status = 200;
   if (!existsSync(path)) {
-    res.writeHead(404).end("Not found");
-    return;
+    path = join(ROOT, "404.html");
+    status = 404;
+    if (!existsSync(path)) {
+      res.writeHead(404).end("Not found");
+      return;
+    }
   }
   const type = TYPES[extname(path)] ?? "application/octet-stream";
   const compress =
     /text|javascript|json|svg/.test(type) &&
     /\bgzip\b/.test(String(req.headers["accept-encoding"]));
-  res.writeHead(200, {
+  res.writeHead(status, {
     ...headersFor(RULES, url.pathname),
     "Content-Type": type,
     ...(compress
