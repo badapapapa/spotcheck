@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { KEEP_SCENARIO_SCRIPT } from "@/lib/keep-scenario.ts";
 import { parseState, SCENARIO_KEYS, serializeState } from "@/lib/url-state.ts";
 
-type Listener = (e: { target: unknown }) => void;
+type Listener = (e: { target: unknown; stopPropagation?: () => void }) => void;
 
 /** Runs the inline script against a stand-in document and page URL. */
 function load(search: string, Params: unknown = URLSearchParams) {
@@ -43,12 +43,14 @@ const inside = (a: unknown) => ({
   target: {
     closest: (s: string) => (s.includes("data-keep-scenario") ? a : null),
   },
+  stopPropagation: vi.fn(),
 });
 
 function clickOn(pageSearch: string, a: ReturnType<typeof link>) {
   const page = load(pageSearch);
-  page.added[0]!.fn(inside(a));
-  return page;
+  const event = inside(a);
+  page.added[0]!.fn(event);
+  return { ...page, event };
 }
 
 describe("the inline script that keeps the scenario", () => {
@@ -86,18 +88,27 @@ describe("the inline script that keeps the scenario", () => {
     expect(a.search).toBe("a=9000");
   });
 
+  it("stops the event when it rewrites a bare link, so Next's Link can't follow the bare href", () => {
+    const a = link();
+    const { event } = clickOn("?a=9000", a);
+    expect(a.search).toBe("a=9000");
+    expect(event.stopPropagation).toHaveBeenCalledTimes(1);
+  });
+
   it("leaves a link that already has a query alone", () => {
     const a = link("?a=1");
-    const { timers } = clickOn("?a=9000", a);
+    const { timers, event } = clickOn("?a=9000", a);
     expect(a.search).toBe("?a=1");
     expect(timers).toHaveLength(0);
+    expect(event.stopPropagation).not.toHaveBeenCalled();
   });
 
   it("leaves the link alone when the page has no scenario", () => {
     const a = link();
-    const { timers } = clickOn("?from=JPY.500000&utm_source=x", a);
+    const { timers, event } = clickOn("?from=JPY.500000&utm_source=x", a);
     expect(a.search).toBe("");
     expect(timers).toHaveLength(0);
+    expect(event.stopPropagation).not.toHaveBeenCalled();
   });
 
   it("ignores anything but a marked link", () => {
