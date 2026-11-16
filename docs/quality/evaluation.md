@@ -36,21 +36,22 @@ The BRL print of 11 Feb 2000 is dropped from `data/`, so it is put back from the
 | SGD-ARS 2023-12-14 | jump           | -54.6% | -266.7 | -270.8 | **move**       | move            |
 | SGD-TRY 2001-02-22 | jump           | -41.1% | -113.7 | -150.6 | **move**       | move            |
 | SGD-TRY 2021-12-21 | jump           | 36.2%  | 43.5   | 41.6   | **move**       | move            |
+| SGD-BRL 2026-10-26 | jump           | -9.5%  | -20.8  | -22.8  | **move**       | move            |
 
 Every "upstream-error" entry caught: **yes**. The "jump" entries are real, reviewed moves; flagging them is expected, and they don't count as false alarms below.
 
 ## (b) False alarms over the full history
 
-With the proposed thresholds: **90 flags** that aren't in `known-anomalies.ts` (3 more are listed entries), over 1082 series-years: **0.42 per currency per 5 years** on average. The busiest: ARS 20, KZT 16, IDR 9, TRY 8, MXN 4. By kind: outlier 13, move 47, spike 30.
+With the proposed thresholds: **89 flags** that aren't in `known-anomalies.ts` (4 more are listed entries), over 1082 series-years: **0.41 per currency per 5 years** on average. The busiest: ARS 20, KZT 16, IDR 9, TRY 8, MXN 4. By kind: outlier 13, move 46, spike 30.
 
 Threshold sweep (flags not in `known-anomalies.ts`):
 
 | Setting             | spike z / peer z | move z / peer z | forest score | Flags | Per currency per 5 years | BRL 2000-02-11 caught |
 | ------------------- | ---------------- | --------------- | ------------ | ----- | ------------------------ | --------------------- |
-| looser              | 5 / 5            | 12 / 12         | 0.76         | 198   | 0.91                     | spike                 |
-| proposed            | 6 / 6            | 20 / 20         | 0.78         | 90    | 0.42                     | spike                 |
+| looser              | 5 / 5            | 12 / 12         | 0.76         | 197   | 0.91                     | spike                 |
+| proposed            | 6 / 6            | 20 / 20         | 0.78         | 89    | 0.41                     | spike                 |
 | stricter            | 8 / 8            | 30 / 30         | 0.8          | 39    | 0.18                     | spike                 |
-| proposed, no forest | 6 / 6            | 20 / 20         | off          | 77    | 0.36                     | spike                 |
+| proposed, no forest | 6 / 6            | 20 / 20         | off          | 76    | 0.35                     | spike                 |
 
 Every flag the proposed thresholds raise, oldest first:
 
@@ -145,7 +146,6 @@ Every flag the proposed thresholds raise, oldest first:
 | 2023-08-15 | ARS      | move    | −17.8% (z -83.1, -68.8 against peers), not taken back                   |
 | 2025-04-15 | ARS      | move    | −10.2% (z -62.4, -48.0 against peers), not taken back                   |
 | 2025-05-05 | TWD      | move    | +3.3% (z 20.6, 23.4 against peers), not taken back                      |
-| 2026-10-26 | BRL      | move    | −9.5% (z -20.8, -22.8 against peers), not taken back                    |
 
 ## (c) Synthetic errors
 
@@ -174,4 +174,4 @@ False-positive rate on 3,000 untouched days chosen at random: **0.03%** (1 flagg
 - **Soft flags are mostly real events:** crisis whipsaws and managed devaluations (ARS, KZT, TRY, ISK in 2008, CHF on 15 Jan 2015, March 2020). That is the cost of catching a quiet bad print like BRL 2000. They are for a person to look at, not to block on.
 - **A bad print is mostly caught the night after it arrives,** when the next day takes it back: BRL 2000-02-11 is flagged one day late. Catching it on arrival needs the looser setting, which roughly doubles the soft flags.
 - **Spikes under 2% are mostly missed;** most are within a normal day's range. Stale runs are already refused by the existing validation (no repeated rates except the peg), so the stale rule is a second line.
-- **The isolation forest adds little** beyond the rules (13 of the 90 flags, small moves in volatile weeks). It is kept as a cheap extra, and the sweep shows the totals without it.
+- **The isolation forest adds little** beyond the rules (13 of the 89 flags, small moves in volatile weeks). It is kept as a cheap extra, and the sweep shows the totals without it.
