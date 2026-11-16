@@ -88,19 +88,19 @@ describe("sanity checks", () => {
     expect(checkFx(jump, allow).errors).toEqual([]);
   });
 
-  it("rejects weekend rows and carried-forward repeats", () => {
+  it("rejects weekend rows, and accepts a real tie", () => {
     const weekend = fx([
       ["2024-01-05", 1.33],
       ["2024-01-06", 1.34],
     ]);
     expect(checkFx(weekend).errors[0]).toMatch(/weekend row on 2024-01-06/);
-    const repeat = fx([
+    // An equal rate on consecutive weekdays is a real observation (which
+    // days count is decided by the home bank's calendar, not by value).
+    const tie = fx([
       ["2024-01-08", 1.33],
       ["2024-01-09", 1.33],
     ]);
-    expect(checkFx(repeat).errors[0]).toMatch(/repeats the previous rate/);
-    // A pegged series repeats by design.
-    expect(checkFx(repeat, [], { allowRepeats: true }).errors).toEqual([]);
+    expect(checkFx(tie).errors).toEqual([]);
   });
 
   it("rejects a stored inversion that doesn't match the raw rate", () => {
@@ -138,7 +138,7 @@ describe("committed data", () => {
   it("SGD-USD passes every check", () => {
     // USD comes from the ECB, where an equal consecutive fixing is real.
     expect(findCurrency("USD")?.fxSource).toBe("ecb");
-    expect(checkFx(committed, [], { allowRepeats: true }).errors).toEqual([]);
+    expect(checkFx(committed).errors).toEqual([]);
   });
 
   it("a deliberately corrupted copy is rejected (Gate 1)", () => {
@@ -206,8 +206,6 @@ describe("upstream errors (known-anomalies)", () => {
           a.kind === "upstream-error",
       ),
     ).toBe(true);
-    expect(
-      checkFx(brl, KNOWN_ANOMALIES, { allowRepeats: true }).errors,
-    ).toEqual([]);
+    expect(checkFx(brl, KNOWN_ANOMALIES).errors).toEqual([]);
   });
 });

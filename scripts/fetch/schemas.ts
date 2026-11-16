@@ -169,7 +169,6 @@ export function checkDates(
 export function checkFx(
   file: FxFile,
   allow: readonly KnownAnomaly[] = [],
-  { allowRepeats = false } = {},
 ): CheckResult {
   const series = `SGD-${file.quote}`;
   const result = checkDates(
@@ -188,18 +187,14 @@ export function checkFx(
     if (Math.abs(raw * sgdPerUnit - 1) > 1e-6) {
       result.errors.push(`${series}: ${date} inversion mismatch`);
     }
-    // Only real trading observations: no weekend rows, no carried-forward
-    // repeats (except for a pegged series, which repeats by design).
+    // Only real trading observations: no weekend rows. (An equal rate on
+    // consecutive days is a real tie: trading-days.ts decides which days
+    // count, by the home bank's calendar, not by value.)
     const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
     if (weekday === 0 || weekday === 6) {
       result.errors.push(`${series}: weekend row on ${date}`);
     }
     if (i === 0) continue;
-    if (!allowRepeats && raw === file.rows[i - 1]![1]) {
-      result.errors.push(
-        `${series}: ${date} repeats the previous rate (carried forward)`,
-      );
-    }
     const prev = file.rows[i - 1]![2];
     const move = Math.abs(sgdPerUnit / prev - 1);
     if (move > LIMITS.maxFxJump && !isAllowed(allow, series, date, "jump")) {
