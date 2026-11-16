@@ -28,6 +28,7 @@ describe("public/_headers", () => {
       expect(h["Content-Security-Policy"]).not.toMatch(/unsafe-eval/);
       expect(h["X-Frame-Options"]).toBe("DENY");
       expect(h["X-Content-Type-Options"]).toBe("nosniff");
+      expect(h["Strict-Transport-Security"]).toBe("max-age=31536000");
     }
   });
 });
