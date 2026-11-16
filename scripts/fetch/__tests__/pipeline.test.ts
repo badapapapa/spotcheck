@@ -238,6 +238,32 @@ describe("the daily job writes nothing when anything fails", () => {
     expect(writes).toEqual([]);
   });
 
+  it("a failed calendar fetch doesn't fail the run: the rows are kept provisionally", async () => {
+    const { d, files } = deps();
+    const logs: string[] = [];
+    d.log = (m) => logs.push(m);
+    d.fetchHomeDates = async () => {
+      throw new Error("HTTP 503 from https://api.frankfurter.dev/v2/providers");
+    };
+    const written = new Map<string, string>();
+    d.writeIfChanged = (path, content) => {
+      written.set(path, content);
+      return false;
+    };
+    await expect(runPipeline(d)).resolves.toBeDefined();
+    // Every committed ISK day is still there, to be judged on a later night.
+    const committed = (
+      files.get("fx/SGD-ISK.json") as { rows: [string][] }
+    ).rows.map((r) => r[0]);
+    const now = (
+      JSON.parse(written.get("fx/SGD-ISK.json")!) as { rows: [string][] }
+    ).rows.map((r) => r[0]);
+    expect(now).toEqual(committed);
+    expect(logs).toContainEqual(
+      expect.stringMatching(/Home calendars unavailable .*kept provisionally/),
+    );
+  });
+
   it("a failed sanity check stops the job before any write", async () => {
     const { d, writes, files } = deps();
     // USD (an ECB currency) gains a new day, after its last committed day,

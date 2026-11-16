@@ -58,41 +58,70 @@ const ProvidersSchema = z.array(
  * `from` and `to`, one calendar year per request. Codes without one, or
  * whose bank Frankfurter reports as having missed publications, are left out
  * of the result (and so keep every weekday row).
+ *
+ * A calendar is a refinement, never a reason to fail the run: if the
+ * providers list or a bank's dates can't be fetched (after the retries in
+ * fetchWithRetry), that bank is left out this run, noted in `log`, and its
+ * rows are kept provisionally for a later night to judge, as for days past
+ * its latest publication. A bank is used only with all of its dates, never
+ * with part of them.
  */
 export async function fetchHomeDates(
   codes: readonly string[],
   from: string,
   to: string,
+  log: (message: string) => void = () => {},
 ): Promise<Map<string, Calendar>> {
   const out = new Map<string, Calendar>();
-  const status = ProvidersSchema.parse(
-    await (await fetchWithRetry(BASE_URL)).json(),
-  );
+  let status: z.infer<typeof ProvidersSchema>;
+  try {
+    status = ProvidersSchema.parse(
+      await (await fetchWithRetry(BASE_URL)).json(),
+    );
+  } catch (err) {
+    log(
+      `Home calendars: providers list unavailable (${String(err)}); all blended rows kept provisionally this run.`,
+    );
+    return out;
+  }
   const reliable = (key: string) =>
     status.find((p) => p.key.toLowerCase() === key)?.publishes_missed === 0;
   let first = true;
   for (const code of codes) {
     const key = HOME_PROVIDERS[code];
-    if (!key || !reliable(key)) continue;
-    const dates = new Set<string>();
-    for (
-      let year = Number(from.slice(0, 4));
-      year <= Number(to.slice(0, 4));
-      year++
-    ) {
-      const chunkFrom =
-        year === Number(from.slice(0, 4)) ? from : `${year}-01-01`;
-      const chunkTo = year === Number(to.slice(0, 4)) ? to : `${year}-12-31`;
-      // Be polite: the public API rate-limits bursts.
-      if (!first) await sleep(2000);
-      first = false;
-      const url =
-        `${BASE_URL}/${key}/rates?base=${code.toLowerCase()}&quotes=usd` +
-        `&from=${chunkFrom}&to=${chunkTo}`;
-      const rows = ResponseSchema.parse(
-        await (await fetchWithRetry(url)).json(),
+    if (!key) continue;
+    if (!reliable(key)) {
+      log(
+        `Home calendars: ${key.toUpperCase()} reports missed publications; ${code} rows kept provisionally this run.`,
       );
-      for (const r of rows) dates.add(r.date);
+      continue;
+    }
+    const dates = new Set<string>();
+    try {
+      for (
+        let year = Number(from.slice(0, 4));
+        year <= Number(to.slice(0, 4));
+        year++
+      ) {
+        const chunkFrom =
+          year === Number(from.slice(0, 4)) ? from : `${year}-01-01`;
+        const chunkTo = year === Number(to.slice(0, 4)) ? to : `${year}-12-31`;
+        // Be polite: the public API rate-limits bursts.
+        if (!first) await sleep(2000);
+        first = false;
+        const url =
+          `${BASE_URL}/${key}/rates?base=${code.toLowerCase()}&quotes=usd` +
+          `&from=${chunkFrom}&to=${chunkTo}`;
+        const rows = ResponseSchema.parse(
+          await (await fetchWithRetry(url)).json(),
+        );
+        for (const r of rows) dates.add(r.date);
+      }
+    } catch (err) {
+      log(
+        `Home calendars: ${key.toUpperCase()} dates unavailable (${String(err)}); ${code} rows kept provisionally this run.`,
+      );
+      continue;
     }
     if (dates.size) {
       const sorted = [...dates].sort();

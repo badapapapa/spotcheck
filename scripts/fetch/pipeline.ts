@@ -115,9 +115,18 @@ export async function runPipeline(
     // Blended rows are kept on the home bank's publishing days only
     // (calendars.ts). From a little before `from`, so a holiday on `from`
     // itself is judged too.
+    // A calendar can only refine which rows are kept, so a failure to fetch
+    // one never fails the run: the rows are kept provisionally instead.
     const calendars =
       source === "blended"
-        ? await deps.fetchHomeDates(codes, addDays(from, -10), today)
+        ? await deps
+            .fetchHomeDates(codes, addDays(from, -10), today, log)
+            .catch((err: unknown) => {
+              log(
+                `Home calendars unavailable (${String(err)}); blended rows kept provisionally this run.`,
+              );
+              return new Map();
+            })
         : new Map();
     for (const code of codes) {
       files.fx.set(code, {
