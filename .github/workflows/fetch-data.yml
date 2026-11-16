@@ -72,8 +72,10 @@ jobs:
           path: data
       # Only the runner's own node, for JSON.parse: no npm, no project code.
       # A path git has to quote (unusual characters) doesn't start with
-      # "data/", so it fails too.
-      - name: Check that only JSON files under data/ changed
+      # "data/", so it fails too. New files are refused: the fetchers only
+      # rewrite the files already committed, so a new series' first file
+      # comes in through a reviewed PR.
+      - name: Check that only existing JSON files under data/ changed
         id: verify
         run: |
           changed=$(git status --porcelain=v1 --untracked-files=all --no-renames)
@@ -84,11 +86,17 @@ jobs:
           fi
           bad=0
           while IFS= read -r line; do
+            code="${line:0:2}"
             path="${line:3}"
             case "${path}" in
               data/*) ;;
               *) echo "::error::Changed outside data/: ${path}"; bad=1; continue ;;
             esac
+            if [ "${code}" = "??" ]; then
+              echo "::error::New file (only existing files may change): ${path}"
+              bad=1
+              continue
+            fi
             if [ -L "${path}" ] || [ ! -f "${path}" ]; then
               echo "::error::Not a regular file (deleted or a link): ${path}"
               bad=1
