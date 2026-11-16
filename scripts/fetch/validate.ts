@@ -39,12 +39,7 @@ export function checkAll(files: DataFiles): CheckResult {
     const file = files.fx.get(c.code);
     if (!file) result.errors.push(`SGD-${c.code}: missing`);
     else {
-      add(
-        checkFx(file, KNOWN_ANOMALIES, {
-          // Only the blended feed carries rates forward; ECB repeats are real.
-          allowRepeats: c.fxSource !== "blended",
-        }),
-      );
+      add(checkFx(file, KNOWN_ANOMALIES));
       if (file.source !== FX_SOURCES[c.fxSource]) {
         result.errors.push(
           `SGD-${c.code}: source doesn't match engine/currencies.ts (${c.fxSource})`,

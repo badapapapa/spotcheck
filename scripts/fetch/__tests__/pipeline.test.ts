@@ -9,10 +9,12 @@ import {
 } from "../pipeline.ts";
 import type { RateRow, SoraRow } from "../schemas.ts";
 import {
+  FAKE_DAYS,
   FAKE_LAST_DAY,
   FAKE_NEXT_DAY,
   FAKE_TODAY,
   fakeFiles,
+  fakeHomeDates,
   fakeReadJson,
   reserveFx,
 } from "./fake-store.ts";
@@ -93,6 +95,7 @@ describe("the daily job writes nothing when anything fails", () => {
       // Each source re-serves the fixture's rows from the requested date on.
       fetchFx: reserveFx(files),
       fetchEcbCrosses: reserveFx(files),
+      fetchHomeDates: fakeHomeDates,
       fetchSora: async (from) => sora.filter((r) => r[0] >= from),
       fetchFredSeries: async (_id, from) => dff.filter((r) => r[0] >= from),
       readJson: fakeReadJson(files),
@@ -134,6 +137,131 @@ describe("the daily job writes nothing when anything fails", () => {
       ),
     );
     expect(writes).toEqual([]);
+  });
+
+  it("a blended feed returning fewer days than committed is refused (the guard holds)", async () => {
+    // ISK (a blended currency with a home calendar) comes back without its
+    // last committed day: the shorter file is refused and nothing is written.
+    const { d, writes, files } = deps();
+    d.fetchFx = async (quotes, from) => {
+      const fresh = await reserveFx(files)(quotes, from);
+      fresh.set(
+        "ISK",
+        fresh.get("ISK")!.filter((r) => r[0] < FAKE_LAST_DAY),
+      );
+      return fresh;
+    };
+    await expect(runPipeline(d)).rejects.toThrow(
+      new RegExp(
+        `SGD-ISK would end on .*, before its committed last date ${FAKE_LAST_DAY}`,
+      ),
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it("a confirmed home holiday is dropped from the re-fetched days", async () => {
+    const { d } = deps();
+    const holiday = FAKE_DAYS.at(-3)!;
+    d.fetchHomeDates = async (codes) => {
+      const all = await fakeHomeDates(codes);
+      const isk = all.get("ISK")!;
+      all.set("ISK", {
+        ...isk,
+        dates: new Set([...isk.dates].filter((x) => x !== holiday)),
+      });
+      return all;
+    };
+    const written = new Map<string, string>();
+    d.writeIfChanged = (path, content) => {
+      written.set(path, content);
+      return false;
+    };
+    await runPipeline(d);
+    const isk = JSON.parse(written.get("fx/SGD-ISK.json")!) as {
+      rows: [string][];
+    };
+    expect(isk.rows.map((r) => r[0])).not.toContain(holiday);
+    expect(isk.rows.at(-1)![0]).toBe(FAKE_LAST_DAY);
+  });
+
+  // A day kept provisionally (its home bank hadn't published yet) turns out
+  // to be a holiday once the bank publishes a later day. If that day was the
+  // last committed one, the later day takes its place at the end.
+  const holidayAtTheEnd = (blendedHasNextDay: boolean) => {
+    const { d, writes, files } = deps();
+    d.fetchFx = async (quotes, from) => {
+      const fresh = await reserveFx(files)(quotes, from);
+      if (blendedHasNextDay) {
+        const isk = fresh.get("ISK")!;
+        const [, raw] = isk.at(-1)!;
+        const next = Number((raw * 1.001).toPrecision(8));
+        isk.push([FAKE_NEXT_DAY, next, Number((1 / next).toPrecision(8))]);
+      }
+      return fresh;
+    };
+    d.fetchHomeDates = async (codes) => {
+      const all = await fakeHomeDates(codes);
+      const isk = all.get("ISK")!;
+      all.set("ISK", {
+        ...isk,
+        dates: new Set([...isk.dates].filter((x) => x !== FAKE_LAST_DAY)),
+        last: FAKE_NEXT_DAY,
+      });
+      return all;
+    };
+    const written = new Map<string, string>();
+    d.writeIfChanged = (path, content) => {
+      writes.push(path);
+      written.set(path, content);
+      return false;
+    };
+    return { d, writes, written };
+  };
+
+  it("a provisional last day confirmed as a holiday is dropped, and the guard allows it", async () => {
+    const { d, written } = holidayAtTheEnd(true);
+    await expect(runPipeline(d)).resolves.toBeDefined();
+    const rows = (
+      JSON.parse(written.get("fx/SGD-ISK.json")!) as { rows: [string][] }
+    ).rows.map((r) => r[0]);
+    expect(rows).not.toContain(FAKE_LAST_DAY);
+    expect(rows.at(-1)).toBe(FAKE_NEXT_DAY);
+  });
+
+  it("...but if the blended feed has no later day yet, the guard refuses and nothing is written", async () => {
+    const { d, writes } = holidayAtTheEnd(false);
+    await expect(runPipeline(d)).rejects.toThrow(
+      new RegExp(
+        `SGD-ISK would end on .*, before its committed last date ${FAKE_LAST_DAY}`,
+      ),
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it("a failed calendar fetch doesn't fail the run: the rows are kept provisionally", async () => {
+    const { d, files } = deps();
+    const logs: string[] = [];
+    d.log = (m) => logs.push(m);
+    d.fetchHomeDates = async () => {
+      throw new Error("HTTP 503 from https://api.frankfurter.dev/v2/providers");
+    };
+    const written = new Map<string, string>();
+    d.writeIfChanged = (path, content) => {
+      written.set(path, content);
+      return false;
+    };
+    await expect(runPipeline(d)).resolves.toBeDefined();
+    // Every committed ISK day is still there, to be judged on a later night.
+    const committed = (
+      files.get("fx/SGD-ISK.json") as { rows: [string][] }
+    ).rows.map((r) => r[0]);
+    const now = (
+      JSON.parse(written.get("fx/SGD-ISK.json")!) as { rows: [string][] }
+    ).rows.map((r) => r[0]);
+    expect(now).toEqual(committed);
+    expect(logs).toContainEqual(
+      expect.stringMatching(/Home calendars unavailable .*kept provisionally/),
+    );
   });
 
   it("a failed sanity check stops the job before any write", async () => {
