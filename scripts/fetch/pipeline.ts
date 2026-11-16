@@ -7,6 +7,7 @@
 // so a bad day leaves yesterday's data in place.
 
 import { CURRENCIES, fxFileName } from "../../engine/currencies.ts";
+import { type fetchHomeDates } from "./calendars.ts";
 import { type fetchEcbCrosses } from "./ecb.ts";
 import { type fetchFx } from "./frankfurter.ts";
 import { KNOWN_ANOMALIES } from "./known-anomalies.ts";
@@ -65,6 +66,7 @@ export type PipelineDeps = {
   fredApiKey?: string;
   fetchFx: typeof fetchFx;
   fetchEcbCrosses: typeof fetchEcbCrosses;
+  fetchHomeDates: typeof fetchHomeDates;
   fetchSora: typeof fetchSora;
   fetchFredSeries: typeof fetchFredSeries;
   readJson: typeof readJson;
@@ -110,6 +112,13 @@ export async function runPipeline(
       .sort()[0]!;
     log(`FX (${source}): fetching ${codes.length} currencies from ${from}`);
     const fresh = await fetchers[source](codes, from, today);
+    // Blended rows are kept on the home bank's publishing days only
+    // (calendars.ts). From a little before `from`, so a holiday on `from`
+    // itself is judged too.
+    const calendars =
+      source === "blended"
+        ? await deps.fetchHomeDates(codes, addDays(from, -10), today)
+        : new Map();
     for (const code of codes) {
       files.fx.set(code, {
         kind: "fx",
@@ -122,7 +131,7 @@ export async function runPipeline(
           `SGD-${code}`,
           tradingObservations(
             merge(old.get(code)?.rows, fresh.get(code) ?? [], from),
-            { dropRepeats: source === "blended" },
+            { calendar: calendars.get(code), since: from },
           ),
           KNOWN_ANOMALIES,
         ),

@@ -9,10 +9,12 @@ import {
 } from "../pipeline.ts";
 import type { RateRow, SoraRow } from "../schemas.ts";
 import {
+  FAKE_DAYS,
   FAKE_LAST_DAY,
   FAKE_NEXT_DAY,
   FAKE_TODAY,
   fakeFiles,
+  fakeHomeDates,
   fakeReadJson,
   reserveFx,
 } from "./fake-store.ts";
@@ -93,6 +95,7 @@ describe("the daily job writes nothing when anything fails", () => {
       // Each source re-serves the fixture's rows from the requested date on.
       fetchFx: reserveFx(files),
       fetchEcbCrosses: reserveFx(files),
+      fetchHomeDates: fakeHomeDates,
       fetchSora: async (from) => sora.filter((r) => r[0] >= from),
       fetchFredSeries: async (_id, from) => dff.filter((r) => r[0] >= from),
       readJson: fakeReadJson(files),
@@ -134,6 +137,51 @@ describe("the daily job writes nothing when anything fails", () => {
       ),
     );
     expect(writes).toEqual([]);
+  });
+
+  it("a blended feed returning fewer days than committed is refused (the guard holds)", async () => {
+    // ISK (a blended currency with a home calendar) comes back without its
+    // last committed day: the shorter file is refused and nothing is written.
+    const { d, writes, files } = deps();
+    d.fetchFx = async (quotes, from) => {
+      const fresh = await reserveFx(files)(quotes, from);
+      fresh.set(
+        "ISK",
+        fresh.get("ISK")!.filter((r) => r[0] < FAKE_LAST_DAY),
+      );
+      return fresh;
+    };
+    await expect(runPipeline(d)).rejects.toThrow(
+      new RegExp(
+        `SGD-ISK would end on .*, before its committed last date ${FAKE_LAST_DAY}`,
+      ),
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it("a confirmed home holiday is dropped from the re-fetched days", async () => {
+    const { d } = deps();
+    const holiday = FAKE_DAYS.at(-3)!;
+    d.fetchHomeDates = async (codes) => {
+      const all = await fakeHomeDates(codes);
+      const isk = all.get("ISK")!;
+      all.set("ISK", {
+        ...isk,
+        dates: new Set([...isk.dates].filter((x) => x !== holiday)),
+      });
+      return all;
+    };
+    const written = new Map<string, string>();
+    d.writeIfChanged = (path, content) => {
+      written.set(path, content);
+      return false;
+    };
+    await runPipeline(d);
+    const isk = JSON.parse(written.get("fx/SGD-ISK.json")!) as {
+      rows: [string][];
+    };
+    expect(isk.rows.map((r) => r[0])).not.toContain(holiday);
+    expect(isk.rows.at(-1)![0]).toBe(FAKE_LAST_DAY);
   });
 
   it("a failed sanity check stops the job before any write", async () => {

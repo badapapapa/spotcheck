@@ -92,3 +92,17 @@ export function reserveFx(files: Map<string, unknown>) {
       ]),
     );
 }
+
+/** Every fixture day (and the next) as a home bank's published dates. */
+export async function fakeHomeDates(codes: readonly string[]) {
+  const { HOME_PROVIDERS } = await import("../calendars.ts");
+  const dates = new Set([...FAKE_DAYS, FAKE_NEXT_DAY]);
+  return new Map(
+    codes
+      .filter((c) => HOME_PROVIDERS[c])
+      .map(
+        (c) =>
+          [c, { dates, first: FAKE_DAYS[0]!, last: FAKE_NEXT_DAY }] as const,
+      ),
+  );
+}
