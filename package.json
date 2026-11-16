@@ -7,7 +7,7 @@
     "dev": "next dev",
     "prebuild": "node scripts/copy-data.ts",
     "build": "next build",
-    "postbuild": "node scripts/clean-out.ts",
+    "postbuild": "node scripts/clean-out.ts && node scripts/csp-hashes.ts",
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",

@@ -1,5 +1,6 @@
-// Cloudflare Pages reads public/_headers. The security headers apply to
-// every path; hashed build assets are cached for a year.
+// Cloudflare Pages reads _headers (public/_headers, with per-page script
+// hashes added after the build: tests/csp-hashes.test.ts). The security
+// headers apply to every path; hashed build assets are cached for a year.
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -30,5 +31,48 @@ describe("public/_headers", () => {
       expect(h["X-Content-Type-Options"]).toBe("nosniff");
       expect(h["Strict-Transport-Security"]).toBe("max-age=31536000");
     }
+  });
+
+  it("allows no inline scripts by keyword (the build adds hashes)", () => {
+    const policy = headersFor(rules, "/")["Content-Security-Policy"]!;
+    const scripts = policy.split(";").find((d) => d.includes("script-src"))!;
+    expect(scripts).not.toMatch(/'unsafe-inline'|'unsafe-hashes'/);
+  });
+});
+
+describe("combining rules, as Cloudflare Pages does", () => {
+  const combined = parseHeaders(
+    [
+      "/*",
+      "  X-Robots-Tag: noindex",
+      "  Cache-Control: max-age=0",
+      "/static/*",
+      "  X-Robots-Tag: nosnippet",
+      "/static/big.bin",
+      "  ! Cache-Control",
+      "  Cache-Control: max-age=604800",
+      "/early",
+      "  ! X-Robots-Tag",
+      "/*",
+      "  X-Late: yes",
+    ].join("\n"),
+  );
+
+  it("joins a header set by several matching rules with a comma", () => {
+    expect(headersFor(combined, "/static/a.css")["X-Robots-Tag"]).toBe(
+      "noindex, nosnippet",
+    );
+  });
+
+  it("detaches what earlier rules set, so a later value stands alone", () => {
+    expect(headersFor(combined, "/static/big.bin")["Cache-Control"]).toBe(
+      "max-age=604800",
+    );
+  });
+
+  it("applies rules in file order: a detach only removes what came before", () => {
+    const h = headersFor(combined, "/early");
+    expect(h["X-Robots-Tag"]).toBeUndefined();
+    expect(h["X-Late"]).toBe("yes");
   });
 });
