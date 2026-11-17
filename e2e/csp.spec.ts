@@ -37,7 +37,10 @@ async function hydrated(page: Page) {
     .toBe(true);
 }
 
-/** The response's policy: one, hash-based, allowing every inline script. */
+/**
+ * The response's policy: one, hash-based, allowing every inline script.
+ * Returns how many JSON-LD blocks the page has.
+ */
 async function checkPolicy(res: Response) {
   const policy = res.headers()["content-security-policy"]!;
   // Two policies joined with ", " would both apply; there is one.
@@ -46,14 +49,20 @@ async function checkPolicy(res: Response) {
   expect(scripts).not.toMatch(/'unsafe-inline'|'unsafe-hashes'/);
   // Hashed here, independently of the build script.
   const html = await res.text();
+  const hash = (text: string) =>
+    `'sha256-${createHash("sha256").update(text).digest("base64")}'`;
   const inline = [
     ...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi),
   ].filter((m) => !/\bsrc\s*=/i.test(m[1]!));
-  expect(inline.length).toBeGreaterThan(0);
-  for (const m of inline)
-    expect(scripts).toContain(
-      `'sha256-${createHash("sha256").update(m[2]!).digest("base64")}'`,
-    );
+  // The planner's JSON-LD is data, not a script: it needs no hash, and has
+  // none, so its text could never be allowed to run.
+  const isData = (attrs: string) => /type="application\/ld\+json"/.test(attrs);
+  const run = inline.filter((m) => !isData(m[1]!));
+  expect(run.length).toBeGreaterThan(0);
+  for (const m of run) expect(scripts).toContain(hash(m[2]!));
+  for (const m of inline.filter((m) => isData(m[1]!)))
+    expect(scripts).not.toContain(hash(m[2]!));
+  return inline.filter((m) => isData(m[1]!)).length;
 }
 
 /** Loads the lazy parts (the timeline, the period detail) too. */
@@ -64,7 +73,7 @@ async function scrollThrough(page: Page) {
 }
 
 const PAGES = [
-  { path: `/?${Q}`, ready: /Results updated/ },
+  { path: `/?${Q}`, ready: /Results updated/, jsonLd: 1 },
   { path: `/advanced?${Q}`, ready: /Hedge results updated/ },
   { path: "/how-it-works" },
   { path: "/404" },
@@ -72,12 +81,12 @@ const PAGES = [
   { path: "/no-such-page", status: 404 },
 ];
 
-for (const { path, ready, status = 200 } of PAGES)
+for (const { path, ready, status = 200, jsonLd = 0 } of PAGES)
   test(`no CSP violations on ${path.split("?")[0]}`, async ({ page }) => {
     const seen = await watch(page);
     const res = (await page.goto(path))!;
     expect(res.status()).toBe(status);
-    await checkPolicy(res);
+    expect(await checkPolicy(res)).toBe(jsonLd);
     await hydrated(page);
     if (ready)
       await expect(page.getByTestId("results-status")).toHaveText(ready);

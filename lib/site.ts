@@ -13,3 +13,17 @@ export const DISCLAIMER =
 
 export const HEDGING_DESCRIPTION =
   "Prices a USD forward and a call option for the same plan, with a historical comparison of unhedged, forward and option costs. Not quotes, and not advice.";
+
+// Search-result titles (the <title> and link previews; each page's h1 is
+// its own). Kept under 60 characters so results don't cut them off.
+export const TITLES = {
+  planner: "Converting SGD for exchange: past rates replayed | SpotCheck",
+  hedging: "SGD/USD forward and option costs for your plan | SpotCheck",
+  howItWorks: "How SpotCheck replays SGD conversion strategies",
+} as const;
+
+// Google Search Console's ownership check: a public token, not a secret
+// (anyone can read it in the page's <head>). Proves the site is ours so
+// Search Console can show how it appears in search.
+export const GOOGLE_SITE_VERIFICATION =
+  "cx_OQuHpru6wdwCOG_TncR2Wh1HxMFSE00cumxwW87M";

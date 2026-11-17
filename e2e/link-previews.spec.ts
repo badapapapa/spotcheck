@@ -9,9 +9,13 @@ const SITE = "https://spotcheck-fx.pages.dev";
 const IMAGE = `${SITE}/og-image.png`;
 
 const PAGES = [
-  { path: "/", og: "/", title: /^SpotCheck: what difference/ },
-  { path: "/advanced", og: "/advanced", title: /^Hedging: / },
-  { path: "/how-it-works", og: "/how-it-works", title: /^How it works/ },
+  { path: "/", og: "/", title: /^Converting SGD for exchange/ },
+  { path: "/advanced", og: "/advanced", title: /^SGD\/USD forward and option/ },
+  {
+    path: "/how-it-works",
+    og: "/how-it-works",
+    title: /^How SpotCheck replays/,
+  },
 ];
 
 // The tags come from the static HTML, whatever the browser's locale or size.
