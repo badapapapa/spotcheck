@@ -6,7 +6,7 @@ import { formatDate } from "@/lib/dates.ts";
 import { KEEP_SCENARIO_SCRIPT } from "@/lib/keep-scenario.ts";
 import { QualityFileSchema } from "@/lib/quality.ts";
 import { qualityNote } from "@/lib/quality-note.ts";
-import { DISCLAIMER, SITE_URL } from "@/lib/site";
+import { DISCLAIMER, GOOGLE_SITE_VERIFICATION, SITE_URL } from "@/lib/site";
 import { Suspense } from "react";
 import { SiteNav, SiteNavFallback } from "./components/SiteNav";
 import { Wordmark } from "./components/Wordmark";
@@ -41,6 +41,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   // Each page sets its own title, canonical URL and previews (app/page.tsx
   // for the planner), so the 404 page inherits none of them.
+  // <meta name="google-site-verification">, on every page.
+  verification: { google: GOOGLE_SITE_VERIFICATION },
   // iPhone/iPad home-screen icon (also served at the conventional path).
   icons: { apple: "/apple-touch-icon.png" },
 };

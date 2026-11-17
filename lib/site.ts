@@ -21,3 +21,9 @@ export const TITLES = {
   hedging: "SGD/USD forward and option costs for your plan | SpotCheck",
   howItWorks: "How SpotCheck replays SGD conversion strategies",
 } as const;
+
+// Google Search Console's ownership check: a public token, not a secret
+// (anyone can read it in the page's <head>). Proves the site is ours so
+// Search Console can show how it appears in search.
+export const GOOGLE_SITE_VERIFICATION =
+  "cx_OQuHpru6wdwCOG_TncR2Wh1HxMFSE00cumxwW87M";

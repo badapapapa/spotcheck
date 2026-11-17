@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { GOOGLE_SITE_VERIFICATION } from "../lib/site.ts";
 import { WEB_APPLICATION } from "../lib/structured-data.ts";
 
 // Canonical URLs, the planner's JSON-LD, and /sitemap.xml and /robots.txt
@@ -83,4 +84,13 @@ test("/robots.txt allows every crawler and names the sitemap", async ({
   expect(text).toMatch(/^Allow: \/$/m);
   expect(text).not.toMatch(/^Disallow:/m);
   expect(text).toMatch(new RegExp(`^Sitemap: ${SITE}/sitemap.xml$`, "m"));
+});
+
+test("the home page carries the Search Console verification tag", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const tag = page.locator('head meta[name="google-site-verification"]');
+  await expect(tag).toHaveCount(1);
+  await expect(tag).toHaveAttribute("content", GOOGLE_SITE_VERIFICATION);
 });
